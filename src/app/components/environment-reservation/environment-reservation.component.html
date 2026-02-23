@@ -1,0 +1,181 @@
+<div class="calendar-container">
+  <!-- Header with navigation -->
+  <div class="calendar-header">
+    <div class="header-left">
+      <h2>Schedule</h2>
+      <span class="week-range">{{ formatWeekRange() }}</span>
+    </div>
+    <div class="nav-controls">
+      <button class="nav-btn" (click)="prevWeek()" title="Previous week">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="nav-btn today-btn" (click)="goToToday()">Today</button>
+      <button class="nav-btn" (click)="nextWeek()" title="Next week">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Calendar Grid -->
+  <div class="calendar-card">
+    <div class="calendar-scroll">
+      <table class="calendar-table">
+        <thead>
+          <tr>
+            <th class="env-header">Environment</th>
+            @for (date of weekDates; track date) {
+              <th
+                class="date-header"
+                [class.today]="isToday(date)"
+                [class.weekend]="isWeekend(date)"
+              >
+                <span class="day-name">{{ formatDay(date) }}</span>
+                <span class="day-date" [class.today-badge]="isToday(date)">{{ formatDate(date) }}</span>
+              </th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (env of environments; track env; let i = $index) {
+            <tr [class.alt-row]="i % 2 !== 0">
+              <td class="env-cell">
+                <span class="env-badge">{{ env | uppercase }}</span>
+              </td>
+              @for (date of weekDates; track date) {
+                @if (!isSpanContinuation(env, date)) {
+                  @if (getReservation(env, date); as reservation) {
+                    <td
+                      class="cal-cell reserved"
+                      [class.today-col]="isToday(date)"
+                      [attr.colspan]="getColspan(env, date)"
+                      (click)="selectReservation(reservation)"
+                    >
+                      <div class="reservation-bar">
+                        <div class="reservation-avatar">{{ reservation.userName.charAt(0) | uppercase }}</div>
+                        <span class="reservation-user">{{ reservation.userName }}</span>
+                      </div>
+                    </td>
+                  } @else {
+                    <td
+                      class="cal-cell empty"
+                      [class.today-col]="isToday(date)"
+                      [class.weekend]="isWeekend(date)"
+                      (click)="openReserveModal(env, date)"
+                    >
+                      <span class="add-icon">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                      </span>
+                    </td>
+                  }
+                }
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Reservation Modal -->
+  @if (showModal) {
+    <div class="modal-overlay" (click)="closeModal()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <h3>New Reservation</h3>
+            <span class="modal-env-tag">{{ modalEnv | uppercase }}</span>
+          </div>
+          <button class="modal-close" (click)="closeModal()">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <form (ngSubmit)="onSubmit()">
+          <div class="form-group">
+            <label for="userName">Your Name</label>
+            <input
+              id="userName"
+              type="text"
+              [(ngModel)]="userName"
+              name="userName"
+              placeholder="e.g. John Smith"
+              autofocus
+            />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Start Date</label>
+              <input type="date" [value]="modalDate" disabled />
+            </div>
+            <div class="form-group">
+              <label for="endDate">End Date</label>
+              <input
+                id="endDate"
+                type="date"
+                [(ngModel)]="endDate"
+                name="endDate"
+                [min]="modalDate"
+              />
+            </div>
+          </div>
+          @if (errorMessage) {
+            <div class="message error">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3.5M8 10.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              {{ errorMessage }}
+            </div>
+          }
+          <button type="submit" class="btn-primary" [disabled]="isSubmitting">
+            @if (isSubmitting) {
+              <span class="spinner"></span>
+              Reserving...
+            } @else {
+              Confirm Reservation
+            }
+          </button>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Reservation Details Popup -->
+  @if (selectedReservation) {
+    <div class="modal-overlay" (click)="closeDetails()">
+      <div class="modal modal-details" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Reservation Details</h3>
+          <button class="modal-close" (click)="closeDetails()">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="detail-body">
+          <div class="detail-card">
+            <div class="detail-avatar">{{ selectedReservation.userName.charAt(0) | uppercase }}</div>
+            <div>
+              <div class="detail-user-name">{{ selectedReservation.userName }}</div>
+              <div class="detail-env-name">{{ selectedReservation.environment | uppercase }}</div>
+            </div>
+          </div>
+          <div class="detail-dates">
+            <div class="detail-date-block">
+              <span class="detail-date-label">From</span>
+              <span class="detail-date-value">{{ selectedReservation.startDate }}</span>
+            </div>
+            <div class="detail-date-arrow">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 10h8M11 7l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="detail-date-block">
+              <span class="detail-date-label">To</span>
+              <span class="detail-date-value">{{ selectedReservation.endDate }}</span>
+            </div>
+          </div>
+        </div>
+        <button
+          class="btn-danger"
+          (click)="deleteReservation(selectedReservation.id)"
+        >
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 4h11M5 4V2.5A.5.5 0 015.5 2h4a.5.5 0 01.5.5V4M6 7v4M9 7v4M3.5 4l.5 8.5a1 1 0 001 .5h5a1 1 0 001-.5L11.5 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Delete Reservation
+        </button>
+      </div>
+    </div>
+  }
+</div>
