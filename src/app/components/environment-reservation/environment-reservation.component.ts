@@ -19,6 +19,7 @@ import { AuthService } from '../../services/auth.service';
 export class EnvironmentReservationComponent implements OnInit, OnDestroy {
   environments = ENVIRONMENTS;
   reservations: Reservation[] = [];
+  loadingReservations = true;
   private sub!: Subscription;
 
   // Calendar state
@@ -51,7 +52,10 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
       filter((user) => user !== null),
       switchMap(() => this.reservationService.getReservations$())
     ).subscribe(
-      (reservations) => (this.reservations = reservations)
+      (reservations) => {
+        this.reservations = reservations;
+        this.loadingReservations = false;
+      }
     );
   }
 

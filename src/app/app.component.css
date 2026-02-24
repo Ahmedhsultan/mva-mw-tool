@@ -84,6 +84,7 @@
   transition: all var(--transition-fast);
   white-space: nowrap;
   position: relative;
+  text-decoration: none;
 }
 
 .tab-icon {

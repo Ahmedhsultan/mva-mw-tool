@@ -17,6 +17,12 @@
   </div>
 
   <!-- Calendar Grid -->
+  @if (loadingReservations) {
+    <div class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Loading reservations...</p>
+    </div>
+  } @else {
   <div class="calendar-card">
     <div class="calendar-scroll">
       <table class="calendar-table">
@@ -75,6 +81,7 @@
       </table>
     </div>
   </div>
+  }
 
   <!-- Reservation Modal -->
   @if (showModal) {

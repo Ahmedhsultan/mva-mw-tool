@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Reservations — any authenticated user (including anonymous)
+    match /reservations/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Pipeline run history — any authenticated user (including anonymous)
+    match /pipeline-runs/{docId} {
+      allow read, write: if request.auth != null;
+
+      // Viewers presence subcollection
+      match /viewers/{viewerId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+  }
+}
