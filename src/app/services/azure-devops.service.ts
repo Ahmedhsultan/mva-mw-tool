@@ -30,24 +30,26 @@ export class AzureDevOpsService {
 
   // ─── Step 1: Create branch ───────────────────────────────────
   /**
-   * Create branch from release/develop (or develop for libraries).
+   * Create branch from release/develop (or develop for mvax-common).
    * @param branchName Full branch name, e.g. 'release/primary/24.3' or 'primary/24.3'
    */
   async createBranch(repo: string, releaseNumber: string, branchName?: string): Promise<{ success: boolean; message: string }> {
     const targetBranch = branchName || `release/primary/${releaseNumber}`;
+    // Use develop as base ONLY for mvax-common, all others use release/develop
+    const baseBranch = repo === 'mvax-common' ? 'develop' : 'release/develop';
     try {
-      // 1. Get the ref for release/develop
+      // 1. Get the ref for base branch
       const refsRes = await fetch(
-        `${this.baseUrl}/_apis/git/repositories/${repo}/refs?filter=heads/release/develop&api-version=7.1`,
+        `${this.baseUrl}/_apis/git/repositories/${repo}/refs?filter=heads/${baseBranch}&api-version=7.1`,
         { headers: this.headers }
       );
       if (!refsRes.ok) {
         const err = await refsRes.text();
-        return { success: false, message: `Failed to get release/develop ref: ${refsRes.status} – ${err}` };
+        return { success: false, message: `Failed to get ${baseBranch} ref: ${refsRes.status} – ${err}` };
       }
       const refsData = await refsRes.json();
       if (!refsData.value?.length) {
-        return { success: false, message: 'Branch release/develop not found' };
+        return { success: false, message: `Branch ${baseBranch} not found` };
       }
       const sourceObjectId = refsData.value[0].objectId;
 
@@ -312,19 +314,23 @@ export class AzureDevOpsService {
         );
 
         if (env) {
-          // Azure DevOps environment statuses:
-          // notStarted=1, inProgress=2, succeeded=4, rejected/failed=8, canceled=32
+          // Azure DevOps EnvironmentStatus codes (varies by API version):
+          // 0=undefined, 1=notStarted, 2=inProgress, 4=succeeded
+          // Other values (3,5,6,7,8,16,32,64,128 etc.) are terminal failures
           const status = env.status;
-          const statusName = env.status === 4 ? 'succeeded'
-            : env.status === 8 ? 'rejected'
-            : env.status === 32 ? 'canceled'
-            : env.status === 2 ? 'inProgress'
-            : 'notStarted';
+          const STATUS_NAMES: Record<number, string> = {
+            0: 'undefined', 1: 'notStarted', 2: 'inProgress',
+            3: 'partiallySucceeded', 4: 'succeeded', 5: 'rejected',
+            6: 'canceled', 7: 'queued', 8: 'rejected', 16: 'rejected',
+            32: 'canceled', 64: 'scheduled', 128: 'pending',
+          };
+          const statusName = STATUS_NAMES[status] || `unknown(${status})`;
 
           if (status === 4) {
             return { success: true, message: `Release #${releaseId} deployment ${statusName}` };
           }
-          if (status === 8 || status === 32) {
+          // Only keep polling for in-progress states; everything else is terminal failure
+          if (status !== 0 && status !== 1 && status !== 2) {
             return { success: false, message: `Release #${releaseId} deployment ${statusName}` };
           }
 
@@ -374,8 +380,10 @@ export class AzureDevOpsService {
       );
       if (!env) return { done: false, success: false, statusName: 'waiting' };
       if (env.status === 4) return { done: true, success: true, statusName: 'succeeded' };
-      if (env.status === 8 || env.status === 32) {
-        return { done: true, success: false, statusName: env.status === 8 ? 'rejected' : 'canceled' };
+      // Only keep polling for in-progress states (0=undefined, 1=notStarted, 2=inProgress)
+      if (env.status !== 0 && env.status !== 1 && env.status !== 2) {
+        const names: Record<number, string> = { 3:'partiallySucceeded', 5:'rejected', 6:'canceled', 7:'queued', 8:'rejected', 16:'rejected', 32:'canceled' };
+        return { done: true, success: false, statusName: names[env.status] || `failed(${env.status})` };
       }
       return { done: false, success: false, statusName: env.status === 2 ? 'inProgress' : 'notStarted' };
     } catch {

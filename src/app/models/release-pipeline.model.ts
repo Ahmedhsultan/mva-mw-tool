@@ -14,7 +14,7 @@ export const MICROSERVICES = [
 
 export type Microservice = (typeof MICROSERVICES)[number];
 
-/** Library services: different branch naming, no deployment */
+/** Library services: different branch naming (primary/{release}), no deployment */
 export const LIBRARY_SERVICES: ReadonlySet<string> = new Set([
   'mvax-common',
   'mvax-population-engine',

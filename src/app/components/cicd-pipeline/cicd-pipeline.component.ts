@@ -221,7 +221,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       {
         id: 'create-branch',
         label: 'Create Release Branch',
-        description: `Create release branch from release/develop (libraries use primary/${this.releaseNumber})`,
+        description: `Create release branch (mvax-common from develop → primary/${this.releaseNumber}; others from release/develop → release/primary/${this.releaseNumber})`,
         status: 'pending',
         results: makeResults(),
       },
@@ -300,7 +300,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     const releaseBuildIds: Map<string, number> = new Map();
     const masterBuildIds: Map<string, number> = new Map();
 
-    // ── Step 1: Create branches (library services use primary/{relNum}, others use release/primary/{relNum}) ──
+    // ── Step 1: Create branches (mvax-common uses primary/{relNum} from develop; others use release/primary/{relNum} from release/develop) ──
     await this.runStep(0, services, async (svc, result) => {
       const branch = getReleaseBranch(svc, relNum);
       this.addLog(`[${svc}] Creating branch ${branch}...`);
