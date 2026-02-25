@@ -46,6 +46,54 @@
   gap: 12px;
 }
 
+/* ====== Copy All Links Toolbar ====== */
+.stepper-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 4px 4px;
+}
+
+.btn-copy-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--primary-200, #bfdbfe);
+  background: var(--primary-50, #eff6ff);
+  color: var(--primary-600, #2563eb);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.btn-copy-links:hover {
+  background: var(--primary-100, #dbeafe);
+  border-color: var(--primary-400, #60a5fa);
+}
+
+.btn-copy-links.copied {
+  background: var(--success-50, #f0fdf4);
+  border-color: var(--success-300, #86efac);
+  color: var(--success-600, #16a34a);
+}
+
+.link-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 9px;
+  background: var(--primary-100, #dbeafe);
+  color: var(--primary-700, #1d4ed8);
+}
+
 /* ====== Pipeline Layout ====== */
 .pipeline-layout {
   display: grid;
@@ -331,6 +379,39 @@
   cursor: not-allowed;
 }
 
+.btn-danger {
+  width: 100%;
+  padding: 12px 16px;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 150ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-sm {
+  padding: 8px 12px !important;
+  font-size: 0.8rem !important;
+}
+
 /* ====== Logs ====== */
 .log-entries {
   max-height: 280px;
@@ -495,7 +576,7 @@
 
 .step-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
   padding: 6px 0;
 }
@@ -517,9 +598,9 @@
 }
 
 .step-indicator.status-running {
-  border-color: var(--primary-400);
-  background: var(--primary-50);
-  color: var(--primary-500);
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #2563eb;
 }
 
 .step-indicator.status-success {
@@ -624,8 +705,8 @@
 .step-spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(230, 0, 0, 0.2);
-  border-top-color: var(--primary-500);
+  border: 2px solid rgba(59, 130, 246, 0.2);
+  border-top-color: #2563eb;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -665,13 +746,19 @@
   display: flex;
   flex-direction: column;
   padding-top: 4px;
+  flex: 1;
 }
+
 
 .step-label {
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--slate-800);
   line-height: 1.3;
+}
+
+.step.running .step-label {
+  color: #2563eb;
 }
 
 .step.active .step-label {
@@ -720,7 +807,7 @@
 }
 
 .result-running .result-status-dot {
-  background: var(--primary-500);
+  background: #2563eb;
   animation: pulse 1s ease-in-out infinite;
 }
 
@@ -762,17 +849,65 @@
 .result-link {
   font-size: 0.72rem;
   font-weight: 600;
-  color: var(--primary-500);
+  color: #2563eb;
   text-decoration: none;
   white-space: nowrap;
   padding: 2px 8px;
   border-radius: 4px;
-  background: var(--primary-50);
+  background: #eff6ff;
   transition: background 150ms ease;
 }
 
 .result-link:hover {
-  background: var(--primary-100);
+  background: #dbeafe;
+}
+
+/* Step-level action buttons (Refresh All / Rerun All) */
+.step-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.step-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid var(--slate-200);
+  background: var(--slate-50);
+  color: var(--slate-500);
+  transition: all 120ms ease;
+  flex-shrink: 0;
+}
+
+.step-action-btn:hover:not(:disabled) {
+  background: white;
+  border-color: var(--slate-300);
+  color: var(--slate-700);
+}
+
+.step-action-btn--rerun {
+  border-color: rgba(230,0,0,0.2);
+  color: var(--primary-500);
+}
+
+.step-action-btn--rerun:hover:not(:disabled) {
+  background: rgba(230,0,0,0.04);
+  border-color: var(--primary-500);
+  color: var(--primary-600);
+}
+
+.step-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* ====== Step Connector ====== */
@@ -1144,7 +1279,57 @@
   background: rgba(239, 68, 68, 0.08);
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+/* ── Per-row Refresh / Rerun buttons ── */
+.row-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid var(--slate-200);
+  background: var(--slate-50);
+  color: var(--slate-500);
+  transition: all 120ms ease;
+  flex-shrink: 0;
+}
+
+.row-action-btn:hover:not(:disabled) {
+  background: white;
+  border-color: var(--slate-300);
+  color: var(--slate-700);
+}
+
+.row-action-btn--rerun {
+  border-color: rgba(230,0,0,0.2);
+  color: var(--primary-500);
+}
+
+.row-action-btn--rerun:hover:not(:disabled) {
+  background: rgba(230,0,0,0.04);
+  border-color: var(--primary-500);
+  color: var(--primary-600);
+}
+
+.row-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.row-btn-spinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: row-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes row-spin {
+  to { transform: rotate(360deg); }
 }

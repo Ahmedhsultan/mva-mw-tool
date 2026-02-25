@@ -43,14 +43,22 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
   // Pipeline state
   isRunning = false;
   pipelineStarted = false;
+  pipelineCancelled = false;
   currentStepIndex = -1;
   steps: PipelineStep[] = [];
   logs: string[] = [];
   loadingHistory = true;
 
+  // Step-level refresh/rerun tracking
+  stepRefreshing: Set<number> = new Set();
+  stepRerunning: Set<number> = new Set();
+
   // Approval gate for Deploy Release step
   waitingForApproval = false;
   private approvalResolver: (() => void) | null = null;
+
+  // Current user UID (for ownership checks)
+  private currentUserUid: string | null = null;
 
   // Sub-tabs in pipeline panel
   pipelineSubTab: 'run' | 'logs' | 'history' = 'run';
@@ -113,7 +121,8 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     // Wait for anonymous auth to be ready, then subscribe to Firestore
     this.authService.user$
       .pipe(filter((user) => !!user), take(1))
-      .subscribe(() => {
+      .subscribe((user) => {
+        this.currentUserUid = user!.uid;
         this.subscribeToHistory();
       });
   }
@@ -200,8 +209,30 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       this.selectedServices.size > 0 &&
       !!this.releaseNumber.trim() &&
       !!this.releaseEnvironment &&
-      !this.isRunning
+      !this.isRunning &&
+      !this.hasOtherUserRunning()
     );
+  }
+
+  /** Returns true if another user has a running pipeline */
+  hasOtherUserRunning(): boolean {
+    const running = this.runHistory.find((r) => r.status === 'running');
+    if (!running) return false;
+    return !this.isRunOwner(running);
+  }
+
+  /** Returns the running record owned by another user (for display) */
+  getOtherUserRunning(): PipelineRunRecord | null {
+    const running = this.runHistory.find((r) => r.status === 'running');
+    if (!running || this.isRunOwner(running)) return null;
+    return running;
+  }
+
+  /** Check if the current user can approve (only the run creator) */
+  canApprove(): boolean {
+    if (!this.waitingForApproval || !this.currentRunId) return false;
+    const run = this.runHistory.find((r) => r.id === this.currentRunId);
+    return this.isRunOwner(run);
   }
 
   /** Initialize pipeline steps */
@@ -262,6 +293,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
 
     this.pipelineStarted = true;
     this.isRunning = true;
+    this.pipelineCancelled = false;
     this.viewingRun = null;
     this.logs = [];
     this.initSteps();
@@ -282,6 +314,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       currentStepIndex: 0,
       steps: JSON.parse(JSON.stringify(this.steps)),
       logs: [...this.logs],
+      createdBy: this.currentUserUid || undefined,
     };
     this.runHistory.unshift(runRecord);
     try {
@@ -310,6 +343,8 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       this.addLog(`[${svc}] ${res.message}`);
     });
 
+    if (this.pipelineCancelled) return;
+
     if (this.steps[0].status === 'failed') {
       this.addLog('Pipeline stopped: branch creation failed.');
       await this.finalizeRunRecord('failed');
@@ -328,8 +363,12 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       this.addLog(`[${svc}] ${res.message}`);
     });
 
+    if (this.pipelineCancelled) return;
+
     // ── Step 3: Build release & master in parallel ──
     await this.runParallelBuildStep(2, services, relNum, releaseBuildIds, masterBuildIds);
+
+    if (this.pipelineCancelled) return;
 
     // Stop if any build failed
     if (this.steps[2].status === 'failed') {
@@ -347,7 +386,11 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         this.addLog(`[${svc}] Skipped (library)`);
         return;
       }
-      const buildId = masterBuildIds.get(svc);
+      // Read master build ID directly from build step results (ground truth)
+      const masterBuildResult = this.steps[2]?.results.find(
+        (r) => r.service === `${svc} (master)` && r.status === 'success' && r.buildId
+      );
+      const buildId = masterBuildResult?.buildId ?? masterBuildIds.get(svc);
       if (!buildId) {
         result.status = 'skipped';
         result.message = 'No master build ID';
@@ -361,6 +404,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         this.addLog(`[${svc}] ${res.message}`);
         return;
       }
+      result.sourceBuildId = buildId;
       result.releaseId = res.releaseId;
       result.releaseUrl = res.releaseUrl;
       result.releaseEnvironment = res.releaseEnvironment;
@@ -392,6 +436,8 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.pipelineCancelled) return;
+
     // ── Wait for manual approval before Step 5 ──
     this.steps[4].status = 'waiting-approval';
     this.currentStepIndex = 4;
@@ -402,7 +448,14 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       this.approvalResolver = resolve;
     });
     this.waitingForApproval = false;
+
+    if (this.pipelineCancelled) return;
+
     this.addLog('✓ Release deploy approved by user.');
+    // Mark step as running and persist immediately — so a page refresh after approval
+    // won't find 'waiting-approval' in Firestore and re-prompt for approval.
+    this.steps[4].status = 'running';
+    await this.persistRunningState();
 
     // ── Step 5: Deploy release build (skip library services) ──
     await this.runStep(4, services, async (svc, result) => {
@@ -412,7 +465,11 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         this.addLog(`[${svc}] Skipped (library)`);
         return;
       }
-      const buildId = releaseBuildIds.get(svc);
+      // Read release build ID directly from build step results (ground truth)
+      const releaseBuildResult = this.steps[2]?.results.find(
+        (r) => r.service === `${svc} (release)` && r.status === 'success' && r.buildId
+      );
+      const buildId = releaseBuildResult?.buildId ?? releaseBuildIds.get(svc);
       if (!buildId) {
         result.status = 'skipped';
         result.message = 'No release build ID';
@@ -426,6 +483,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         this.addLog(`[${svc}] ${res.message}`);
         return;
       }
+      result.sourceBuildId = buildId;
       result.releaseId = res.releaseId;
       result.releaseUrl = res.releaseUrl;
       result.releaseEnvironment = res.releaseEnvironment;
@@ -460,11 +518,13 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     services: string[],
     action: (service: string, result: ServiceStepResult) => Promise<void>
   ): Promise<void> {
+    if (this.pipelineCancelled) return;
     this.currentStepIndex = stepIndex;
     const step = this.steps[stepIndex];
     step.status = 'running';
 
     for (const svc of services) {
+      if (this.pipelineCancelled) break;
       const result = step.results.find((r) => r.service === svc);
       if (!result) continue;
       result.status = 'running';
@@ -477,6 +537,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       }
     }
 
+    if (this.pipelineCancelled) return;
     const hasFailure = step.results.some((r) => r.status === 'failed');
     const allSkipped = step.results.every((r) => r.status === 'skipped');
     step.status = hasFailure ? 'failed' : allSkipped ? 'skipped' : 'success';
@@ -567,10 +628,59 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
   resetPipeline(): void {
     this.pipelineStarted = false;
     this.isRunning = false;
+    this.pipelineCancelled = false;
     this.currentStepIndex = -1;
     this.steps = [];
     this.logs = [];
     this.viewingRun = null;
+  }
+
+  /** Stop a running pipeline (only the creator can do this) */
+  async stopPipeline(): Promise<void> {
+    if (!this.isRunning) return;
+    // Check ownership
+    const run = this.currentRunId ? this.runHistory.find((r) => r.id === this.currentRunId) : null;
+    if (run && !this.isRunOwner(run)) return;
+
+    this.pipelineCancelled = true;
+    this.addLog('⛔ Pipeline stopped by user.');
+
+    // If waiting for approval, reject it so the promise resolves
+    if (this.approvalResolver) {
+      this.approvalResolver();
+      this.approvalResolver = null;
+    }
+
+    this.isRunning = false;
+    this.waitingForApproval = false;
+
+    // Mark remaining running/pending steps as failed
+    for (const step of this.steps) {
+      if (step.status === 'running' || step.status === 'pending' || step.status === 'waiting-approval') {
+        step.status = 'failed';
+        for (const r of step.results) {
+          if (r.status === 'running' || r.status === 'pending') {
+            r.status = 'failed';
+            r.message = 'Stopped by user';
+          }
+        }
+      }
+    }
+
+    await this.finalizeRunRecord('failed');
+  }
+
+  /** Allow user to change/reconfigure PAT token */
+  changeConfig(): void {
+    this.isConfigured = false;
+    this.pat = '';
+  }
+
+  /** Check if the current user can stop the running pipeline */
+  canStop(): boolean {
+    if (!this.isRunning || !this.currentRunId) return false;
+    const run = this.runHistory.find((r) => r.id === this.currentRunId);
+    return this.isRunOwner(run);
   }
 
   // ─── Run History (Firebase) ─────────────────────────────────────
@@ -609,6 +719,14 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Check if the current user owns a given run */
+  isRunOwner(run?: PipelineRunRecord | null): boolean {
+    if (!run || !this.currentUserUid) return false;
+    // Runs without createdBy (legacy) are owned by everyone
+    if (!run.createdBy) return true;
+    return run.createdBy === this.currentUserUid;
+  }
+
   /** On page load, check for any running pipeline and resume tracking */
   private tryRestoreAndResume(): void {
     // Find any running pipeline from Firestore
@@ -622,6 +740,12 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       running.completedAt = new Date().toISOString();
       this.historyService.saveRun({ ...running }).catch(() => {});
       this.addLog(`Stale pipeline run (Release ${running.releaseNumber}) marked as failed.`);
+      return;
+    }
+
+    // Only the user who created the run can resume execution
+    if (!this.isRunOwner(running)) {
+      this.addLog(`A pipeline run (Release ${running.releaseNumber}) is in progress — started by another user. You can view it in Run History.`);
       return;
     }
 
@@ -726,7 +850,9 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       this.currentStepIndex = i;
 
       // ── Deploy Release step: require approval before running ──
-      if (step.id === 'deploy-release' && (step.status === 'waiting-approval' || step.status === 'pending' || step.status === 'running')) {
+      // Only gate on 'waiting-approval' or 'pending' — if status is already 'running',
+      // the user already approved before the page refresh; skip straight to deploy resume.
+      if (step.id === 'deploy-release' && (step.status === 'waiting-approval' || step.status === 'pending')) {
         // If deploy-master succeeded, wait for user approval before proceeding
         const masterStep = this.steps.find((s) => s.id === 'deploy-master');
         if (masterStep && masterStep.status === 'success') {
@@ -739,6 +865,9 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
           });
           this.waitingForApproval = false;
           this.addLog('✓ Release deploy approved by user.');
+          // Mark as running and persist immediately — prevents re-prompting on refresh
+          step.status = 'running';
+          await this.persistRunningState();
         }
       }
 
@@ -776,7 +905,12 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
 
           // If not yet deployed, create the deployment
           if (result.status !== 'success' && result.status !== 'failed') {
-            const buildId = buildMap.get(svc);
+            // Read build ID directly from build step results (ground truth), fall back to map
+            const buildVariant = step.id === 'deploy-master' ? 'master' : 'release';
+            const buildStepResult = this.steps[2]?.results.find(
+              (r) => r.service === `${svc} (${buildVariant})` && r.status === 'success' && r.buildId
+            );
+            const buildId = buildStepResult?.buildId ?? buildMap.get(svc);
             if (!buildId) {
               result.status = 'skipped';
               result.message = `No ${label} build ID`;
@@ -966,6 +1100,45 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     return `${mins}m ${remSecs}s`;
   }
 
+  // ── Copy All Links ──────────────────────────────────────────────
+  linksCopied = false;
+
+  private getActiveSteps(): PipelineStep[] {
+    return this.viewingRun ? this.viewingRun.steps : this.steps;
+  }
+
+  getAllLinks(): { label: string; url: string }[] {
+    const links: { label: string; url: string }[] = [];
+    for (const step of this.getActiveSteps()) {
+      for (const result of step.results) {
+        if (result.prUrl) {
+          links.push({ label: `[PR] ${result.service}`, url: result.prUrl });
+        }
+        if (result.buildUrl) {
+          links.push({ label: `[Build] ${result.service}`, url: result.buildUrl });
+        }
+        if (result.releaseUrl) {
+          links.push({ label: `[Release] ${result.service}`, url: result.releaseUrl });
+        }
+      }
+    }
+    return links;
+  }
+
+  hasLinks(): boolean {
+    return this.getAllLinks().length > 0;
+  }
+
+  copyAllLinks(): void {
+    const links = this.getAllLinks();
+    if (!links.length) return;
+    const text = links.map((l) => `${l.label}: ${l.url}`).join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      this.linksCopied = true;
+      setTimeout(() => (this.linksCopied = false), 2500);
+    });
+  }
+
   /** UI helper: step icon */
   stepIcon(status: StepStatus): string {
     switch (status) {
@@ -991,6 +1164,278 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     if (this.approvalResolver) {
       this.approvalResolver();
       this.approvalResolver = null;
+    }
+  }
+
+  // ─── Per-row Refresh / Rerun ─────────────────────────────────
+
+  /** Refresh the Azure status of a single build or deploy result row */
+  async refreshResult(stepIndex: number, result: ServiceStepResult): Promise<void> {
+    if (result.refreshing || result.rerunning) return;
+    result.refreshing = true;
+    try {
+      if (result.buildId) {
+        // Build step
+        const res = await this.azureDevOps.checkBuildStatus(result.buildId);
+        const label = res.result || res.status;
+        if (res.done) {
+          result.status = res.success ? 'success' : 'failed';
+          result.message = `Build #${result.buildId} ${label}`;
+        } else {
+          result.message = `Build #${result.buildId} – ${label}`;
+        }
+      } else if (result.releaseId) {
+        // Deploy step
+        const env = result.releaseEnvironment || this.releaseEnvironment;
+        const res = await this.azureDevOps.checkDeploymentStatus(result.releaseId, env);
+        if (res.done) {
+          result.status = res.success ? 'success' : 'failed';
+          result.message = `Release #${result.releaseId}: deployment ${res.statusName}`;
+        } else {
+          result.message = `Release #${result.releaseId}: deployment ${res.statusName}...`;
+        }
+      }
+      await this.persistStepsToHistory();
+    } finally {
+      result.refreshing = false;
+    }
+  }
+
+  /** Returns the release number and environment from the current active or viewed run */
+  private getActiveRunCtx(): { releaseNumber: string; environment: string } {
+    if (this.releaseNumber.trim() && this.releaseEnvironment) {
+      return { releaseNumber: this.releaseNumber.trim(), environment: this.releaseEnvironment };
+    }
+    const runId = this.currentRunId ?? this.viewingRun?.id;
+    const record = runId ? this.runHistory.find((r) => r.id === runId) : null;
+    if (record) return { releaseNumber: record.releaseNumber, environment: record.environment };
+    if (this.viewingRun) return { releaseNumber: this.viewingRun.releaseNumber, environment: this.viewingRun.environment };
+    return { releaseNumber: this.releaseNumber.trim(), environment: this.releaseEnvironment };
+  }
+
+  /** Re-queue a build or re-create a release for a single result row */
+  async rerunResult(stepIndex: number, result: ServiceStepResult): Promise<void> {
+    if (result.refreshing || result.rerunning) return;
+    result.rerunning = true;
+    // Show the run as 'running' while this rerun is in progress
+    if (this.viewingRun) this.viewingRun = { ...this.viewingRun, status: 'running' };
+    const { releaseNumber: activeRelNum, environment: activeEnv } = this.getActiveRunCtx();
+    try {
+      if (result.buildId !== undefined || stepIndex === 2) {
+        // Build step – service names are "svc (release)" or "svc (master)"
+        const isMaster = result.service.endsWith('(master)');
+        const svcName = result.service.replace(/ \((release|master)\)$/, '').trim();
+        const branch = isMaster ? 'master' : getReleaseBranch(svcName, activeRelNum);
+        result.status = 'running';
+        result.message = 'Queuing new build...';
+        const queueRes = await this.azureDevOps.queueBuild(svcName, branch);
+        if (!queueRes.success) {
+          result.status = 'failed';
+          result.message = queueRes.message;
+          return;
+        }
+        result.buildId = queueRes.buildId;
+        result.buildUrl = queueRes.buildUrl;
+        result.message = queueRes.message;
+        this.addLog(`[${svcName}] Rerun: ${queueRes.message}`);
+        if (queueRes.buildId) {
+          const waitRes = await this.azureDevOps.waitForBuild(
+            queueRes.buildId,
+            (m) => { result.message = m; }
+          );
+          result.status = waitRes.success ? 'success' : 'failed';
+          result.message = waitRes.message;
+          this.addLog(`[${svcName}] Rerun result: ${waitRes.message}`);
+        } else {
+          result.status = 'success';
+        }
+      } else if (result.releaseId !== undefined || stepIndex === 3 || stepIndex === 4) {
+        // Deploy step — prefer the latest build from step 2 over the stored sourceBuildId
+        const svcName = result.service;
+        const buildVariant = stepIndex === 3 ? 'master' : 'release';
+        const buildStepResults = this.steps[2]?.results ?? [];
+        const latestBuildResult = buildStepResults.find(
+          (r) => r.service === `${svcName} (${buildVariant})` && r.status === 'success' && r.buildId
+        );
+        const buildId = latestBuildResult?.buildId ?? result.sourceBuildId;
+        if (!buildId) {
+          result.message = 'Cannot rerun: no build ID found — run the build step first';
+          return;
+        }
+        // Keep sourceBuildId in sync so future reruns also use the latest build
+        result.sourceBuildId = buildId;
+        const env = result.releaseEnvironment || activeEnv;
+        result.status = 'running';
+        result.message = 'Creating new release...';
+        const deployRes = await this.azureDevOps.deploy(buildId, env, svcName);
+        if (!deployRes.success) {
+          result.status = 'failed';
+          result.message = deployRes.message;
+          return;
+        }
+        result.releaseId = deployRes.releaseId;
+        result.releaseUrl = deployRes.releaseUrl;
+        result.releaseEnvironment = deployRes.releaseEnvironment;
+        result.message = deployRes.message;
+        this.addLog(`[${svcName}] Rerun: ${deployRes.message}`);
+        if (deployRes.releaseId) {
+          const waitRes = await this.azureDevOps.waitForDeployment(
+            deployRes.releaseId,
+            deployRes.releaseEnvironment || env,
+            (s) => { result.message = s; }
+          );
+          result.status = waitRes.success ? 'success' : 'failed';
+          result.message = waitRes.message;
+          this.addLog(`[${svcName}] Rerun result: ${waitRes.message}`);
+        } else {
+          result.status = 'success';
+        }
+      }
+      await this.persistStepsToHistory();
+    } finally {
+      result.rerunning = false;
+    }
+  }
+
+  // ─── Step-level Refresh / Rerun ──────────────────────────────
+
+  /** True for build (step 2) and deploy (steps 3 & 4) — these have Azure artifacts */
+  isStepRefreshable(stepIndex: number): boolean {
+    return stepIndex >= 2 && stepIndex <= 4;
+  }
+
+  /** Refresh all results in a step and recompute step status.
+   *  If the step transitions to 'success' and the pipeline is idle, auto-continues. */
+  async refreshStep(stepIndex: number): Promise<void> {
+    if (this.stepRefreshing.has(stepIndex) || this.stepRerunning.has(stepIndex)) return;
+    this.stepRefreshing.add(stepIndex);
+    const step = this.steps[stepIndex];
+    try {
+      for (const result of step.results) {
+        if (result.status === 'skipped') continue;
+        if (result.buildId) {
+          const res = await this.azureDevOps.checkBuildStatus(result.buildId);
+          const label = res.result || res.status;
+          if (res.done) {
+            result.status = res.success ? 'success' : 'failed';
+            result.message = `Build #${result.buildId} ${label}`;
+          } else {
+            result.message = `Build #${result.buildId} – ${label}`;
+          }
+        } else if (result.releaseId) {
+          const env = result.releaseEnvironment || this.getActiveRunCtx().environment;
+          const res = await this.azureDevOps.checkDeploymentStatus(result.releaseId, env);
+          if (res.done) {
+            result.status = res.success ? 'success' : 'failed';
+            result.message = `Release #${result.releaseId}: deployment ${res.statusName}`;
+          } else {
+            result.message = `Release #${result.releaseId}: deployment ${res.statusName}...`;
+          }
+        }
+      }
+      const hasFailure = step.results.some((r) => r.status === 'failed');
+      const allSkipped = step.results.every((r) => r.status === 'skipped');
+      const prevStatus = step.status;
+      step.status = hasFailure ? 'failed' : allSkipped ? 'skipped' : 'success';
+      await this.persistStepsToHistory();
+
+      // Auto-continue: if step is now success, there are more steps, and pipeline is idle
+      if (step.status === 'success' && prevStatus !== 'success' && !this.isRunning) {
+        const hasMoreSteps = this.steps.slice(stepIndex + 1).some((s) => s.status === 'pending' || s.status === 'running' || s.status === 'waiting-approval');
+        if (hasMoreSteps) {
+          this.addLog(`✓ Step refreshed to success — continuing pipeline from step ${stepIndex + 2}...`);
+          await this.continueAfterStep(stepIndex);
+        }
+      }
+    } finally {
+      this.stepRefreshing.delete(stepIndex);
+    }
+  }
+
+  /** Rerun all non-skipped results in a step, then auto-continue if successful */
+  async rerunStep(stepIndex: number): Promise<void> {
+    if (this.stepRefreshing.has(stepIndex) || this.stepRerunning.has(stepIndex)) return;
+    this.stepRerunning.add(stepIndex);
+    const step = this.steps[stepIndex];
+    step.status = 'running';
+    // Mark the run as 'running' while rerun is in progress
+    const rerunRunId = this.currentRunId ?? this.viewingRun?.id;
+    const rerunRecord = rerunRunId ? this.runHistory.find((r) => r.id === rerunRunId) : null;
+    if (rerunRecord) rerunRecord.status = 'running';
+    if (this.viewingRun) this.viewingRun = { ...this.viewingRun, status: 'running' };
+    try {
+      for (const result of step.results) {
+        if (result.status === 'skipped') continue;
+        await this.rerunResult(stepIndex, result);
+      }
+      const hasFailure = step.results.some((r) => r.status === 'failed');
+      const allSkipped = step.results.every((r) => r.status === 'skipped');
+      step.status = hasFailure ? 'failed' : allSkipped ? 'skipped' : 'success';
+      // Recompute overall run status from all steps
+      if (rerunRecord) {
+        const anyFailed = this.steps.some(s => s.status === 'failed');
+        const hasRemainingWork = this.steps.some(s => ['pending', 'running', 'waiting-approval'].includes(s.status));
+        rerunRecord.status = anyFailed ? 'failed' : hasRemainingWork ? 'running' : 'success';
+        if (this.viewingRun) this.viewingRun = { ...this.viewingRun, status: rerunRecord.status };
+      }
+      await this.persistStepsToHistory();
+
+      // Auto-continue if step succeeded and there are remaining steps
+      if (step.status === 'success' && !this.isRunning) {
+        const hasMoreSteps = this.steps.slice(stepIndex + 1).some((s) => s.status === 'pending' || s.status === 'running' || s.status === 'waiting-approval');
+        if (hasMoreSteps) {
+          this.addLog(`✓ Step rerun succeeded — continuing pipeline from step ${stepIndex + 2}...`);
+          await this.continueAfterStep(stepIndex);
+        }
+      }
+    } finally {
+      this.stepRerunning.delete(stepIndex);
+    }
+  }
+
+  /** Resume the pipeline from after a given step index.
+   *  Restores run context and calls resumePipeline() which skips completed steps. */
+  private async continueAfterStep(stepIndex: number): Promise<void> {
+    const runId = this.currentRunId ?? this.viewingRun?.id;
+    const record = runId ? this.runHistory.find((r) => r.id === runId) : null;
+    if (!record) {
+      this.addLog('Cannot continue: run record not found in history.');
+      return;
+    }
+    if (!this.isRunOwner(record)) {
+      this.addLog('Cannot continue: only the run creator can resume execution.');
+      return;
+    }
+    // Sync current steps into the record so resumePipeline sees the latest statuses
+    record.steps = JSON.parse(JSON.stringify(this.steps));
+    record.logs = [...this.logs];
+    // Restore run context
+    this.pipelineStarted = true;
+    this.isRunning = true;
+    this.currentRunId = record.id;
+    this.releaseNumber = record.releaseNumber;
+    this.releaseEnvironment = record.environment;
+    this.selectedServices = new Set(record.services);
+    this.viewingRun = null;
+    await this.resumePipeline(record).catch((err) => {
+      this.addLog(`Continue failed: ${err.message || err}`);
+      this.isRunning = false;
+      this.finalizeRunRecord('failed');
+    });
+  }
+
+  /** Save current steps & logs to Firestore — works for both active and finished runs */
+  private async persistStepsToHistory(): Promise<void> {
+    const runId = this.currentRunId ?? this.viewingRun?.id;
+    const record = runId ? this.runHistory.find((r) => r.id === runId) : null;
+    if (!record) return;
+    record.steps = JSON.parse(JSON.stringify(this.steps));
+    record.logs = [...this.logs];
+    await this.historyService.saveRun(record).catch((err: any) => {
+      console.error('Failed to persist steps to Firestore:', err);
+    });
+    if (this.viewingRun?.id === record.id) {
+      this.viewingRun = { ...this.viewingRun!, steps: record.steps, logs: record.logs };
     }
   }
 

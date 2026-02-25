@@ -57,6 +57,11 @@ export interface ServiceStepResult {
   releaseId?: number;
   releaseUrl?: string;
   releaseEnvironment?: string;
+  /** Build ID used as source for this deploy (used for rerun) */
+  sourceBuildId?: number;
+  /** UI-only flags for row-level loading */
+  refreshing?: boolean;
+  rerunning?: boolean;
 }
 
 /** Pipeline step definition */
@@ -90,6 +95,7 @@ export interface PipelineRunRecord {
   currentStepIndex: number;
   steps: PipelineStep[];
   logs: string[];
+  createdBy?: string; // Firebase auth UID of the user who started the run
 }
 
 /** Azure DevOps config */

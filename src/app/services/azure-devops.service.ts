@@ -314,10 +314,17 @@ export class AzureDevOpsService {
         );
 
         if (env) {
-          // Azure DevOps EnvironmentStatus codes (varies by API version):
-          // 0=undefined, 1=notStarted, 2=inProgress, 4=succeeded
-          // Other values (3,5,6,7,8,16,32,64,128 etc.) are terminal failures
-          const status = env.status;
+          // Azure DevOps EnvironmentStatus codes:
+          // 0=undefined, 1=notStarted, 2=inProgress, 4=succeeded,
+          // 7=queued, 64=scheduled, 128=pending  ← transient, keep polling
+          // 3=partiallySucceeded, 5=rejected, 6=canceled, 8=rejected ← terminal
+          const STATUS_STRING_MAP: Record<string, number> = {
+            undefined: 0, notStarted: 1, inProgress: 2, partiallySucceeded: 3,
+            succeeded: 4, rejected: 5, canceled: 6, queued: 7, scheduled: 64, pending: 128,
+          };
+          const status: number = typeof env.status === 'number'
+            ? env.status
+            : (STATUS_STRING_MAP[env.status] ?? -1);
           const STATUS_NAMES: Record<number, string> = {
             0: 'undefined', 1: 'notStarted', 2: 'inProgress',
             3: 'partiallySucceeded', 4: 'succeeded', 5: 'rejected',
@@ -329,8 +336,9 @@ export class AzureDevOpsService {
           if (status === 4) {
             return { success: true, message: `Release #${releaseId} deployment ${statusName}` };
           }
-          // Only keep polling for in-progress states; everything else is terminal failure
-          if (status !== 0 && status !== 1 && status !== 2) {
+          // Transient states — keep polling
+          const IN_PROGRESS = new Set([0, 1, 2, 7, 64, 128]);
+          if (!IN_PROGRESS.has(status)) {
             return { success: false, message: `Release #${releaseId} deployment ${statusName}` };
           }
 
@@ -379,13 +387,22 @@ export class AzureDevOpsService {
         (e: any) => e.name.toLowerCase().includes(environmentName.toLowerCase())
       );
       if (!env) return { done: false, success: false, statusName: 'waiting' };
-      if (env.status === 4) return { done: true, success: true, statusName: 'succeeded' };
-      // Only keep polling for in-progress states (0=undefined, 1=notStarted, 2=inProgress)
-      if (env.status !== 0 && env.status !== 1 && env.status !== 2) {
-        const names: Record<number, string> = { 3:'partiallySucceeded', 5:'rejected', 6:'canceled', 7:'queued', 8:'rejected', 16:'rejected', 32:'canceled' };
-        return { done: true, success: false, statusName: names[env.status] || `failed(${env.status})` };
+      const STATUS_STRING_MAP: Record<string, number> = {
+        undefined: 0, notStarted: 1, inProgress: 2, partiallySucceeded: 3,
+        succeeded: 4, rejected: 5, canceled: 6, queued: 7, scheduled: 64, pending: 128,
+      };
+      const envStatus: number = typeof env.status === 'number'
+        ? env.status
+        : (STATUS_STRING_MAP[env.status] ?? -1);
+      if (envStatus === 4) return { done: true, success: true, statusName: 'succeeded' };
+      // Transient states — keep polling (0=undefined, 1=notStarted, 2=inProgress, 7=queued, 64=scheduled, 128=pending)
+      const IN_PROGRESS = new Set([0, 1, 2, 7, 64, 128]);
+      if (!IN_PROGRESS.has(envStatus)) {
+        const names: Record<number, string> = { 3:'partiallySucceeded', 5:'rejected', 6:'canceled', 8:'rejected', 16:'rejected', 32:'canceled' };
+        return { done: true, success: false, statusName: names[envStatus] || `failed(${envStatus})` };
       }
-      return { done: false, success: false, statusName: env.status === 2 ? 'inProgress' : 'notStarted' };
+      const progressNames: Record<number, string> = { 0:'undefined', 1:'notStarted', 2:'inProgress', 7:'queued', 64:'scheduled', 128:'pending' };
+      return { done: false, success: false, statusName: progressNames[envStatus] || 'inProgress' };
     } catch {
       return { done: false, success: false, statusName: 'error' };
     }

@@ -51,7 +51,7 @@
             type="text"
             [(ngModel)]="releaseNumber"
             name="releaseNumber"
-            placeholder="e.g. 24.3.1"
+            placeholder="e.g. 10.69"
             [disabled]="isRunning"
           />
         </div>
@@ -100,6 +100,16 @@
         </div>
 
         <div class="form-actions">
+          @if (hasOtherUserRunning()) {
+            <div class="pipeline-warning">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 1.5L1 14h14L8 1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                <path d="M8 6v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <circle cx="8" cy="12" r="0.8" fill="currentColor"/>
+              </svg>
+              <span>Another user is running a pipeline (Release {{ getOtherUserRunning()?.releaseNumber }}). You can only view it in Run History.</span>
+            </div>
+          }
           @if (!pipelineStarted) {
             <button
               class="btn-primary btn-start"
@@ -113,6 +123,18 @@
             <button class="btn-outline" (click)="resetPipeline()" [disabled]="isRunning">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1111.5-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13 2v4h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
               New Release
+            </button>
+            @if (canStop()) {
+              <button class="btn-danger" (click)="stopPipeline()">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="4" y="4" width="8" height="8" rx="1.5" fill="currentColor"/></svg>
+                Stop Pipeline
+              </button>
+            }
+          }
+          @if (!isRunning && !pipelineStarted) {
+            <button class="btn-outline btn-sm" (click)="changeConfig()">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11z" stroke="currentColor" stroke-width="1.3"/><path d="M7 4.5v3l2 1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Change PAT
             </button>
           }
           @if (isRunning) {
@@ -226,9 +248,28 @@
               }
             </div>
           }
+          @if (hasLinks()) {
+            <div class="stepper-toolbar">
+              <button
+                class="btn-copy-links"
+                [class.copied]="linksCopied"
+                (click)="copyAllLinks()"
+                title="Copy all PR, build, and release links to clipboard"
+              >
+                @if (linksCopied) {
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7l3 3 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Copied!
+                } @else {
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="4" y="1" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M2 4v8a1.5 1.5 0 001.5 1.5H9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                  Copy All Links
+                  <span class="link-count-badge">{{ getAllLinks().length }}</span>
+                }
+              </button>
+            </div>
+          }
           <div class="stepper">
             @for (step of steps; track step.id; let i = $index; let last = $last) {
-              <div class="step" [class.active]="currentStepIndex === i" [class.completed]="step.status === 'success'" [class.failed]="step.status === 'failed'">
+              <div class="step" [class.active]="currentStepIndex === i" [class.completed]="step.status === 'success'" [class.failed]="step.status === 'failed'" [class.running]="step.status === 'running'">
                 <div class="step-header">
                   <div class="step-indicator" [class]="'status-' + step.status">
                     @if (step.status === 'running') {
@@ -249,6 +290,32 @@
                     <span class="step-label">{{ step.label }}</span>
                     <span class="step-desc">{{ step.description }}</span>
                   </div>
+                  @if (isStepRefreshable(i) && step.status !== 'pending') {
+                    <div class="step-actions">
+                      <button class="step-action-btn"
+                        title="Refresh all statuses from Azure"
+                        [disabled]="stepRefreshing.has(i) || stepRerunning.has(i) || step.status === 'running'"
+                        (click)="refreshStep(i)">
+                        @if (stepRefreshing.has(i)) {
+                          <span class="row-btn-spinner"></span>
+                        } @else {
+                          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M11.5 2A5.5 5.5 0 1012.5 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9.5 2H11.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        }
+                        Refresh All
+                      </button>
+                      <button class="step-action-btn step-action-btn--rerun"
+                        title="Rerun all services in this step"
+                        [disabled]="stepRefreshing.has(i) || stepRerunning.has(i) || step.status === 'running'"
+                        (click)="rerunStep(i)">
+                        @if (stepRerunning.has(i)) {
+                          <span class="row-btn-spinner"></span>
+                        } @else {
+                          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5a4.5 4.5 0 114.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5 8.5L2 11.5M2 8.5L5 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        }
+                        Rerun All
+                      </button>
+                    </div>
+                  }
                 </div>
                 @if (step.status === 'waiting-approval') {
                   <div class="approval-gate">
@@ -256,7 +323,7 @@
                       <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2L2 18h16L10 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/><path d="M10 8v4M10 14v1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
                       <span>Manual approval required to deploy release build</span>
                     </div>
-                    <button class="approve-btn" (click)="approveReleaseDeploy()" [disabled]="!waitingForApproval">
+                    <button class="approve-btn" (click)="approveReleaseDeploy()" [disabled]="!canApprove()">
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                       Approve &amp; Deploy Release
                     </button>
@@ -277,6 +344,42 @@
                         }
                         @if (result.releaseUrl) {
                           <a class="result-link" [href]="result.releaseUrl" target="_blank" rel="noopener">View Release</a>
+                        }
+                        @if (result.buildId) {
+                          <button class="row-action-btn" title="Refresh status from Azure" [disabled]="result.refreshing || result.rerunning" (click)="refreshResult(i, result)">
+                            @if (result.refreshing) {
+                              <span class="row-btn-spinner"></span>
+                            } @else {
+                              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M11.5 2A5.5 5.5 0 1012.5 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9.5 2H11.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            }
+                            Refresh
+                          </button>
+                          <button class="row-action-btn row-action-btn--rerun" title="Queue a new build" [disabled]="result.refreshing || result.rerunning" (click)="rerunResult(i, result)">
+                            @if (result.rerunning) {
+                              <span class="row-btn-spinner"></span>
+                            } @else {
+                              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5a4.5 4.5 0 114.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5 8.5L2 11.5M2 8.5L5 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            }
+                            Rerun
+                          </button>
+                        }
+                        @if (result.releaseId) {
+                          <button class="row-action-btn" title="Refresh deployment status from Azure" [disabled]="result.refreshing || result.rerunning" (click)="refreshResult(i, result)">
+                            @if (result.refreshing) {
+                              <span class="row-btn-spinner"></span>
+                            } @else {
+                              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M11.5 2A5.5 5.5 0 1012.5 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9.5 2H11.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            }
+                            Refresh
+                          </button>
+                          <button class="row-action-btn row-action-btn--rerun" title="Re-deploy using the same build" [disabled]="result.refreshing || result.rerunning" (click)="rerunResult(i, result)">
+                            @if (result.rerunning) {
+                              <span class="row-btn-spinner"></span>
+                            } @else {
+                              <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5a4.5 4.5 0 114.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5 8.5L2 11.5M2 8.5L5 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            }
+                            Rerun
+                          </button>
                         }
                       </div>
                     }
