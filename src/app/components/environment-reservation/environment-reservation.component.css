@@ -619,3 +619,68 @@
   background: var(--danger-50);
   border-color: var(--danger-500);
 }
+
+/* ── Detail action row ───────────────────────────────────────── */
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.detail-actions .btn-danger {
+  flex: 1;
+}
+
+/* ── Edit button ─────────────────────────────────────────────── */
+.btn-edit {
+  flex: 0 0 auto;
+  padding: 11px 18px;
+  background: var(--surface-card);
+  color: var(--slate-600);
+  border: 1.5px solid var(--slate-200);
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-edit:hover {
+  background: var(--slate-50);
+  border-color: var(--slate-400);
+  color: var(--slate-800);
+}
+
+/* ── Ghost / Cancel button ───────────────────────────────────── */
+.btn-ghost {
+  flex: 1;
+  padding: 11px 16px;
+  background: var(--surface-card);
+  color: var(--slate-600);
+  border: 1.5px solid var(--slate-200);
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--slate-50);
+  border-color: var(--slate-400);
+}
+.btn-ghost:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── Edit form body ──────────────────────────────────────────── */
+.edit-body {
+  padding: 8px 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

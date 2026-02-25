@@ -16,6 +16,7 @@ export const ENVIRONMENTS = [
   'prodsup',
   'pat2',
   'pat3',
+  'prod1-blue',
 ] as const;
 
 export type Environment = (typeof ENVIRONMENTS)[number];

@@ -39,6 +39,14 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
   // Tooltip / selected reservation
   selectedReservation: Reservation | null = null;
 
+  // Edit mode
+  isEditing = false;
+  editName = '';
+  editStartDate = '';
+  editEndDate = '';
+  editError = '';
+  isSaving = false;
+
   constructor(
     private reservationService: ReservationService,
     private authService: AuthService
@@ -174,6 +182,50 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
 
   closeDetails(): void {
     this.selectedReservation = null;
+    this.isEditing = false;
+    this.editError = '';
+  }
+
+  openEdit(): void {
+    if (!this.selectedReservation) return;
+    this.editName = this.selectedReservation.userName;
+    this.editStartDate = this.selectedReservation.startDate;
+    this.editEndDate = this.selectedReservation.endDate;
+    this.editError = '';
+    this.isEditing = true;
+  }
+
+  cancelEdit(): void {
+    this.isEditing = false;
+    this.editError = '';
+  }
+
+  async saveEdit(): Promise<void> {
+    if (!this.selectedReservation) return;
+    this.editError = '';
+    if (!this.editName.trim()) { this.editError = 'Name is required.'; return; }
+    if (!this.editStartDate || !this.editEndDate) { this.editError = 'Both dates are required.'; return; }
+    if (this.editStartDate > this.editEndDate) { this.editError = 'End date must be on or after start date.'; return; }
+    // Check for conflicts with other reservations
+    const conflict = this.reservations.find((r) => {
+      if (r.id === this.selectedReservation!.id) return false;
+      if (r.environment !== this.selectedReservation!.environment) return false;
+      return this.editStartDate <= r.endDate && this.editEndDate >= r.startDate;
+    });
+    if (conflict) { this.editError = `Conflicts with "${conflict.userName}" (${conflict.startDate} → ${conflict.endDate}).`; return; }
+    this.isSaving = true;
+    try {
+      await this.reservationService.updateReservation(this.selectedReservation.id, {
+        userName: this.editName.trim(),
+        startDate: this.editStartDate,
+        endDate: this.editEndDate,
+      });
+      this.isEditing = false;
+    } catch (err: any) {
+      this.editError = `Failed to save: ${err?.message || String(err)}`;
+    } finally {
+      this.isSaving = false;
+    }
   }
 
   async onSubmit(): Promise<void> {

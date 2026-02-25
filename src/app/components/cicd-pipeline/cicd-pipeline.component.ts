@@ -256,6 +256,12 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         return rows;
       });
 
+    // Only services that have a drop db branch
+    const makeDropDbResults = (): ServiceStepResult[] =>
+      services
+        .filter((s) => !!getDropDbBranch(s))
+        .map((s) => ({ service: s, status: 'pending' as StepStatus }));
+
     this.steps = [
       {
         id: 'validate-pat',
@@ -284,6 +290,13 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         description: `Build release branch and master in parallel`,
         status: 'pending',
         results: makeBuildResults(),
+      },
+      {
+        id: 'deploy-drop-db',
+        label: 'Deploy Drop DB',
+        description: 'Deploy drop DB build — deployment failure is expected and confirms the DB was dropped',
+        status: 'pending',
+        results: makeDropDbResults(),
       },
       {
         id: 'deploy-master',
@@ -411,8 +424,63 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // ── Step 4: Deploy master build (skip library services) ──
-    await this.runStep(4, services, async (svc, result) => {
+    // ── Step 4: Deploy Drop DB Build (failure is expected and good) ──
+    const dropDbServices = services.filter((s) => !!getDropDbBranch(s));
+    if (dropDbServices.length > 0) {
+      await this.runStep(4, dropDbServices, async (svc, result) => {
+        const dropDbBuildResult = this.steps[3]?.results.find(
+          (r) => r.service === `${svc} (drop db)` && r.buildId
+        );
+        const buildId = dropDbBuildResult?.buildId;
+        if (!buildId) {
+          result.status = 'skipped';
+          result.message = 'No drop DB build ID — skipping';
+          this.addLog(`[${svc}] No drop DB build ID, skipping`);
+          return;
+        }
+        this.addLog(`[${svc}] Deploying drop DB build #${buildId}...`);
+        const res = await this.azureDevOps.deploy(buildId, this.releaseEnvironment, svc);
+        if (!res.success) {
+          result.status = 'skipped';
+          result.message = `Could not create release: ${res.message}`;
+          this.addLog(`[${svc}] ${res.message}`);
+          return;
+        }
+        result.sourceBuildId = buildId;
+        result.releaseId = res.releaseId;
+        result.releaseUrl = res.releaseUrl;
+        result.releaseEnvironment = res.releaseEnvironment;
+        result.message = res.message;
+        this.addLog(`[${svc}] ${res.message}`);
+        this.persistRunningState();
+        if (res.releaseId) {
+          this.addLog(`[${svc}] Waiting for drop DB deployment #${res.releaseId}...`);
+          const waitRes = await this.azureDevOps.waitForDeployment(
+            res.releaseId,
+            res.releaseEnvironment || this.releaseEnvironment,
+            (status) => { result.message = status; }
+          );
+          // Failure is EXPECTED — treat as success either way
+          result.status = 'success';
+          result.message = !waitRes.success
+            ? `✓ Expected failure confirmed — ${waitRes.message}`
+            : `⚠ Unexpected success — ${waitRes.message}`;
+          this.addLog(`[${svc}] ${result.message}`);
+        } else {
+          result.status = 'success';
+        }
+      });
+    } else {
+      // No drop-db services among selected — mark step as skipped
+      const dropDbStep = this.steps[4];
+      dropDbStep.status = 'skipped';
+      dropDbStep.results.forEach((r) => { r.status = 'skipped'; r.message = 'No drop DB services selected'; });
+    }
+
+    if (this.pipelineCancelled) return;
+
+    // ── Step 5: Deploy master build (skip library services) ──
+    await this.runStep(5, services, async (svc, result) => {
       if (isLibraryService(svc)) {
         result.status = 'skipped';
         result.message = 'Library — no deployment needed';
@@ -462,7 +530,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     });
 
     // Stop if master deploy failed
-    if (this.steps[4].status === 'failed') {
+    if (this.steps[5].status === 'failed') {
       this.addLog('Pipeline stopped: master deployment failed.');
       await this.finalizeRunRecord('failed');
       this.isRunning = false;
@@ -471,9 +539,9 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
 
     if (this.pipelineCancelled) return;
 
-    // ── Wait for manual approval before Step 6 ──
-    this.steps[5].status = 'waiting-approval';
-    this.currentStepIndex = 5;
+    // ── Wait for manual approval before Step 7 ──
+    this.steps[6].status = 'waiting-approval';
+    this.currentStepIndex = 6;
     this.waitingForApproval = true;
     this.addLog('⏸ Waiting for user approval to deploy release build...');
     this.persistRunningState();
@@ -487,11 +555,11 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     this.addLog('✓ Release deploy approved by user.');
     // Mark step as running and persist immediately — so a page refresh after approval
     // won't find 'waiting-approval' in Firestore and re-prompt for approval.
-    this.steps[5].status = 'running';
+    this.steps[6].status = 'running';
     await this.persistRunningState();
 
-    // ── Step 6: Deploy release build (skip library services) ──
-    await this.runStep(5, services, async (svc, result) => {
+    // ── Step 7: Deploy release build (skip library services) ──
+    await this.runStep(6, services, async (svc, result) => {
       if (isLibraryService(svc)) {
         result.status = 'skipped';
         result.message = 'Library — no deployment needed';
@@ -915,6 +983,76 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         }
       }
 
+      // ── Deploy Drop DB step (expected failure = success) ──
+      if (step.id === 'deploy-drop-db' && (step.status === 'running' || step.status === 'pending')) {
+        step.status = 'running';
+        for (const result of step.results) {
+          if (result.status === 'success' || result.status === 'skipped') continue;
+          const svc = result.service;
+          result.status = 'running';
+          // If release was already created, just resume waiting
+          if (result.releaseId) {
+            this.addLog(`[${svc}] Resuming drop DB deployment #${result.releaseId} tracking...`);
+            const waitRes = await this.azureDevOps.waitForDeployment(
+              result.releaseId,
+              result.releaseEnvironment || env,
+              (s) => { result.message = s; }
+            );
+            result.status = 'success';
+            result.message = !waitRes.success
+              ? `✓ Expected failure confirmed — ${waitRes.message}`
+              : `⚠ Unexpected success — ${waitRes.message}`;
+            this.addLog(`[${svc}] ${result.message}`);
+            continue;
+          }
+          // Create new deployment
+          const dropDbBuildResult = this.steps[3]?.results.find(
+            (r) => r.service === `${svc} (drop db)` && r.buildId
+          );
+          const buildId = dropDbBuildResult?.buildId;
+          if (!buildId) {
+            result.status = 'skipped';
+            result.message = 'No drop DB build ID';
+            continue;
+          }
+          result.status = 'running';
+          this.addLog(`[${svc}] Deploying drop DB build #${buildId}...`);
+          const res = await this.azureDevOps.deploy(buildId, env, svc);
+          if (!res.success) {
+            result.status = 'skipped';
+            result.message = `Could not create release: ${res.message}`;
+            this.addLog(`[${svc}] ${res.message}`);
+            continue;
+          }
+          result.releaseId = res.releaseId;
+          result.releaseUrl = res.releaseUrl;
+          result.releaseEnvironment = res.releaseEnvironment;
+          result.message = res.message;
+          this.addLog(`[${svc}] ${res.message}`);
+          this.persistRunningState();
+          if (res.releaseId) {
+            this.addLog(`[${svc}] Waiting for drop DB deployment #${res.releaseId}...`);
+            const waitRes = await this.azureDevOps.waitForDeployment(
+              res.releaseId,
+              res.releaseEnvironment || env,
+              (s) => { result.message = s; }
+            );
+            result.status = 'success';
+            result.message = !waitRes.success
+              ? `✓ Expected failure confirmed — ${waitRes.message}`
+              : `⚠ Unexpected success — ${waitRes.message}`;
+            this.addLog(`[${svc}] ${result.message}`);
+          } else {
+            result.status = 'success';
+          }
+        }
+        // Step always proceeds regardless of deployment outcome
+        const allSkipped = step.results.every((r) => r.status === 'skipped');
+        step.status = allSkipped ? 'skipped' : 'success';
+        this.persistRunningState();
+        continue;
+      }
+
       // ── Deploy steps: check for in-progress deployments ──
       if (step.id === 'deploy-master' || step.id === 'deploy-release') {
         const buildMap = step.id === 'deploy-master' ? masterBuildIds : releaseBuildIds;
@@ -1319,46 +1457,87 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         } else {
           result.status = 'success';
         }
-      } else if (result.releaseId !== undefined || stepIndex === 4 || stepIndex === 5) {
-        // Deploy step — prefer the latest build from step 3 over the stored sourceBuildId
+      } else if (result.releaseId !== undefined || stepIndex === 4 || stepIndex === 5 || stepIndex === 6) {
         const svcName = result.service;
-        const buildVariant = stepIndex === 4 ? 'master' : 'release';
-        const buildStepResults = this.steps[3]?.results ?? [];
-        const latestBuildResult = buildStepResults.find(
-          (r) => r.service === `${svcName} (${buildVariant})` && r.status === 'success' && r.buildId
-        );
-        const buildId = latestBuildResult?.buildId ?? result.sourceBuildId;
-        if (!buildId) {
-          result.message = 'Cannot rerun: no build ID found — run the build step first';
-          return;
-        }
-        // Keep sourceBuildId in sync so future reruns also use the latest build
-        result.sourceBuildId = buildId;
-        const env = result.releaseEnvironment || activeEnv;
-        result.status = 'running';
-        result.message = 'Creating new release...';
-        const deployRes = await this.azureDevOps.deploy(buildId, env, svcName);
-        if (!deployRes.success) {
-          result.status = 'failed';
-          result.message = deployRes.message;
-          return;
-        }
-        result.releaseId = deployRes.releaseId;
-        result.releaseUrl = deployRes.releaseUrl;
-        result.releaseEnvironment = deployRes.releaseEnvironment;
-        result.message = deployRes.message;
-        this.addLog(`[${svcName}] Rerun: ${deployRes.message}`);
-        if (deployRes.releaseId) {
-          const waitRes = await this.azureDevOps.waitForDeployment(
-            deployRes.releaseId,
-            deployRes.releaseEnvironment || env,
-            (s) => { result.message = s; }
+        if (stepIndex === 4) {
+          // ── Drop DB deploy rerun — expected to fail ──
+          const dropDbResult = this.steps[3]?.results.find(
+            (r) => r.service === `${svcName} (drop db)` && r.buildId
           );
-          result.status = waitRes.success ? 'success' : 'failed';
-          result.message = waitRes.message;
-          this.addLog(`[${svcName}] Rerun result: ${waitRes.message}`);
+          const buildId = dropDbResult?.buildId ?? result.sourceBuildId;
+          if (!buildId) {
+            result.message = 'Cannot rerun: no drop DB build ID found';
+            return;
+          }
+          result.sourceBuildId = buildId;
+          const env = result.releaseEnvironment || activeEnv;
+          result.status = 'running';
+          result.message = 'Creating drop DB release...';
+          const deployRes = await this.azureDevOps.deploy(buildId, env, svcName);
+          if (!deployRes.success) {
+            result.status = 'failed';
+            result.message = deployRes.message;
+            return;
+          }
+          result.releaseId = deployRes.releaseId;
+          result.releaseUrl = deployRes.releaseUrl;
+          result.releaseEnvironment = deployRes.releaseEnvironment;
+          result.message = deployRes.message;
+          this.addLog(`[${svcName}] Rerun: ${deployRes.message}`);
+          if (deployRes.releaseId) {
+            const waitRes = await this.azureDevOps.waitForDeployment(
+              deployRes.releaseId,
+              deployRes.releaseEnvironment || env,
+              (s) => { result.message = s; }
+            );
+            result.status = 'success';
+            result.message = !waitRes.success
+              ? `✓ Expected failure confirmed — ${waitRes.message}`
+              : `⚠ Unexpected success — ${waitRes.message}`;
+            this.addLog(`[${svcName}] Rerun result: ${result.message}`);
+          } else {
+            result.status = 'success';
+          }
         } else {
-          result.status = 'success';
+          // ── Master / Release deploy rerun ──
+          const buildVariant = stepIndex === 5 ? 'master' : 'release';
+          const buildStepResults = this.steps[3]?.results ?? [];
+          const latestBuildResult = buildStepResults.find(
+            (r) => r.service === `${svcName} (${buildVariant})` && r.status === 'success' && r.buildId
+          );
+          const buildId = latestBuildResult?.buildId ?? result.sourceBuildId;
+          if (!buildId) {
+            result.message = 'Cannot rerun: no build ID found — run the build step first';
+            return;
+          }
+          // Keep sourceBuildId in sync so future reruns also use the latest build
+          result.sourceBuildId = buildId;
+          const env = result.releaseEnvironment || activeEnv;
+          result.status = 'running';
+          result.message = 'Creating new release...';
+          const deployRes = await this.azureDevOps.deploy(buildId, env, svcName);
+          if (!deployRes.success) {
+            result.status = 'failed';
+            result.message = deployRes.message;
+            return;
+          }
+          result.releaseId = deployRes.releaseId;
+          result.releaseUrl = deployRes.releaseUrl;
+          result.releaseEnvironment = deployRes.releaseEnvironment;
+          result.message = deployRes.message;
+          this.addLog(`[${svcName}] Rerun: ${deployRes.message}`);
+          if (deployRes.releaseId) {
+            const waitRes = await this.azureDevOps.waitForDeployment(
+              deployRes.releaseId,
+              deployRes.releaseEnvironment || env,
+              (s) => { result.message = s; }
+            );
+            result.status = waitRes.success ? 'success' : 'failed';
+            result.message = waitRes.message;
+            this.addLog(`[${svcName}] Rerun result: ${waitRes.message}`);
+          } else {
+            result.status = 'success';
+          }
         }
       }
       await this.persistStepsToHistory();
@@ -1369,9 +1548,9 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
 
   // ─── Step-level Refresh / Rerun ──────────────────────────────
 
-  /** True for build (step 3) and deploy (steps 4 & 5) — these have Azure artifacts */
+  /** True for build (step 3) and deploy (steps 4, 5 & 6) — these have Azure artifacts */
   isStepRefreshable(stepIndex: number): boolean {
-    return stepIndex >= 3 && stepIndex <= 5;
+    return stepIndex >= 3 && stepIndex <= 6;
   }
 
   /** Category groups for the Build step UI */

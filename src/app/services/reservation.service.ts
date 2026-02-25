@@ -5,6 +5,7 @@ import {
   collectionData,
   addDoc,
   deleteDoc,
+  updateDoc,
   doc,
 } from '@angular/fire/firestore';
 import { Observable, map } from 'rxjs';
@@ -27,6 +28,12 @@ export class ReservationService {
   /** Add a new reservation */
   async addReservation(reservation: Omit<Reservation, 'id'>): Promise<void> {
     await addDoc(this.collectionRef, { ...reservation });
+  }
+
+  /** Update an existing reservation */
+  async updateReservation(id: string, changes: Partial<Omit<Reservation, 'id'>>): Promise<void> {
+    const docRef = doc(this.firestore, 'reservations', id);
+    await updateDoc(docRef, { ...changes });
   }
 
   /** Delete a reservation by ID */
