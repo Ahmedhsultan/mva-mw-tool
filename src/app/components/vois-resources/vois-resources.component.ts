@@ -124,13 +124,6 @@ export class VoisResourcesComponent {
       category: 'Development',
       description: 'VFID login page for int1 environment',
     },
-    {
-      label: 'Code Names',
-      url: 'https://codenames.game/',
-      type: 'link',
-      category: 'Development',
-      description: 'Online Codenames game for team activities',
-    },
 
     // ── Documentation ──
     {

@@ -330,6 +330,52 @@
                   </div>
                 }
                 @if (step.status !== 'pending') {
+                  @if (step.id === 'build-both') {
+                    <!-- Build step: grouped by Primary / Master / Drop DB -->
+                    <div class="step-results build-step-results">
+                      @for (cat of BUILD_CATEGORIES; track cat.key) {
+                        @let catResults = getBuildCategoryResults(step, cat.key);
+                        @if (catResults.length) {
+                          <div class="build-category-section">
+                            <div class="build-category-header">
+                              <span class="build-category-badge">{{ cat.label }}</span>
+                              <span class="build-category-rule"></span>
+                              <span class="build-category-count">{{ catResults.length }}</span>
+                            </div>
+                          @for (result of catResults; track result.service) {
+                            <div class="result-row build-category-row" [class]="'result-' + result.status">
+                              <span class="result-status-dot"></span>
+                              <span class="result-service">{{ result.service | slice:0:(result.service.lastIndexOf('(') - 1) }}</span>
+                              <span class="result-message">{{ result.message || '' }}</span>
+                              @if (result.buildUrl) {
+                                <a class="result-link" [href]="result.buildUrl" target="_blank" rel="noopener">View Build</a>
+                              }
+                              @if (result.buildId) {
+                                <button class="row-action-btn" title="Refresh status from Azure" [disabled]="result.refreshing || result.rerunning" (click)="refreshResult(i, result)">
+                                  @if (result.refreshing) {
+                                    <span class="row-btn-spinner"></span>
+                                  } @else {
+                                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M11.5 2A5.5 5.5 0 1012.5 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9.5 2H11.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                  }
+                                  Refresh
+                                </button>
+                                <button class="row-action-btn row-action-btn--rerun" title="Queue a new build" [disabled]="result.refreshing || result.rerunning" (click)="rerunResult(i, result)">
+                                  @if (result.rerunning) {
+                                    <span class="row-btn-spinner"></span>
+                                  } @else {
+                                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5a4.5 4.5 0 114.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5 8.5L2 11.5M2 8.5L5 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                  }
+                                  Rerun
+                                </button>
+                              }
+                            </div>
+                          }
+                          </div>
+                        }
+                      }
+                    </div>
+                  } @else {
+                    <!-- All other steps: flat list -->
                   <div class="step-results">
                     @for (result of step.results; track result.service) {
                       <div class="result-row" [class]="'result-' + result.status">
@@ -384,6 +430,7 @@
                       </div>
                     }
                   </div>
+                  }
                 }
                 @if (!last) {
                   <div class="step-connector" [class.done]="step.status === 'success'"></div>

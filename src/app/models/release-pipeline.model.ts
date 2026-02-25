@@ -25,6 +25,19 @@ export function isLibraryService(svc: string): boolean {
   return LIBRARY_SERVICES.has(svc);
 }
 
+/** Services that have a drop_db build, mapped to their branch name */
+export const DROP_DB_BRANCHES: Record<string, string> = {
+  'mvax-api': 'release/gouna/drop_db',
+  'mvax-native-billing': 'release/dahab/drop_db',
+  'mvax-plan-services': 'release/drop_db',
+  'mvax-upgrades': 'release/dahab/drop_db',
+};
+
+/** Returns the drop_db branch for a service, or null if the service has no drop_db build */
+export function getDropDbBranch(svc: string): string | null {
+  return DROP_DB_BRANCHES[svc] ?? null;
+}
+
 /** Get the release branch name for a service */
 export function getReleaseBranch(svc: string, releaseNumber: string): string {
   return isLibraryService(svc)

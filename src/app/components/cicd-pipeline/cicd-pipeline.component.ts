@@ -12,6 +12,7 @@ import {
   StepStatus,
   isLibraryService,
   getReleaseBranch,
+  getDropDbBranch,
 } from '../../models/release-pipeline.model';
 import { AzureDevOpsService } from '../../services/azure-devops.service';
 import { PipelineHistoryService } from '../../services/pipeline-history.service';
@@ -241,14 +242,28 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     const makeResults = (): ServiceStepResult[] =>
       services.map((s) => ({ service: s, status: 'pending' as StepStatus }));
 
-    // For the parallel build step, we need two results per service (release + master)
+    // For the parallel build step, we need two or three results per service
+    // (release + master, plus drop db for applicable services)
     const makeBuildResults = (): ServiceStepResult[] =>
-      services.flatMap((s) => [
-        { service: `${s} (release)`, status: 'pending' as StepStatus },
-        { service: `${s} (master)`, status: 'pending' as StepStatus },
-      ]);
+      services.flatMap((s) => {
+        const rows: ServiceStepResult[] = [
+          { service: `${s} (release)`, status: 'pending' as StepStatus },
+          { service: `${s} (master)`, status: 'pending' as StepStatus },
+        ];
+        if (getDropDbBranch(s)) {
+          rows.push({ service: `${s} (drop db)`, status: 'pending' as StepStatus });
+        }
+        return rows;
+      });
 
     this.steps = [
+      {
+        id: 'validate-pat',
+        label: 'Validate PAT',
+        description: 'Verify Azure DevOps Personal Access Token has access',
+        status: 'pending',
+        results: [{ service: 'Azure DevOps', status: 'pending' as StepStatus }],
+      },
       {
         id: 'create-branch',
         label: 'Create Release Branch',
@@ -333,8 +348,26 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     const releaseBuildIds: Map<string, number> = new Map();
     const masterBuildIds: Map<string, number> = new Map();
 
+    // ── Step 0: Validate PAT ──
+    await this.runStep(0, ['Azure DevOps'], async (_svc, result) => {
+      this.addLog('Validating Azure DevOps PAT...');
+      const res = await this.azureDevOps.validatePat();
+      result.status = res.success ? 'success' : 'failed';
+      result.message = res.message;
+      this.addLog(res.message);
+    });
+
+    if (this.pipelineCancelled) return;
+
+    if (this.steps[0].status === 'failed') {
+      this.addLog('Pipeline stopped: PAT validation failed.');
+      await this.finalizeRunRecord('failed');
+      this.isRunning = false;
+      return;
+    }
+
     // ── Step 1: Create branches (mvax-common uses primary/{relNum} from develop; others use release/primary/{relNum} from release/develop) ──
-    await this.runStep(0, services, async (svc, result) => {
+    await this.runStep(1, services, async (svc, result) => {
       const branch = getReleaseBranch(svc, relNum);
       this.addLog(`[${svc}] Creating branch ${branch}...`);
       const res = await this.azureDevOps.createBranch(svc, relNum, branch);
@@ -345,7 +378,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
 
     if (this.pipelineCancelled) return;
 
-    if (this.steps[0].status === 'failed') {
+    if (this.steps[1].status === 'failed') {
       this.addLog('Pipeline stopped: branch creation failed.');
       await this.finalizeRunRecord('failed');
       this.isRunning = false;
@@ -353,7 +386,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     }
 
     // ── Step 2: Create PRs ──
-    await this.runStep(1, services, async (svc, result) => {
+    await this.runStep(2, services, async (svc, result) => {
       const branch = getReleaseBranch(svc, relNum);
       this.addLog(`[${svc}] Creating PR ${branch} → master...`);
       const res = await this.azureDevOps.createPullRequest(svc, relNum, branch);
@@ -366,12 +399,12 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     if (this.pipelineCancelled) return;
 
     // ── Step 3: Build release & master in parallel ──
-    await this.runParallelBuildStep(2, services, relNum, releaseBuildIds, masterBuildIds);
+    await this.runParallelBuildStep(3, services, relNum, releaseBuildIds, masterBuildIds);
 
     if (this.pipelineCancelled) return;
 
     // Stop if any build failed
-    if (this.steps[2].status === 'failed') {
+    if (this.steps[3].status === 'failed') {
       this.addLog('Pipeline stopped: one or more builds failed.');
       await this.finalizeRunRecord('failed');
       this.isRunning = false;
@@ -379,7 +412,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     }
 
     // ── Step 4: Deploy master build (skip library services) ──
-    await this.runStep(3, services, async (svc, result) => {
+    await this.runStep(4, services, async (svc, result) => {
       if (isLibraryService(svc)) {
         result.status = 'skipped';
         result.message = 'Library — no deployment needed';
@@ -387,7 +420,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         return;
       }
       // Read master build ID directly from build step results (ground truth)
-      const masterBuildResult = this.steps[2]?.results.find(
+      const masterBuildResult = this.steps[3]?.results.find(
         (r) => r.service === `${svc} (master)` && r.status === 'success' && r.buildId
       );
       const buildId = masterBuildResult?.buildId ?? masterBuildIds.get(svc);
@@ -429,7 +462,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     });
 
     // Stop if master deploy failed
-    if (this.steps[3].status === 'failed') {
+    if (this.steps[4].status === 'failed') {
       this.addLog('Pipeline stopped: master deployment failed.');
       await this.finalizeRunRecord('failed');
       this.isRunning = false;
@@ -438,9 +471,9 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
 
     if (this.pipelineCancelled) return;
 
-    // ── Wait for manual approval before Step 5 ──
-    this.steps[4].status = 'waiting-approval';
-    this.currentStepIndex = 4;
+    // ── Wait for manual approval before Step 6 ──
+    this.steps[5].status = 'waiting-approval';
+    this.currentStepIndex = 5;
     this.waitingForApproval = true;
     this.addLog('⏸ Waiting for user approval to deploy release build...');
     this.persistRunningState();
@@ -454,11 +487,11 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     this.addLog('✓ Release deploy approved by user.');
     // Mark step as running and persist immediately — so a page refresh after approval
     // won't find 'waiting-approval' in Firestore and re-prompt for approval.
-    this.steps[4].status = 'running';
+    this.steps[5].status = 'running';
     await this.persistRunningState();
 
-    // ── Step 5: Deploy release build (skip library services) ──
-    await this.runStep(4, services, async (svc, result) => {
+    // ── Step 6: Deploy release build (skip library services) ──
+    await this.runStep(5, services, async (svc, result) => {
       if (isLibraryService(svc)) {
         result.status = 'skipped';
         result.message = 'Library — no deployment needed';
@@ -466,7 +499,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         return;
       }
       // Read release build ID directly from build step results (ground truth)
-      const releaseBuildResult = this.steps[2]?.results.find(
+      const releaseBuildResult = this.steps[3]?.results.find(
         (r) => r.service === `${svc} (release)` && r.status === 'success' && r.buildId
       );
       const buildId = releaseBuildResult?.buildId ?? releaseBuildIds.get(svc);
@@ -556,10 +589,17 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     const step = this.steps[stepIndex];
     step.status = 'running';
 
-    // Build a single service for both branches in parallel
+    // drop_db builds are tracked locally (not used for deploy steps)
+    const dropDbBuildIds: Map<string, number> = new Map();
+
+    // Build a single service for all branches in parallel
     const buildService = async (svc: string) => {
       const releaseResult = step.results.find((r) => r.service === `${svc} (release)`);
       const masterResult = step.results.find((r) => r.service === `${svc} (master)`);
+      const dropDbBranch = getDropDbBranch(svc);
+      const dropDbResult = dropDbBranch
+        ? step.results.find((r) => r.service === `${svc} (drop db)`)
+        : undefined;
 
       const buildBranch = async (
         branch: string,
@@ -601,12 +641,16 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         }
       };
 
-      // Run release and master builds for this service in parallel
+      // Run release, master and (optionally) drop_db builds in parallel
       const svcBranch = getReleaseBranch(svc, relNum);
-      await Promise.all([
+      const builds: Promise<void>[] = [
         buildBranch(svcBranch, 'release', releaseResult, releaseBuildIds),
         buildBranch('master', 'master', masterResult, masterBuildIds),
-      ]);
+      ];
+      if (dropDbBranch && dropDbResult) {
+        builds.push(buildBranch(dropDbBranch, 'drop db', dropDbResult, dropDbBuildIds));
+      }
+      await Promise.all(builds);
     };
 
     // Run all services in parallel too
@@ -907,7 +951,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
           if (result.status !== 'success' && result.status !== 'failed') {
             // Read build ID directly from build step results (ground truth), fall back to map
             const buildVariant = step.id === 'deploy-master' ? 'master' : 'release';
-            const buildStepResult = this.steps[2]?.results.find(
+            const buildStepResult = this.steps[3]?.results.find(
               (r) => r.service === `${svc} (${buildVariant})` && r.status === 'success' && r.buildId
             );
             const buildId = buildStepResult?.buildId ?? buildMap.get(svc);
@@ -955,6 +999,27 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
 
         if (hasFailure && step.id === 'deploy-master') {
           this.addLog('Pipeline stopped: master deployment failed.');
+          await this.finalizeRunRecord('failed');
+          this.isRunning = false;
+          return;
+        }
+        continue;
+      }
+
+      // ── Step 0: validate-pat ──
+      if (step.id === 'validate-pat' && (step.status === 'running' || step.status === 'pending')) {
+        step.status = 'running';
+        const patResult = step.results[0];
+        patResult.status = 'running';
+        this.addLog('Validating Azure DevOps PAT...');
+        const patRes = await this.azureDevOps.validatePat();
+        patResult.status = patRes.success ? 'success' : 'failed';
+        patResult.message = patRes.message;
+        step.status = patRes.success ? 'success' : 'failed';
+        this.persistRunningState();
+        this.addLog(patRes.message);
+        if (!patRes.success) {
+          this.addLog('Pipeline stopped: PAT validation failed.');
           await this.finalizeRunRecord('failed');
           this.isRunning = false;
           return;
@@ -1222,10 +1287,15 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     const { releaseNumber: activeRelNum, environment: activeEnv } = this.getActiveRunCtx();
     try {
       if (result.buildId !== undefined || stepIndex === 2) {
-        // Build step – service names are "svc (release)" or "svc (master)"
+        // Build step – service names are "svc (release)", "svc (master)" or "svc (drop db)"
+        const isDropDb = result.service.endsWith('(drop db)');
         const isMaster = result.service.endsWith('(master)');
-        const svcName = result.service.replace(/ \((release|master)\)$/, '').trim();
-        const branch = isMaster ? 'master' : getReleaseBranch(svcName, activeRelNum);
+        const svcName = result.service.replace(/ \((release|master|drop db)\)$/, '').trim();
+        const branch = isMaster
+          ? 'master'
+          : isDropDb
+          ? (getDropDbBranch(svcName) ?? getReleaseBranch(svcName, activeRelNum))
+          : getReleaseBranch(svcName, activeRelNum);
         result.status = 'running';
         result.message = 'Queuing new build...';
         const queueRes = await this.azureDevOps.queueBuild(svcName, branch);
@@ -1249,11 +1319,11 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         } else {
           result.status = 'success';
         }
-      } else if (result.releaseId !== undefined || stepIndex === 3 || stepIndex === 4) {
-        // Deploy step — prefer the latest build from step 2 over the stored sourceBuildId
+      } else if (result.releaseId !== undefined || stepIndex === 4 || stepIndex === 5) {
+        // Deploy step — prefer the latest build from step 3 over the stored sourceBuildId
         const svcName = result.service;
-        const buildVariant = stepIndex === 3 ? 'master' : 'release';
-        const buildStepResults = this.steps[2]?.results ?? [];
+        const buildVariant = stepIndex === 4 ? 'master' : 'release';
+        const buildStepResults = this.steps[3]?.results ?? [];
         const latestBuildResult = buildStepResults.find(
           (r) => r.service === `${svcName} (${buildVariant})` && r.status === 'success' && r.buildId
         );
@@ -1299,9 +1369,21 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
 
   // ─── Step-level Refresh / Rerun ──────────────────────────────
 
-  /** True for build (step 2) and deploy (steps 3 & 4) — these have Azure artifacts */
+  /** True for build (step 3) and deploy (steps 4 & 5) — these have Azure artifacts */
   isStepRefreshable(stepIndex: number): boolean {
-    return stepIndex >= 2 && stepIndex <= 4;
+    return stepIndex >= 3 && stepIndex <= 5;
+  }
+
+  /** Category groups for the Build step UI */
+  readonly BUILD_CATEGORIES = [
+    { key: 'release', label: 'Primary', color: '#7c3aed' },
+    { key: 'master',  label: 'Master',  color: '#0369a1' },
+    { key: 'drop db', label: 'Drop DB', color: '#b45309' },
+  ];
+
+  /** Returns results matching a build category ('release'|'master'|'drop db') */
+  getBuildCategoryResults(step: PipelineStep, key: string): ServiceStepResult[] {
+    return step.results.filter((r) => r.service.endsWith(`(${key})`));
   }
 
   /** Refresh all results in a step and recompute step status.

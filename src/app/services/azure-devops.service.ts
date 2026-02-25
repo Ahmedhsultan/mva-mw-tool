@@ -28,6 +28,25 @@ export class AzureDevOpsService {
     return !!this.config?.pat;
   }
 
+  /** Validate the configured PAT by calling a lightweight Azure DevOps API */
+  async validatePat(): Promise<{ success: boolean; message: string }> {
+    try {
+      const res = await fetch(
+        `https://dev.azure.com/${this.config!.organization}/_apis/projects?$top=1&api-version=7.1`,
+        { headers: this.headers }
+      );
+      if (res.status === 401 || res.status === 403) {
+        return { success: false, message: `Authentication failed (${res.status}) — PAT may be invalid or expired` };
+      }
+      if (!res.ok) {
+        return { success: false, message: `Azure DevOps API returned ${res.status}` };
+      }
+      return { success: true, message: 'PAT verified — Azure DevOps access confirmed' };
+    } catch (e: any) {
+      return { success: false, message: `Connection error: ${e.message}` };
+    }
+  }
+
   // ─── Step 1: Create branch ───────────────────────────────────
   /**
    * Create branch from release/develop (or develop for mvax-common).

@@ -1333,3 +1333,52 @@
 @keyframes row-spin {
   to { transform: rotate(360deg); }
 }
+
+/* ====== Build Step Category Sections ====== */
+.build-step-results {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.build-category-section {
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.build-category-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+}
+
+.build-category-badge {
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7280;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.build-category-rule {
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.build-category-count {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #9ca3af;
+  background: #f3f4f6;
+  padding: 1px 6px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.build-category-row {
+  border-radius: 0 !important;
+}
