@@ -13,6 +13,26 @@
       <button class="nav-btn" (click)="nextWeek()" title="Next week">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
+      @if (patConfigured) {
+        <div class="pat-status-pill">
+          <svg width="9" height="9" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="6" stroke="#16a34a" stroke-width="2"/>
+            <path d="M5 8l2 2 4-4" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          PAT
+        </div>
+        <button class="nav-btn pat-disconnect-btn" (click)="disconnectPat()" title="Disconnect PAT">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      } @else {
+        <button class="nav-btn pat-btn" (click)="openPatModal()" title="Connect Azure DevOps PAT">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          <span>PAT</span>
+        </button>
+      }
     </div>
   </div>
 
@@ -68,9 +88,13 @@
                       [class.weekend]="isWeekend(date)"
                       (click)="openReserveModal(env, date)"
                     >
-                      <span class="add-icon">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                      </span>
+                      @if (env === 'prod1-blue' && getSprintLabel(date)) {
+                        <span class="sprint-label">{{ getSprintLabel(date) }}</span>
+                      } @else {
+                        <span class="add-icon">
+                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                        </span>
+                      }
                     </td>
                   }
                 }
@@ -220,6 +244,44 @@
           </div>
         }
 
+      </div>
+    </div>
+  }
+
+  <!-- PAT Configuration Modal -->
+  @if (showPatModal) {
+    <div class="modal-overlay" (click)="closePatModal()">
+      <div class="pat-modal" (click)="$event.stopPropagation()">
+        <div class="pat-modal-header">
+          <div class="pat-modal-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="11" width="18" height="11" rx="2" stroke="#e60000" stroke-width="1.8"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#e60000" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>Connect Azure DevOps</h3>
+          <button class="pat-modal-close" (click)="closePatModal()">
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <p class="pat-modal-desc">Enter your Personal Access Token and team name to enable sprint labels on the prod1-blue row.</p>
+        <div class="pat-modal-field">
+          <label for="res-pat">Personal Access Token</label>
+          <input id="res-pat" type="password" [(ngModel)]="patInput" placeholder="Paste your PAT here" />
+        </div>
+        <div class="pat-modal-field">
+          <label for="res-team">Team Name</label>
+          <input id="res-team" type="text" [(ngModel)]="patTeam" placeholder="e.g. Digital" />
+        </div>
+        @if (patError) {
+          <div class="pat-modal-error">{{ patError }}</div>
+        }
+        <div class="pat-modal-actions">
+          <button class="pat-modal-cancel" (click)="closePatModal()">Cancel</button>
+          <button class="pat-modal-save" (click)="savePat()" [disabled]="!patInput.trim() || patValidating">
+            @if (patValidating) { <span class="spinner"></span> Validating... } @else { Connect }
+          </button>
+        </div>
       </div>
     </div>
   }

@@ -253,6 +253,15 @@
   display: inline-flex;
 }
 
+.sprint-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.3px;
+  user-select: none;
+  pointer-events: none;
+}
+
 .cal-cell.today-col {
   background: rgba(230, 0, 0, 0.03);
 }
@@ -683,4 +692,177 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* ── PAT button & status ────────────────────────────── */
+.pat-btn {
+  gap: 5px;
+  color: var(--primary) !important;
+  border-color: var(--primary) !important;
+  font-size: 0.78rem !important;
+}
+.pat-btn:hover {
+  background: rgba(230, 0, 0, 0.06) !important;
+}
+
+.pat-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: #f0fdf4;
+  color: #16a34a;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 99px;
+  letter-spacing: 0.04em;
+  border: 1px solid #bbf7d0;
+}
+
+.pat-disconnect-btn {
+  padding: 6px !important;
+  color: var(--slate-400) !important;
+  border: none !important;
+  background: transparent !important;
+}
+.pat-disconnect-btn:hover {
+  color: var(--primary) !important;
+  background: rgba(230, 0, 0, 0.06) !important;
+}
+
+/* ── PAT Modal ──────────────────────────────────────── */
+.pat-modal {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+  padding: 28px;
+  width: 380px;
+  max-width: 90vw;
+  position: relative;
+}
+
+.pat-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.pat-modal-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--slate-900);
+  flex: 1;
+}
+
+.pat-modal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(230, 0, 0, 0.07);
+}
+
+.pat-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--slate-400);
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+.pat-modal-close:hover {
+  color: var(--slate-700);
+  background: var(--slate-50);
+}
+
+.pat-modal-desc {
+  font-size: 0.82rem;
+  color: var(--slate-500);
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.pat-modal-field {
+  margin-bottom: 12px;
+}
+
+.pat-modal-field label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--slate-600);
+  margin-bottom: 6px;
+}
+
+.pat-modal-field input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--slate-200);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: var(--slate-800);
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.pat-modal-field input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(230, 0, 0, 0.08);
+}
+
+.pat-modal-error {
+  font-size: 0.78rem;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.pat-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.pat-modal-cancel {
+  padding: 8px 16px;
+  border: 1px solid var(--slate-200);
+  background: #fff;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--slate-600);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pat-modal-cancel:hover {
+  background: var(--slate-50);
+}
+
+.pat-modal-save {
+  padding: 8px 20px;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+.pat-modal-save:hover { background: #cc0000; }
+.pat-modal-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

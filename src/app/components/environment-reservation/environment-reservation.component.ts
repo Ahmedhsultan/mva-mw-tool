@@ -8,6 +8,7 @@ import {
 } from '../../models/reservation.model';
 import { ReservationService } from '../../services/reservation.service';
 import { AuthService } from '../../services/auth.service';
+import { AzureDevOpsService } from '../../services/azure-devops.service';
 
 @Component({
   selector: 'app-environment-reservation',
@@ -47,11 +48,74 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
   editError = '';
   isSaving = false;
 
+  // PAT config
+  showPatModal = false;
+  patInput = '';
+  patTeam = 'MVA-Nubia';
+  patConfigured = false;
+  patValidating = false;
+  patError = '';
+
   constructor(
     private reservationService: ReservationService,
-    private authService: AuthService
+    private authService: AuthService,
+    private azureDevOps: AzureDevOpsService
   ) {
     this.setWeekFromDate(new Date());
+  }
+
+  // Sprint / PI label map for prod1-blue
+  sprintLabelMap: Map<string, string> = new Map();
+  private sprintIterations: { name: string; path: string; startDate: string; finishDate: string }[] = [];
+
+  openPatModal(): void {
+    this.patInput = '';
+    this.patError = '';
+    // Restore saved team name if available
+    const savedTeam = localStorage.getItem('azure-sprint-team');
+    if (savedTeam) this.patTeam = savedTeam;
+    this.showPatModal = true;
+  }
+
+  closePatModal(): void {
+    this.showPatModal = false;
+    this.patInput = '';
+    this.patError = '';
+  }
+
+  async savePat(): Promise<void> {
+    if (!this.patInput.trim()) return;
+    this.patValidating = true;
+    this.patError = '';
+    this.azureDevOps.configure({
+      pat: this.patInput.trim(),
+      organization: 'vfuk-digital',
+      project: 'Digital',
+    });
+    try {
+      const result = await this.azureDevOps.validatePat();
+      if (result.success) {
+        this.azureDevOps.persistConfig();
+        localStorage.setItem('azure-sprint-team', this.patTeam.trim());
+        this.patConfigured = true;
+        this.showPatModal = false;
+        this.patInput = '';
+        this.loadSprintData();
+      } else {
+        this.patError = result.message || 'Invalid PAT';
+      }
+    } catch (e: any) {
+      this.patError = e.message || 'Validation failed';
+    }
+    this.patValidating = false;
+  }
+
+  disconnectPat(): void {
+    localStorage.removeItem('azure-devops-config');
+    localStorage.removeItem('azure-sprint-team');
+    this.patConfigured = false;
+    this.sprintLabelMap.clear();
+    this.sprintIterations = [];
   }
 
   ngOnInit(): void {
@@ -65,6 +129,10 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
         this.loadingReservations = false;
       }
     );
+    // Check if PAT is already configured
+    this.patConfigured = this.azureDevOps.isConfigured() || this.azureDevOps.restoreConfig();
+    // Load sprint data from Azure DevOps if PAT is configured
+    this.loadSprintData();
   }
 
   ngOnDestroy(): void {
@@ -87,6 +155,10 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
       const d = new Date(this.weekStart);
       d.setDate(d.getDate() + i);
       this.weekDates.push(d);
+    }
+    // Rebuild sprint labels for new visible dates
+    if (this.sprintIterations.length > 0) {
+      this.buildSprintLabels();
     }
   }
 
@@ -293,7 +365,7 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
 
   isWeekend(date: Date): boolean {
     const day = date.getDay();
-    return day === 0 || day === 6;
+    return day === 5 || day === 6; // Friday + Saturday
   }
 
   formatDay(date: Date): string {
@@ -322,5 +394,72 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
+  }
+
+  // ── Sprint / PI label helpers ─────────────────────────────────
+
+  async loadSprintData(): Promise<void> {
+    if (!this.azureDevOps.isConfigured()) {
+      this.azureDevOps.restoreConfig();
+    }
+    if (!this.azureDevOps.isConfigured()) {
+      console.warn('[SprintLabels] Azure DevOps not configured, skipping sprint labels');
+      return;
+    }
+
+    try {
+      const team = localStorage.getItem('azure-sprint-team') || this.patTeam;
+      this.sprintIterations = await this.azureDevOps.getAllIterations(team);
+      console.log('[SprintLabels] Loaded iterations:', this.sprintIterations.length, this.sprintIterations.slice(0, 3));
+    } catch (e) {
+      console.error('[SprintLabels] Failed to load iterations:', e);
+    }
+    this.buildSprintLabels();
+    console.log('[SprintLabels] Label map size:', this.sprintLabelMap.size, Object.fromEntries(this.sprintLabelMap));
+  }
+
+  /** Rebuild the sprint label map for all visible dates */
+  private buildSprintLabels(): void {
+    this.sprintLabelMap.clear();
+    for (const date of this.weekDates) {
+      const label = this.computeSprintLabel(date);
+      if (label) {
+        this.sprintLabelMap.set(this.toDateString(date), label);
+      }
+    }
+  }
+
+  /**
+   * Compute the label: PI.Sprint.SprintWeek.DayOfWeek
+   * Iteration names are expected to follow pattern like "PI 25.1\\Sprint 1" or "PI25.1\\Sprint 2"
+   * Parses PI number, sprint number, calculates the week within the sprint,
+   * and day-of-week (1=Mon..5=Fri).
+   */
+  private computeSprintLabel(date: Date): string {
+    const dateStr = this.toDateString(date);
+    const dayOfWeek = date.getDay(); // 0=Sun..6=Sat
+    if (dayOfWeek === 5 || dayOfWeek === 6) return ''; // skip Fri+Sat weekends
+
+    // Map Sun-Thu to work day 1-5 (Sun=1, Mon=2, Tue=3, Wed=4, Thu=5)
+    const workDay = dayOfWeek === 0 ? 1 : dayOfWeek + 1;
+
+    // Find the iteration that contains this date
+    const iteration = this.sprintIterations.find(
+      (it) => dateStr >= it.startDate && dateStr <= it.finishDate
+    );
+    if (!iteration) return '';
+
+    // Use iteration name directly, append week and work day
+    // Calculate sprint week: how many weeks into the sprint is this date?
+    const sprintStart = new Date(iteration.startDate + 'T00:00:00');
+    const dayDiff = Math.floor((date.getTime() - sprintStart.getTime()) / (1000 * 60 * 60 * 24));
+    const sprintWeek = Math.floor(dayDiff / 7) + 1;
+
+    return `BAU ${iteration.name}.${sprintWeek}.${workDay}`;
+  }
+
+  /** Get the sprint label for a specific date (used in template) */
+  getSprintLabel(date: Date): string {
+    return this.sprintLabelMap.get(this.toDateString(date)) || '';
   }
 }

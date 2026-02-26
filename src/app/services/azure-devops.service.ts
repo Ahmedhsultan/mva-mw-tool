@@ -535,4 +535,33 @@ export class AzureDevOpsService {
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
+
+  // ─── Iteration / Sprint helpers ──────────────────────────────
+
+  /**
+   * Fetch all iterations for the given team so we can map any date to its PI/Sprint.
+   * Returns them sorted by startDate.
+   */
+  async getAllIterations(team = 'MVA-Nubia'): Promise<{ name: string; path: string; startDate: string; finishDate: string }[]> {
+    if (!this.config) return [];
+    try {
+      const url = `${this.baseUrl}/${encodeURIComponent(team)}/_apis/work/teamsettings/iterations?api-version=7.1`;
+      console.log('[Iterations] Fetching:', url);
+      const res = await fetch(url, { headers: this.headers });
+      console.log('[Iterations] Response status:', res.status);
+      if (!res.ok) return [];
+      const data = await this.safeJson(res);
+      console.log('[Iterations] Raw count:', data.value?.length, 'First:', data.value?.[0]);
+      return (data.value || []).map((it: any) => ({
+        name: it.name,
+        path: it.path || it.name,
+        startDate: it.attributes?.startDate?.split('T')[0] || '',
+        finishDate: it.attributes?.finishDate?.split('T')[0] || '',
+      })).filter((it: any) => it.startDate && it.finishDate)
+        .sort((a: any, b: any) => a.startDate.localeCompare(b.startDate));
+    } catch (e) {
+      console.error('[Iterations] Error:', e);
+      return [];
+    }
+  }
 }
