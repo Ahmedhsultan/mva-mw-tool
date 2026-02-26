@@ -75,6 +75,10 @@
   background: #eef2ff;
 }
 
+.tool-card-icon.vf-icon {
+  background: #fef2f2;
+}
+
 .tool-card-body {
   flex: 1;
   min-width: 0;
@@ -129,6 +133,15 @@
 
 .btn-primary.azure-btn:hover:not(:disabled) {
   background: #005a9e;
+}
+
+.btn-primary.vf-btn {
+  background: #E60000;
+  text-decoration: none;
+}
+
+.btn-primary.vf-btn:hover:not(:disabled) {
+  background: #cc0000;
 }
 
 .btn-ghost {
