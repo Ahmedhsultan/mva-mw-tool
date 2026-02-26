@@ -45,16 +45,12 @@ export function getReleaseBranch(svc: string, releaseNumber: string): string {
     : `release/primary/${releaseNumber}`;
 }
 
-/** Release environments (same as reservation environments) */
-export const RELEASE_ENVIRONMENTS = [
-  'dev1',
-  'qcx',
-  'qc1',
-  'qc2',
-  'qc5',
-] as const;
+import { ENVIRONMENTS } from './reservation.model';
 
-export type ReleaseEnvironment = (typeof RELEASE_ENVIRONMENTS)[number];
+/** Release environments — derived from the single source of truth in reservation.model */
+export const RELEASE_ENVIRONMENTS = ENVIRONMENTS;
+
+export type ReleaseEnvironment = (typeof ENVIRONMENTS)[number];
 
 /** Status of each pipeline step per service */
 export type StepStatus = 'pending' | 'running' | 'success' | 'failed' | 'skipped' | 'waiting-approval';

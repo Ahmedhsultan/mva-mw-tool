@@ -1,0 +1,328 @@
+.tools-page {
+  padding: 28px 0;
+  max-width: 960px;
+}
+
+/* ── Header ── */
+.tools-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.tools-header-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--slate-600, #475569);
+}
+
+.tools-header-title h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--slate-900, #0f172a);
+  letter-spacing: -0.02em;
+}
+
+.tools-subtitle {
+  margin: 3px 0 0;
+  font-size: 0.82rem;
+  color: var(--slate-500, #64748b);
+}
+
+/* ── Tools Grid ── */
+.tools-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Tool Card ── */
+.tool-card {
+  display: flex;
+  gap: 20px;
+  background: var(--card-bg, #fff);
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+  padding: 24px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.tool-card:hover {
+  border-color: var(--slate-300, #cbd5e1);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.tool-card-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tool-card-icon.azure-icon {
+  background: #e8f4fd;
+}
+
+.tool-card-icon.chrome-icon {
+  background: #eef2ff;
+}
+
+.tool-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.tool-card-body h3 {
+  margin: 0 0 6px;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--slate-900, #0f172a);
+}
+
+.tool-card-desc {
+  margin: 0 0 16px;
+  font-size: 0.85rem;
+  color: var(--slate-500, #64748b);
+  line-height: 1.6;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--primary, #E60000);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #cc0000;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--slate-600, #475569);
+  border: 1.5px solid var(--border, #e2e8f0);
+}
+
+.btn-ghost:hover {
+  background: var(--slate-50, #f8fafc);
+  border-color: var(--slate-300, #cbd5e1);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.78rem;
+}
+
+.btn-copy {
+  background: var(--slate-100, #f1f5f9);
+  color: var(--slate-700, #334155);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.btn-copy:hover {
+  background: var(--slate-200, #e2e8f0);
+}
+
+.tool-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Token Section ── */
+.token-instructions {
+  margin-top: 16px;
+  background: var(--slate-50, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.token-instructions pre {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  color: var(--slate-700, #334155);
+  white-space: pre-wrap;
+  line-height: 1.7;
+}
+
+.token-paste-area {
+  margin-top: 14px;
+}
+
+.token-paste-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--slate-600, #475569);
+  margin-bottom: 6px;
+}
+
+.token-input-wrap {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.token-input {
+  flex: 1;
+  padding: 9px 14px;
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: var(--slate-800, #1e293b);
+  background: var(--card-bg, #fff);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.token-input:focus {
+  border-color: var(--primary, #E60000);
+}
+
+.token-input::placeholder {
+  color: var(--slate-400, #94a3b8);
+}
+
+/* ── Help Panel ── */
+.help-panel {
+  margin-top: 20px;
+  background: var(--slate-50, #f8fafc);
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+
+.help-panel h4 {
+  margin: 0 0 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--slate-800, #1e293b);
+}
+
+.help-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.help-step {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary, #E60000);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.help-step strong {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--slate-800, #1e293b);
+  margin-bottom: 3px;
+}
+
+.help-step p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--slate-600, #475569);
+  line-height: 1.6;
+}
+
+.help-step code {
+  background: var(--slate-100, #f1f5f9);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: var(--primary, #E60000);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.help-note {
+  margin-top: 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+.help-note svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #f59e0b;
+}
+
+.help-screenshots {
+  margin-top: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .tool-card {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .tool-actions {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .token-input-wrap {
+    flex-direction: column;
+  }
+}

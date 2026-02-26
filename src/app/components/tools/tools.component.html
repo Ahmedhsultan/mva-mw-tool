@@ -1,0 +1,196 @@
+<div class="tools-page">
+
+  <!-- ━━━ Header ━━━ -->
+  <div class="tools-header">
+    <div class="tools-header-title">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+      </svg>
+      <div>
+        <h2>Tools</h2>
+        <p class="tools-subtitle">Utilities and helpers for your daily workflow</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ━━━ Tools Grid ━━━ -->
+  <div class="tools-grid">
+
+    <!-- ─── Tool 1: Azure DevOps Token ─── -->
+    <div class="tool-card">
+      <div class="tool-card-icon azure-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <path d="M22 4L13.5 22l-3-7.5L3 11.5 22 4z" fill="#0078D4" opacity="0.15" stroke="#0078D4" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="tool-card-body">
+        <h3>Azure DevOps Token</h3>
+        <p class="tool-card-desc">
+          Generate a Personal Access Token (PAT) from Azure DevOps.
+          Opens the token creation page in a new tab.
+        </p>
+
+        <button class="btn btn-primary" (click)="openAzureTokenPage()" [disabled]="tokenLoading">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          @if (tokenLoading) {
+            Opening…
+          } @else {
+            Open Token Page
+          }
+        </button>
+
+        @if (tokenResult) {
+          <div class="token-instructions">
+            <pre>{{ tokenResult }}</pre>
+          </div>
+
+          <div class="token-paste-area">
+            <label class="token-paste-label">Paste your generated token here:</label>
+            <div class="token-input-wrap">
+              <input
+                type="text"
+                class="token-input"
+                placeholder="Paste your PAT token…"
+                [value]="pastedToken"
+                (paste)="onTokenPaste($event)"
+                (input)="pastedToken = $any($event.target).value"
+              />
+              @if (pastedToken) {
+                <button class="btn btn-sm btn-copy" (click)="copyToken()">
+                  @if (tokenCopied) {
+                    ✅ Copied!
+                  } @else {
+                    Copy
+                  }
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- ─── Tool 2: CloudWatch Log Extractor Extension ─── -->
+    <div class="tool-card">
+      <div class="tool-card-icon chrome-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" stroke="#4285F4" stroke-width="1.5" fill="#4285F4" fill-opacity="0.1"/>
+          <circle cx="12" cy="12" r="4" fill="#4285F4"/>
+          <path d="M12 2a10 10 0 0 1 8.66 5H12" stroke="#EA4335" stroke-width="1.5"/>
+          <path d="M3.34 7a10 10 0 0 1 3.32-5H12" stroke="#FBBC04" stroke-width="1.5" opacity="0.6"/>
+        </svg>
+      </div>
+      <div class="tool-card-body">
+        <h3>CloudWatch Log Extractor</h3>
+        <p class="tool-card-desc">
+          Chrome Extension to extract and parse CloudWatch log entries.
+          Copies the log stream, then extracts fields and generates a cURL command.
+        </p>
+
+        <div class="tool-actions">
+          <button class="btn btn-primary" (click)="downloadExtension()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download Extension (.zip)
+          </button>
+
+          <button class="btn btn-ghost" (click)="toggleHelp()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            @if (showExtensionHelp) {
+              Hide Help
+            } @else {
+              How to Use
+            }
+          </button>
+        </div>
+
+        @if (showExtensionHelp) {
+          <div class="help-panel">
+            <h4>How to install & use the extension</h4>
+
+            <div class="help-steps">
+              <div class="help-step">
+                <span class="step-number">1</span>
+                <div>
+                  <strong>Download & unzip</strong>
+                  <p>Click "Download Extension (.zip)" above and unzip the file.</p>
+                </div>
+              </div>
+
+              <div class="help-step">
+                <span class="step-number">2</span>
+                <div>
+                  <strong>Load in Chrome</strong>
+                  <p>Open <code>chrome://extensions</code>, enable "Developer mode", then click "Load unpacked" and select the unzipped folder.</p>
+                </div>
+              </div>
+
+              <div class="help-step">
+                <span class="step-number">3</span>
+                <div>
+                  <strong>Open CloudWatch Logs</strong>
+                  <p>Go to <strong>AWS CloudWatch → Logs → Log Insights</strong> and run your query.</p>
+                </div>
+              </div>
+
+              <div class="help-step">
+                <span class="step-number">4</span>
+                <div>
+                  <strong>Open a log stream</strong>
+                  <p>Click on a log entry to expand it, then click on the <strong>&#64;logStream</strong> link to open the full log stream.</p>
+                </div>
+              </div>
+
+              <div class="help-step">
+                <span class="step-number">5</span>
+                <div>
+                  <strong>Copy the log entry</strong>
+                  <p>Expand the log message you're interested in. Select and <strong>copy</strong> the full log text (Ctrl+C / Cmd+C).</p>
+                </div>
+              </div>
+
+              <div class="help-step">
+                <span class="step-number">6</span>
+                <div>
+                  <strong>Extract with the extension</strong>
+                  <p>Click the <strong>CloudWatch Log Extractor</strong> extension icon in Chrome toolbar, then click <strong>"Extract from Clipboard"</strong>.</p>
+                </div>
+              </div>
+
+              <div class="help-step">
+                <span class="step-number">7</span>
+                <div>
+                  <strong>Get the cURL command</strong>
+                  <p>The extension will parse the log and show you extracted fields (API name, URL, status, etc.) and a ready-to-use <strong>cURL command</strong> you can copy.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="help-screenshots">
+              <p class="help-note">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="16" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <span>The extension reads from your <strong>clipboard</strong> — make sure you've copied the log entry before clicking "Extract from Clipboard".</span>
+              </p>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+  </div>
+</div>

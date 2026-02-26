@@ -6,58 +6,17 @@ import { MICROSERVICES } from '../../models/release-pipeline.model';
 import { ENVIRONMENTS } from '../../models/reservation.model';
 import { AzureDevOpsService } from '../../services/azure-devops.service';
 import { ReservationService } from '../../services/reservation.service';
+import { DeployHistoryService } from '../../services/deploy-history.service';
+import { syncStepStatus } from '../../models/deploy.model';
 import type { Reservation } from '../../models/reservation.model';
-
-export type TaskStatus = 'pending' | 'running' | 'success' | 'failed' | 'skipped' | 'warning';
-
-export interface ServiceTask {
-  service: string;
-  status: TaskStatus;
-  message: string;
-  buildId?: number;
-  buildUrl?: string;
-}
-
-export interface EnvTask {
-  env: string;
-  status: TaskStatus;
-  message: string;
-  /** service → release result */
-  deployments: DeployTask[];
-}
-
-export interface DeployTask {
-  service: string;
-  env: string;
-  status: TaskStatus;
-  message: string;
-  releaseId?: number;
-  releaseUrl?: string;
-}
-
-export interface DeployStep {
-  id: string;
-  label: string;
-  description: string;
-  status: TaskStatus;
-}
-
-export interface DeployHistoryEntry {
-  id: string;
-  branch: string;
-  services: string[];
-  environments: string[];
-  startedAt: string;
-  finishedAt: string;
-  overallStatus: 'success' | 'failed' | 'interrupted';
-  logs: string[];
-  steps: DeployStep[];
-  patResult: ServiceTask | null;
-  branchTasks: ServiceTask[];
-  buildTasks: ServiceTask[];
-  deployTasks: DeployTask[];
-  envReservationTasks: EnvTask[];
-}
+import type {
+  TaskStatus,
+  ServiceTask,
+  EnvTask,
+  DeployTask,
+  DeployStep,
+  DeployHistoryEntry,
+} from '../../models/deploy.model';
 
 @Component({
   selector: 'app-deploy-branch',
@@ -69,6 +28,7 @@ export interface DeployHistoryEntry {
 export class DeployBranchComponent implements OnInit, OnDestroy {
   private azureDevOps = inject(AzureDevOpsService);
   private reservationService = inject(ReservationService);
+  private historyService = inject(DeployHistoryService);
 
   readonly allServices = MICROSERVICES as readonly string[];
   readonly allEnvironments = [...ENVIRONMENTS] as string[];
@@ -610,25 +570,22 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
     this.isRunning = false;
     this.isComplete = true;
     this.log(success ? '✓ Deploy complete.' : '✗ Deploy finished with errors.');
-    const entry: DeployHistoryEntry = {
-      id: this.runId,
+    const entry = this.historyService.buildEntry({
+      runId: this.runId,
       branch: this.branchName,
-      services: Array.from(this.selectedServices),
-      environments: Array.from(this.selectedEnvironments),
+      services: this.selectedServices,
+      environments: this.selectedEnvironments,
       startedAt: this.runStartedAt,
-      finishedAt: new Date().toISOString(),
-      overallStatus: success ? 'success' : 'failed',
-      logs: [...this.logs],
-      steps: [...this.steps],
+      success,
+      logs: this.logs,
+      steps: this.steps,
       patResult: this.patResult,
-      branchTasks: [...this.branchTasks],
-      buildTasks: [...this.buildTasks],
-      deployTasks: [...this.deployTasks],
-      envReservationTasks: [...this.envReservationTasks],
-    };
-    this.history.unshift(entry);
-    if (this.history.length > 20) this.history.length = 20;
-    this.saveHistory();
+      branchTasks: this.branchTasks,
+      buildTasks: this.buildTasks,
+      deployTasks: this.deployTasks,
+      envReservationTasks: this.envReservationTasks,
+    });
+    this.historyService.pushEntry(this.history, entry);
   }
 
   // ── Grouping helpers for template ─────────────────────────
@@ -681,11 +638,9 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
   }
 
   private restoreRunState(): void {
-    const raw = localStorage.getItem('db-run-state');
-    if (!raw) return;
+    const s = this.historyService.loadCurrentRun();
+    if (!s) return;
     try {
-      const s = JSON.parse(raw);
-      // Restore common fields first
       this.runId = s.runId || '';
       this.runStartedAt = s.startedAt || '';
       this.branchName = s.branch || '';
@@ -714,27 +669,23 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
         this.wasInterrupted = true;
         this.isComplete = true;
         this.isRunning = false;
-        // Also save interrupted run to history
-        const entry: DeployHistoryEntry = {
-          id: this.runId || Date.now().toString(),
+        const entry = this.historyService.buildEntry({
+          runId: this.runId || Date.now().toString(),
           branch: this.branchName,
-          services: Array.from(this.selectedServices),
-          environments: Array.from(this.selectedEnvironments),
+          services: this.selectedServices,
+          environments: this.selectedEnvironments,
           startedAt: this.runStartedAt,
-          finishedAt: new Date().toISOString(),
-          overallStatus: 'interrupted',
-          logs: [...this.logs],
-          steps: [...this.steps],
+          success: 'interrupted',
+          logs: this.logs,
+          steps: this.steps,
           patResult: this.patResult,
-          branchTasks: [...this.branchTasks],
-          buildTasks: [...this.buildTasks],
-          deployTasks: [...this.deployTasks],
-          envReservationTasks: [...this.envReservationTasks],
-        };
-        this.history.unshift(entry);
-        if (this.history.length > 20) this.history.length = 20;
-        this.saveHistory();
-        localStorage.removeItem('db-run-state');
+          branchTasks: this.branchTasks,
+          buildTasks: this.buildTasks,
+          deployTasks: this.deployTasks,
+          envReservationTasks: this.envReservationTasks,
+        });
+        this.historyService.pushEntry(this.history, entry);
+        this.historyService.clearCurrentRun();
       } else if (s.isComplete) {
         this.logs = s.logs || [];
         this.steps = s.steps || [];
@@ -745,18 +696,15 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
         this.isComplete = true;
         this.isRunning = false;
       }
-    } catch { localStorage.removeItem('db-run-state'); }
+    } catch { this.historyService.clearCurrentRun(); }
   }
 
   private loadHistory(): void {
-    try {
-      const raw = localStorage.getItem('db-run-history');
-      if (raw) this.history = JSON.parse(raw);
-    } catch { this.history = []; }
+    this.history = this.historyService.loadHistory();
   }
 
   private saveHistory(): void {
-    localStorage.setItem('db-run-history', JSON.stringify(this.history));
+    this.historyService.saveHistory(this.history);
   }
 
   toggleHistory(): void { this.showHistory = !this.showHistory; }
@@ -767,7 +715,7 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
 
   clearHistory(): void {
     this.history = [];
-    localStorage.removeItem('db-run-history');
+    this.historyService.clearHistory();
   }
 
   get hasActiveBuildIds(): boolean {
@@ -785,26 +733,24 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
         task.message = result.success
           ? `Build #${task.buildId} succeeded`
           : `Build #${task.buildId} ${result.result || 'failed'}`;
-        this.syncBuildStepStatus();
+        this.syncBuildStep();
         this.saveCurrentRun();
       } else {
         // Still running on Azure — resume polling to completion
         task.status = 'running';
         task.message = `Build #${task.buildId}: ${result.status}...`;
-        this.syncBuildStepStatus();
+        this.syncBuildStep();
         this.isComplete = false;
         this.wasInterrupted = false;
         this.saveCurrentRun();
         const w = await this.azureDevOps.waitForBuild(task.buildId!, (m) => { task.message = m; });
         task.status = w.success ? 'success' : 'failed';
         task.message = w.message;
-        this.syncBuildStepStatus();
-        // If all builds done now, continue to deploy if not already deployed
-        const anyFailed = this.buildTasks.some((t) => t.status === 'failed');
+        this.syncBuildStep();
         const allDone = this.buildTasks.every((t) => t.status === 'success' || t.status === 'failed');
         if (allDone) {
           this.isComplete = true;
-          this.syncBuildStepStatus();
+          this.syncBuildStep();
           this.saveCurrentRun();
         }
       }
@@ -815,16 +761,8 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
     }
   }
 
-  private syncBuildStepStatus(): void {
-    const buildStep = this.steps.find((s) => s.id === 'build');
-    if (!buildStep) return;
-    if (this.buildTasks.some((t) => t.status === 'running')) {
-      buildStep.status = 'running';
-    } else if (this.buildTasks.some((t) => t.status === 'failed')) {
-      buildStep.status = 'failed';
-    } else if (this.buildTasks.every((t) => t.status === 'success')) {
-      buildStep.status = 'success';
-    }
+  private syncBuildStep(): void {
+    syncStepStatus(this.steps, 'build', this.buildTasks);
   }
 
   async refreshAllActiveBuild(): Promise<void> {
@@ -846,13 +784,13 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
       if (result.done) {
         task.status = result.success ? 'success' : 'failed';
         task.message = `Release #${task.releaseId} deployment ${result.statusName}`;
-        this.syncDeployStepStatus();
+        this.syncDeployStep();
         this.saveCurrentRun();
       } else {
         // Still running on Azure — resume polling to completion
         task.status = 'running';
         task.message = `Release #${task.releaseId} deployment ${result.statusName}...`;
-        this.syncDeployStepStatus();
+        this.syncDeployStep();
         this.isComplete = false;
         this.wasInterrupted = false;
         this.saveCurrentRun();
@@ -862,7 +800,7 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
         const allDone = this.deployTasks.every((t) => t.status === 'success' || t.status === 'failed');
         if (allDone) {
           this.isComplete = true;
-          this.syncDeployStepStatus();
+          this.syncDeployStep();
           this.saveCurrentRun();
         }
       }
@@ -873,16 +811,8 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
     }
   }
 
-  private syncDeployStepStatus(): void {
-    const deployStep = this.steps.find((s) => s.id === 'deploy');
-    if (!deployStep) return;
-    if (this.deployTasks.some((t) => t.status === 'running')) {
-      deployStep.status = 'running';
-    } else if (this.deployTasks.some((t) => t.status === 'failed')) {
-      deployStep.status = 'failed';
-    } else if (this.deployTasks.every((t) => t.status === 'success')) {
-      deployStep.status = 'success';
-    }
+  private syncDeployStep(): void {
+    syncStepStatus(this.steps, 'deploy', this.deployTasks);
   }
 
   async refreshAllActiveDeploy(): Promise<void> {
@@ -927,7 +857,7 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
         task.status = 'running';
         task.message = `Build #${task.buildId}: ${result.status}...`;
       }
-      this.syncHistoryBuildStep(run);
+      this.syncHistoryStep(run, 'build', run.buildTasks);
       this.saveHistory();
     } finally {
       const next = new Set(this.modalRefreshingBuild);
@@ -944,7 +874,7 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
       const result = await this.azureDevOps.checkDeploymentStatus(task.releaseId, task.env);
       task.status = result.done ? (result.success ? 'success' : 'failed') : 'running';
       task.message = `Release #${task.releaseId} deployment ${result.statusName}`;
-      this.syncHistoryDeployStep(run);
+      this.syncHistoryStep(run, 'deploy', run.deployTasks);
       this.saveHistory();
     } finally {
       const next = new Set(this.modalRefreshingDeploy);
@@ -953,20 +883,8 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
     }
   }
 
-  private syncHistoryBuildStep(run: DeployHistoryEntry): void {
-    const step = run.steps.find((s) => s.id === 'build');
-    if (!step) return;
-    if (run.buildTasks.some((t) => t.status === 'running')) step.status = 'running';
-    else if (run.buildTasks.some((t) => t.status === 'failed')) step.status = 'failed';
-    else if (run.buildTasks.every((t) => t.status === 'success')) step.status = 'success';
-  }
-
-  private syncHistoryDeployStep(run: DeployHistoryEntry): void {
-    const step = run.steps.find((s) => s.id === 'deploy');
-    if (!step) return;
-    if (run.deployTasks.some((t) => t.status === 'running')) step.status = 'running';
-    else if (run.deployTasks.some((t) => t.status === 'failed')) step.status = 'failed';
-    else if (run.deployTasks.every((t) => t.status === 'success')) step.status = 'success';
+  private syncHistoryStep(run: DeployHistoryEntry, stepId: string, tasks: { status: TaskStatus }[]): void {
+    syncStepStatus(run.steps, stepId, tasks);
   }
 
   async refreshAllModalSteps(run: DeployHistoryEntry): Promise<void> {
@@ -983,8 +901,7 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
   }
 
   formatDate(iso: string): string {
-    if (!iso) return '';
-    try { return new Date(iso).toLocaleString(); } catch { return iso; }
+    return this.historyService.formatDate(iso);
   }
 
   // ── Open / Restore history run as active view ─────────────

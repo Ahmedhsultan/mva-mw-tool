@@ -8,5 +8,6 @@ export const routes: Routes = [
   { path: 'pipeline/:subTab', loadComponent: () => import('./components/cicd-pipeline/cicd-pipeline.component').then(m => m.CicdPipelineComponent) },
   { path: 'resources', loadComponent: () => import('./components/vois-resources/vois-resources.component').then(m => m.VoisResourcesComponent) },
   { path: 'deploy-branch', loadComponent: () => import('./components/deploy-branch/deploy-branch.component').then(m => m.DeployBranchComponent) },
+  { path: 'tools', loadComponent: () => import('./components/tools/tools.component').then(m => m.ToolsComponent) },
   { path: '**', redirectTo: 'reservations' },
 ];

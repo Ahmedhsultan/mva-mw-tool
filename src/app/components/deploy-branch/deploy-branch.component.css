@@ -450,25 +450,11 @@
 .db-sl-running { background: #bfdbfe; }
 
 .db-step-info { display: flex; flex-direction: column; gap: 2px; padding: 3px 0 18px; }
-.db-step-info-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .db-step-label { font-size: 13px; font-weight: 600; color: var(--slate-700); }
 .db-step-desc { font-size: 11px; color: var(--slate-400); line-height: 1.4; }
-.db-step-info-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .db-step-success .db-step-label { color: #15803d; }
 .db-step-failed  .db-step-label { color: var(--danger-600); }
 .db-step-running .db-step-label { color: #2563eb; }
-
-/* Per-step action button */
-.db-step-action {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 20px; height: 20px; border-radius: 50%;
-  border: 1px solid var(--slate-200); background: none;
-  font-size: 13px; color: var(--slate-400); cursor: pointer; flex-shrink: 0;
-  transition: all var(--transition-fast);
-  line-height: 1;
-}
-.db-step-action:hover { border-color: var(--primary-400); color: var(--primary-600); background: var(--primary-50); }
-.db-step-action:disabled { opacity: .35; cursor: not-allowed; }
 
 /* Button size variants */
 .db-btn-sm { padding: 5px 11px; font-size: 12px; }
