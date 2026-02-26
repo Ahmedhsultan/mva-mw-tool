@@ -305,6 +305,13 @@
   color: var(--primary-500); text-decoration: none; white-space: nowrap; flex-shrink: 0;
 }
 .db-ext-link:hover { color: var(--primary-600); text-decoration: underline; }
+.db-copy-link-btn {
+  background: none; border: 1px solid var(--slate-200); border-radius: 4px;
+  color: var(--slate-400); cursor: pointer; padding: 2px 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all .15s;
+}
+.db-copy-link-btn:hover { color: var(--primary-500); border-color: var(--primary-300); background: var(--primary-50, #fef2f2); }
 
 /* ── Env grouping ────────────────────────────────────────────── */
 .db-env-group { margin-bottom: 12px; }

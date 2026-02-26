@@ -17,8 +17,8 @@ export class ToolsComponent {
   downloadExtension(): void {
     this.createZip(
       'assets/cloudwatch-log-extractor/',
-      ['manifest.json', 'popup.html', 'popup.js'],
-      'cloudwatch-log-extractor.zip',
+      ['manifest.json', 'content.js', 'icon.png'],
+      'vois_aws_logs_to_curl.zip',
       'CW'
     );
   }
@@ -36,20 +36,17 @@ export class ToolsComponent {
     for (const file of files) {
       try {
         const response = await fetch(basePath + file);
-        const text = await response.text();
-        zip.file(file, text);
+        if (file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.ico')) {
+          const blob = await response.blob();
+          zip.file(file, blob);
+        } else {
+          const text = await response.text();
+          zip.file(file, text);
+        }
       } catch (e) {
         console.error(`Failed to fetch ${file}:`, e);
       }
     }
-
-    const iconSvg16 = this.generateIconSvg(16, iconLabel);
-    const iconSvg48 = this.generateIconSvg(48, iconLabel);
-    const iconSvg128 = this.generateIconSvg(128, iconLabel);
-
-    zip.file('icon16.png', await this.svgToPng(iconSvg16, 16, 16));
-    zip.file('icon48.png', await this.svgToPng(iconSvg48, 48, 48));
-    zip.file('icon128.png', await this.svgToPng(iconSvg128, 128, 128));
 
     const blob = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(blob);

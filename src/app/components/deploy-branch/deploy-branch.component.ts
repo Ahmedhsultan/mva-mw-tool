@@ -1030,4 +1030,32 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
     if (this.steps.every((s) => s.status === 'success' || s.status === 'skipped')) return 'success';
     return 'pending';
   }
+
+  // ── Copy link to clipboard ──────────────────────────────────
+  copiedLinks: Set<string> = new Set();
+
+  copyLink(url: string, key: string): void {
+    navigator.clipboard.writeText(url).then(() => {
+      this.copiedLinks.add(key);
+      setTimeout(() => this.copiedLinks.delete(key), 2000);
+    });
+  }
+
+  copyAllBuildLinks(tasks: { buildUrl?: string; service: string }[]): void {
+    const links = tasks.filter(t => t.buildUrl).map(t => `${t.service}: ${t.buildUrl}`);
+    if (!links.length) return;
+    navigator.clipboard.writeText(links.join('\n')).then(() => {
+      this.copiedLinks.add('all-builds');
+      setTimeout(() => this.copiedLinks.delete('all-builds'), 2000);
+    });
+  }
+
+  copyAllDeployLinks(tasks: { releaseUrl?: string; service: string; env: string }[]): void {
+    const links = tasks.filter(t => t.releaseUrl).map(t => `${t.service} → ${t.env}: ${t.releaseUrl}`);
+    if (!links.length) return;
+    navigator.clipboard.writeText(links.join('\n')).then(() => {
+      this.copiedLinks.add('all-deploys');
+      setTimeout(() => this.copiedLinks.delete('all-deploys'), 2000);
+    });
+  }
 }

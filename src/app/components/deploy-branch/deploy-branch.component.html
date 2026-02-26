@@ -274,6 +274,15 @@
               <div class="db-result-card-hdr">
                 <p class="db-result-label">Build</p>
                 <div class="db-rc-actions">
+                  <button class="db-rc-action" (click)="copyAllBuildLinks(buildTasks)" type="button" [title]="copiedLinks.has('all-builds') ? 'Copied!' : 'Copy all build links'">
+                    @if (copiedLinks.has('all-builds')) {
+                      <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M3 8l3 3 7-7" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      Copied!
+                    } @else {
+                      <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><rect x="5" y="2" width="9" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 5v8a1.5 1.5 0 001.5 1.5H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                      Copy All
+                    }
+                  </button>
                   <button class="db-rc-action db-rc-action-refresh" (click)="refreshAllActiveBuild()" [disabled]="isRunning || refreshingActiveBuildAll" type="button" title="Refresh all build statuses from Azure">
                     @if (refreshingActiveBuildAll) { <span class="db-spin db-spin-sm"></span> } @else {
                       <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M3 8a5 5 0 1 0 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M7 3L8 5 9 3" fill="currentColor"/></svg>
@@ -298,6 +307,13 @@
                   <span class="db-row-msg">{{ t.message }}</span>
                   @if (t.buildUrl) {
                     <a class="db-ext-link" [href]="t.buildUrl" target="_blank">View &#8599;</a>
+                    <button class="db-copy-link-btn" (click)="copyLink(t.buildUrl, 'build-' + t.service)" type="button" [title]="copiedLinks.has('build-' + t.service) ? 'Copied!' : 'Copy link'">
+                      @if (copiedLinks.has('build-' + t.service)) {
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8l3 3 7-7" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      } @else {
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="2" width="9" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 5v8a1.5 1.5 0 001.5 1.5H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                      }
+                    </button>
                   }
                   <button class="db-rc-task-refresh" (click)="refreshActiveBuildTask(t)" [disabled]="isRunning || refreshingActiveBuild.has(t.service) || !t.buildId" type="button" title="Refresh status from Azure">
                     @if (refreshingActiveBuild.has(t.service)) { <span class="db-spin db-spin-sm"></span> } @else {
@@ -314,6 +330,15 @@
               <div class="db-result-card-hdr">
                 <p class="db-result-label">Deploy</p>
                 <div class="db-rc-actions">
+                  <button class="db-rc-action" (click)="copyAllDeployLinks(deployTasks)" type="button" [title]="copiedLinks.has('all-deploys') ? 'Copied!' : 'Copy all deploy links'">
+                    @if (copiedLinks.has('all-deploys')) {
+                      <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M3 8l3 3 7-7" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      Copied!
+                    } @else {
+                      <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><rect x="5" y="2" width="9" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 5v8a1.5 1.5 0 001.5 1.5H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                      Copy All
+                    }
+                  </button>
                   <button class="db-rc-action db-rc-action-refresh" (click)="refreshAllActiveDeploy()" [disabled]="isRunning || refreshingActiveDeployAll" type="button" title="Refresh all deploy statuses from Azure">
                     @if (refreshingActiveDeployAll) { <span class="db-spin db-spin-sm"></span> } @else {
                       <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M3 8a5 5 0 1 0 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M7 3L8 5 9 3" fill="currentColor"/></svg>
@@ -343,6 +368,13 @@
                       <span class="db-row-msg">{{ t.message }}</span>
                       @if (t.releaseUrl) {
                         <a class="db-ext-link" [href]="t.releaseUrl" target="_blank">View &#8599;</a>
+                        <button class="db-copy-link-btn" (click)="copyLink(t.releaseUrl, 'deploy-' + t.service + '-' + t.env)" type="button" [title]="copiedLinks.has('deploy-' + t.service + '-' + t.env) ? 'Copied!' : 'Copy link'">
+                          @if (copiedLinks.has('deploy-' + t.service + '-' + t.env)) {
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8l3 3 7-7" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                          } @else {
+                            <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="2" width="9" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 5v8a1.5 1.5 0 001.5 1.5H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                          }
+                        </button>
                       }
                       <button class="db-rc-task-refresh" (click)="refreshActiveDeployTask(t)" [disabled]="isRunning || refreshingActiveDeploy.has(t.service + '-' + t.env) || !t.releaseId" type="button" title="Refresh status from Azure">
                         @if (refreshingActiveDeploy.has(t.service + '-' + t.env)) { <span class="db-spin db-spin-sm"></span> } @else {
@@ -621,6 +653,15 @@
                   <div class="db-fv-section">
                     <div class="db-fv-section-hdr">
                       <p class="db-fv-section-label">Build</p>
+                      <button class="db-fv-step-rerun" (click)="copyAllBuildLinks(historyModalRun.buildTasks)" type="button" [title]="copiedLinks.has('all-builds') ? 'Copied!' : 'Copy all build links'">
+                        @if (copiedLinks.has('all-builds')) {
+                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M3 8l3 3 7-7" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                          Copied!
+                        } @else {
+                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><rect x="5" y="2" width="9" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 5v8a1.5 1.5 0 001.5 1.5H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                          Copy All
+                        }
+                      </button>
                       <button class="db-fv-step-rerun" (click)="rerunBuildFromHistory(historyModalRun)" [disabled]="isRunning" type="button" title="Rerun Build">
                         <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M3 8a5 5 0 1 0 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 1v4M8 1L6 3M8 1l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         Rerun
@@ -636,7 +677,16 @@
                         </span>
                         <span class="db-row-name">{{ t.service }}</span>
                         <span class="db-row-msg">{{ t.message }}</span>
-                        @if (t.buildUrl) { <a class="db-ext-link" [href]="t.buildUrl" target="_blank">View &#8599;</a> }
+                        @if (t.buildUrl) {
+                          <a class="db-ext-link" [href]="t.buildUrl" target="_blank">View &#8599;</a>
+                          <button class="db-copy-link-btn" (click)="copyLink(t.buildUrl, 'hb-' + t.service)" type="button" [title]="copiedLinks.has('hb-' + t.service) ? 'Copied!' : 'Copy link'">
+                            @if (copiedLinks.has('hb-' + t.service)) {
+                              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8l3 3 7-7" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            } @else {
+                              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="2" width="9" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 5v8a1.5 1.5 0 001.5 1.5H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                            }
+                          </button>
+                        }
                         <button class="db-fv-refresh-btn" (click)="refreshModalBuildTask(historyModalRun, t)" [disabled]="modalRefreshingBuild.has(t.service) || !t.buildId" type="button" title="Refresh status from Azure">
                           @if (modalRefreshingBuild.has(t.service)) { <span class="db-spin db-spin-sm"></span> }
                           @else {
@@ -658,6 +708,15 @@
                   <div class="db-fv-section">
                     <div class="db-fv-section-hdr">
                       <p class="db-fv-section-label">Deploy</p>
+                      <button class="db-fv-step-rerun" (click)="copyAllDeployLinks(historyModalRun.deployTasks)" type="button" [title]="copiedLinks.has('all-deploys') ? 'Copied!' : 'Copy all deploy links'">
+                        @if (copiedLinks.has('all-deploys')) {
+                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M3 8l3 3 7-7" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                          Copied!
+                        } @else {
+                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><rect x="5" y="2" width="9" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 5v8a1.5 1.5 0 001.5 1.5H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                          Copy All
+                        }
+                      </button>
                       <button class="db-fv-step-rerun" (click)="rerunDeployFromHistory(historyModalRun)" [disabled]="isRunning || !hasBuildIds(historyModalRun)" type="button" title="Rerun Deploy">
                         <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M3 8a5 5 0 1 0 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 1v4M8 1L6 3M8 1l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         Rerun
@@ -673,7 +732,16 @@
                         </span>
                         <span class="db-row-name">{{ t.service }} &rarr; {{ t.env }}</span>
                         <span class="db-row-msg">{{ t.message }}</span>
-                        @if (t.releaseUrl) { <a class="db-ext-link" [href]="t.releaseUrl" target="_blank">View &#8599;</a> }
+                        @if (t.releaseUrl) {
+                          <a class="db-ext-link" [href]="t.releaseUrl" target="_blank">View &#8599;</a>
+                          <button class="db-copy-link-btn" (click)="copyLink(t.releaseUrl, 'hd-' + t.service + '-' + t.env)" type="button" [title]="copiedLinks.has('hd-' + t.service + '-' + t.env) ? 'Copied!' : 'Copy link'">
+                            @if (copiedLinks.has('hd-' + t.service + '-' + t.env)) {
+                              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8l3 3 7-7" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            } @else {
+                              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="2" width="9" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M3 5v8a1.5 1.5 0 001.5 1.5H11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                            }
+                          </button>
+                        }
                         <button class="db-fv-refresh-btn" (click)="refreshModalDeployTask(historyModalRun, t)" [disabled]="modalRefreshingDeploy.has(t.service + '-' + t.env) || !t.releaseId" type="button" title="Refresh status from Azure">
                           @if (modalRefreshingDeploy.has(t.service + '-' + t.env)) { <span class="db-spin db-spin-sm"></span> }
                           @else {

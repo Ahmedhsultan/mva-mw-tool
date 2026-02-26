@@ -28,7 +28,7 @@ import { RunPresenceService, RunViewer } from '../../services/run-presence.servi
 })
 export class CicdPipelineComponent implements OnInit, OnDestroy {
   microservices = MICROSERVICES;
-  environments = RELEASE_ENVIRONMENTS;
+  environments = ['qc1', 'qc2', 'qcx'] as const;
 
   // Config
   pat = '';

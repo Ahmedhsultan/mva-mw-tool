@@ -1,20 +1,21 @@
 {
   "manifest_version": 3,
-  "name": "CloudWatch Log to Curl - MVA MW Tool",
-  "version": "1.0.0",
-  "description": "Extract and format CloudWatch log entries for easier debugging. Copy a log stream entry and click the extension to extract a clean cURL command.",
-  "permissions": ["activeTab", "clipboardRead", "clipboardWrite"],
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icon16.png",
-      "48": "icon48.png",
-      "128": "icon128.png"
+  "name": "VOIS Curl Extractor",
+  "version": "1.0",
+  "description": "Extract VOIS curl from aws logs",
+  "author": "Sultan",
+  "permissions": ["scripting", "activeTab"],
+  "host_permissions": [
+    "https://eu-west-1.console.aws.amazon.com/cloudwatch/home*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://eu-west-1.console.aws.amazon.com/cloudwatch/home*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
     }
-  },
+  ],
   "icons": {
-    "16": "icon16.png",
-    "48": "icon48.png",
-    "128": "icon128.png"
+    "48": "icon.png"
   }
 }

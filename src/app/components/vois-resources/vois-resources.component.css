@@ -6,9 +6,9 @@
 /* ── Header ── */
 .resources-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 16px;
   margin-bottom: 28px;
   flex-wrap: wrap;
 }
@@ -242,4 +242,217 @@
   transition: color 0.12s, transform 0.12s;
   display: flex;
   align-items: center;
+  gap: 6px;
+}
+
+/* ── Add Resource button ── */
+.resources-header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.resources-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--primary, #E60000);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.resources-add-btn:hover {
+  background: #cc0000;
+  box-shadow: 0 2px 8px rgba(230, 0, 0, 0.18);
+}
+
+/* ── Delete custom resource ── */
+.resource-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  color: var(--slate-400, #94a3b8);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.resource-delete-btn:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ── Add Resource Modal ── */
+.res-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: resFadeIn 0.15s ease-out;
+}
+
+@keyframes resFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.res-modal {
+  background: var(--card-bg, #fff);
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  overflow: hidden;
+  animation: resSlideUp 0.2s ease-out;
+}
+
+@keyframes resSlideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.res-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.res-modal-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--slate-900, #0f172a);
+}
+
+.res-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--slate-400, #94a3b8);
+  transition: background 0.12s;
+}
+
+.res-modal-close:hover {
+  background: var(--surface-hover, #f1f5f9);
+  color: var(--slate-600, #475569);
+}
+
+.res-modal-body {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.res-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.res-field-row {
+  display: flex;
+  gap: 14px;
+}
+
+.res-field-half {
+  flex: 1;
+}
+
+.res-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--slate-600, #475569);
+  letter-spacing: 0.02em;
+}
+
+.res-input {
+  padding: 9px 12px;
+  font-size: 0.88rem;
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  background: var(--card-bg, #fff);
+  color: var(--slate-800, #1e293b);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.res-input:focus {
+  border-color: var(--primary, #E60000);
+}
+
+.res-input::placeholder {
+  color: var(--slate-400, #94a3b8);
+}
+
+select.res-input {
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+}
+
+.res-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border, #e2e8f0);
+  background: var(--surface-bg, #f8fafc);
+}
+
+.res-btn {
+  padding: 8px 18px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.res-btn-ghost {
+  background: transparent;
+  color: var(--slate-600, #475569);
+}
+
+.res-btn-ghost:hover {
+  background: var(--surface-hover, #f1f5f9);
+}
+
+.res-btn-primary {
+  background: var(--primary, #E60000);
+  color: #fff;
+}
+
+.res-btn-primary:hover:not(:disabled) {
+  background: #cc0000;
+}
+
+.res-btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
