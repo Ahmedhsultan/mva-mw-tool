@@ -33,6 +33,23 @@ export class AzureDevOpsService {
     return `https://dev.azure.com/${this.config.organization}/${this.config.project}`;
   }
 
+  /**
+   * Safely parse a fetch Response as JSON.
+   * Throws a descriptive error if the response is HTML (expired/invalid PAT redirect).
+   */
+  private async safeJson(res: Response): Promise<any> {
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+      const preview = (await res.text()).slice(0, 120);
+      throw new Error(
+        preview.includes('<!DOCTYPE') || preview.includes('<html')
+          ? 'Authentication failed — received HTML instead of JSON (PAT may be invalid or expired)'
+          : `Unexpected content-type: ${ct}`
+      );
+    }
+    return res.json();
+  }
+
   /** Set PAT & org config */
   configure(config: AzureDevOpsConfig): void {
     this.config = config;
@@ -47,14 +64,31 @@ export class AzureDevOpsService {
     try {
       const res = await fetch(
         `https://dev.azure.com/${this.config!.organization}/_apis/projects?$top=1&api-version=7.1`,
-        { headers: this.headers }
+        { headers: this.headers, redirect: 'manual' }
       );
+
+      // Redirects (302, 0 from opaque) indicate login page → invalid PAT
+      if (res.type === 'opaqueredirect' || res.status === 302 || res.status === 301) {
+        return { success: false, message: 'Authentication failed — PAT is invalid or expired (redirected to login)' };
+      }
       if (res.status === 401 || res.status === 403) {
         return { success: false, message: `Authentication failed (${res.status}) — PAT may be invalid or expired` };
       }
       if (!res.ok) {
         return { success: false, message: `Azure DevOps API returned ${res.status}` };
       }
+
+      // Verify we got JSON, not an HTML page
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        return { success: false, message: 'Authentication failed — received non-JSON response (PAT may be invalid or expired)' };
+      }
+
+      const data = await this.safeJson(res);
+      if (data.count === undefined && !data.value) {
+        return { success: false, message: 'Unexpected API response — PAT may lack required permissions' };
+      }
+
       return { success: true, message: 'PAT verified — Azure DevOps access confirmed' };
     } catch (e: any) {
       return { success: false, message: `Connection error: ${e.message}` };
@@ -80,7 +114,7 @@ export class AzureDevOpsService {
         const err = await refsRes.text();
         return { success: false, message: `Failed to get ${baseBranch} ref: ${refsRes.status} – ${err}` };
       }
-      const refsData = await refsRes.json();
+      const refsData = await this.safeJson(refsRes);
       if (!refsData.value?.length) {
         return { success: false, message: `Branch ${baseBranch} not found` };
       }
@@ -104,7 +138,7 @@ export class AzureDevOpsService {
         const err = await createRes.text();
         return { success: false, message: `Failed to create branch: ${createRes.status} – ${err}` };
       }
-      const createData = await createRes.json();
+      const createData = await this.safeJson(createRes);
       const result = createData.value?.[0];
       if (result?.success === false) {
         return { success: false, message: result.customMessage || 'Branch creation failed' };
@@ -138,7 +172,7 @@ export class AzureDevOpsService {
         const err = await res.text();
         return { success: false, message: `Failed to create PR: ${res.status} – ${err}` };
       }
-      const data = await res.json();
+      const data = await this.safeJson(res);
       const prUrl = `${this.baseUrl}/_git/${repo}/pullrequest/${data.pullRequestId}`;
       return { success: true, message: `PR #${data.pullRequestId} created`, prUrl, prId: data.pullRequestId };
     } catch (e: any) {
@@ -155,7 +189,7 @@ export class AzureDevOpsService {
         { headers: this.headers }
       );
       if (!res.ok) return null;
-      const data = await res.json();
+      const data = await this.safeJson(res);
       return data.id ?? null;
     } catch {
       return null;
@@ -187,7 +221,7 @@ export class AzureDevOpsService {
         const err = await defRes.text();
         return { success: false, message: `Failed to find build definition: ${defRes.status} – ${err}` };
       }
-      const defData = await defRes.json();
+      const defData = await this.safeJson(defRes);
       if (!defData.value?.length) {
         return { success: false, message: `No build definition found for ${repo}` };
       }
@@ -207,7 +241,7 @@ export class AzureDevOpsService {
         const err = await buildRes.text();
         return { success: false, message: `Failed to queue build: ${buildRes.status} – ${err}` };
       }
-      const buildData = await buildRes.json();
+      const buildData = await this.safeJson(buildRes);
       const buildUrl = buildData._links?.web?.href || `${this.baseUrl}/_build/results?buildId=${buildData.id}`;
       return { success: true, message: `Build #${buildData.id} queued`, buildId: buildData.id, buildUrl };
     } catch (e: any) {
@@ -227,7 +261,7 @@ export class AzureDevOpsService {
         if (!res.ok) {
           return { success: false, message: `Failed to check build: ${res.status}` };
         }
-        const data = await res.json();
+        const data = await this.safeJson(res);
         const status = data.status; // notStarted, inProgress, completed
         const result = data.result; // succeeded, failed, canceled
 
@@ -268,7 +302,7 @@ export class AzureDevOpsService {
         const err = await defRes.text();
         return { success: false, message: `Failed to find release definition: ${defRes.status} – ${err}` };
       }
-      const defData = await defRes.json();
+      const defData = await this.safeJson(defRes);
       if (!defData.value?.length) {
         return { success: false, message: `No release definition found for ${repo}` };
       }
@@ -307,7 +341,7 @@ export class AzureDevOpsService {
         const err = await releaseRes.text();
         return { success: false, message: `Failed to create release: ${releaseRes.status} – ${err}` };
       }
-      const releaseData = await releaseRes.json();
+      const releaseData = await this.safeJson(releaseRes);
       const releaseUrl = `https://dev.azure.com/${this.config!.organization}/${this.config!.project}/_releaseProgress?_a=release-environment-logs&releaseId=${releaseData.id}`;
       return {
         success: true,
@@ -339,7 +373,7 @@ export class AzureDevOpsService {
         if (!res.ok) {
           return { success: false, message: `Failed to check release: ${res.status}` };
         }
-        const data = await res.json();
+        const data = await this.safeJson(res);
 
         // Find the target environment/stage
         const env = data.environments?.find(
@@ -384,7 +418,7 @@ export class AzureDevOpsService {
         { headers: this.headers }
       );
       if (!res.ok) return { done: false, success: false, status: 'unknown' };
-      const data = await res.json();
+      const data = await this.safeJson(res);
       if (data.status === 'completed') {
         return { done: true, success: data.result === 'succeeded', status: data.status, result: data.result };
       }
@@ -403,7 +437,7 @@ export class AzureDevOpsService {
         { headers: this.headers }
       );
       if (!res.ok) return { done: false, success: false, statusName: 'unknown' };
-      const data = await res.json();
+      const data = await this.safeJson(res);
       const env = data.environments?.find(
         (e: any) => e.name.toLowerCase().includes(environmentName.toLowerCase())
       );
@@ -451,8 +485,18 @@ export class AzureDevOpsService {
         `${this.baseUrl}/_apis/git/repositories/${repo}/refs?filter=${encodeURIComponent(filter)}&api-version=7.1`,
         { headers: this.headers }
       );
+      if (res.status === 401 || res.status === 403) {
+        return { exists: false, message: `Authentication failed (${res.status}) — PAT may be invalid or expired` };
+      }
       if (!res.ok) return { exists: false, message: `Failed to check branch: ${res.status}` };
-      const data = await res.json();
+
+      // Guard against HTML responses from expired/invalid PATs
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        return { exists: false, message: 'Authentication failed — received non-JSON response (PAT may be invalid or expired)' };
+      }
+
+      const data = await this.safeJson(res);
       if (data.value?.length) {
         return { exists: true, message: `Branch ${targetBranch} already exists` };
       }
@@ -476,7 +520,7 @@ export class AzureDevOpsService {
         { headers: this.headers }
       );
       if (!res.ok) return { exists: false, message: `Failed to check PR: ${res.status}` };
-      const data = await res.json();
+      const data = await this.safeJson(res);
       if (data.value?.length) {
         const pr = data.value[0];
         const prUrl = `${this.baseUrl}/_git/${repo}/pullrequest/${pr.pullRequestId}`;

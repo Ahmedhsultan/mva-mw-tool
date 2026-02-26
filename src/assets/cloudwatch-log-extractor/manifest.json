@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "CloudWatch Log Extractor - MVA MW Tool",
+  "name": "CloudWatch Log to Curl - MVA MW Tool",
   "version": "1.0.0",
   "description": "Extract and format CloudWatch log entries for easier debugging. Copy a log stream entry and click the extension to extract a clean cURL command.",
   "permissions": ["activeTab", "clipboardRead", "clipboardWrite"],

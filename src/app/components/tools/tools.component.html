@@ -16,65 +16,9 @@
   <!-- ━━━ Tools Grid ━━━ -->
   <div class="tools-grid">
 
-    <!-- ─── Tool 1: Azure DevOps Token ─── -->
-    <div class="tool-card">
-      <div class="tool-card-icon azure-icon">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-          <path d="M22 4L13.5 22l-3-7.5L3 11.5 22 4z" fill="#0078D4" opacity="0.15" stroke="#0078D4" stroke-width="1.5" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div class="tool-card-body">
-        <h3>Azure DevOps Token</h3>
-        <p class="tool-card-desc">
-          Generate a Personal Access Token (PAT) from Azure DevOps.
-          Opens the token creation page in a new tab.
-        </p>
-
-        <button class="btn btn-primary" (click)="openAzureTokenPage()" [disabled]="tokenLoading">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
-          @if (tokenLoading) {
-            Opening…
-          } @else {
-            Open Token Page
-          }
-        </button>
-
-        @if (tokenResult) {
-          <div class="token-instructions">
-            <pre>{{ tokenResult }}</pre>
-          </div>
-
-          <div class="token-paste-area">
-            <label class="token-paste-label">Paste your generated token here:</label>
-            <div class="token-input-wrap">
-              <input
-                type="text"
-                class="token-input"
-                placeholder="Paste your PAT token…"
-                [value]="pastedToken"
-                (paste)="onTokenPaste($event)"
-                (input)="pastedToken = $any($event.target).value"
-              />
-              @if (pastedToken) {
-                <button class="btn btn-sm btn-copy" (click)="copyToken()">
-                  @if (tokenCopied) {
-                    ✅ Copied!
-                  } @else {
-                    Copy
-                  }
-                </button>
-              }
-            </div>
-          </div>
-        }
-      </div>
-    </div>
-
-    <!-- ─── Tool 2: CloudWatch Log Extractor Extension ─── -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- ─── Tool 2: CloudWatch Log to Curl Extension ─── -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
     <div class="tool-card">
       <div class="tool-card-icon chrome-icon">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
@@ -85,7 +29,7 @@
         </svg>
       </div>
       <div class="tool-card-body">
-        <h3>CloudWatch Log Extractor</h3>
+        <h3>CloudWatch Log to Curl</h3>
         <p class="tool-card-desc">
           Chrome Extension to extract and parse CloudWatch log entries.
           Copies the log stream, then extracts fields and generates a cURL command.
@@ -107,11 +51,7 @@
               <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
               <line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
-            @if (showExtensionHelp) {
-              Hide Help
-            } @else {
-              How to Use
-            }
+            @if (showExtensionHelp) { Hide Help } @else { How to Use }
           </button>
         </div>
 
@@ -127,7 +67,6 @@
                   <p>Click "Download Extension (.zip)" above and unzip the file.</p>
                 </div>
               </div>
-
               <div class="help-step">
                 <span class="step-number">2</span>
                 <div>
@@ -135,7 +74,6 @@
                   <p>Open <code>chrome://extensions</code>, enable "Developer mode", then click "Load unpacked" and select the unzipped folder.</p>
                 </div>
               </div>
-
               <div class="help-step">
                 <span class="step-number">3</span>
                 <div>
@@ -143,31 +81,29 @@
                   <p>Go to <strong>AWS CloudWatch → Logs → Log Insights</strong> and run your query.</p>
                 </div>
               </div>
-
               <div class="help-step">
                 <span class="step-number">4</span>
                 <div>
                   <strong>Open a log stream</strong>
                   <p>Click on a log entry to expand it, then click on the <strong>&#64;logStream</strong> link to open the full log stream.</p>
+                  <img class="step-screenshot" src="assets/cloudwatch-log-extractor/step-logstream.png" alt="CloudWatch Log Insights — click the @logStream link" />
                 </div>
               </div>
-
               <div class="help-step">
                 <span class="step-number">5</span>
                 <div>
                   <strong>Copy the log entry</strong>
-                  <p>Expand the log message you're interested in. Select and <strong>copy</strong> the full log text (Ctrl+C / Cmd+C).</p>
+                  <p>Expand the log message you're interested in. Select and <strong>copy</strong> the icon.</p>
                 </div>
               </div>
-
               <div class="help-step">
                 <span class="step-number">6</span>
                 <div>
                   <strong>Extract with the extension</strong>
-                  <p>Click the <strong>CloudWatch Log Extractor</strong> extension icon in Chrome toolbar, then click <strong>"Extract from Clipboard"</strong>.</p>
+                  <p>Click the <strong>CloudWatch Log to Curl</strong> extension icon in Chrome toolbar, then click <strong>"Extract cURL"</strong>.</p>
+                  <img class="step-screenshot" src="assets/cloudwatch-log-extractor/step-extract.png" alt="Log events page — copy log entry then click Extract cURL" />
                 </div>
               </div>
-
               <div class="help-step">
                 <span class="step-number">7</span>
                 <div>

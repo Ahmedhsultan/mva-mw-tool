@@ -9,69 +9,29 @@ import { CommonModule } from '@angular/common';
   styleUrl: './tools.component.css',
 })
 export class ToolsComponent {
-  tokenResult: string = '';
-  tokenLoading = false;
-  tokenCopied = false;
+  // ── CloudWatch extension state ──
   showExtensionHelp = false;
 
-  /** Opens Azure DevOps PAT page in a new tab */
-  openAzureTokenPage(): void {
-    window.open('https://dev.azure.com/vfuk-digital/_usersSettings/tokens', '_blank');
-    this.tokenResult = '';
-    this.tokenLoading = true;
+  // ── CloudWatch Extension ──
 
-    // Show instructions to the user
-    setTimeout(() => {
-      this.tokenLoading = false;
-      this.tokenResult =
-        'The Azure DevOps token page has been opened in a new tab.\n\n' +
-        '1. Click "+ New Token"\n' +
-        '2. Set a name (e.g. "MVA MW Tool")\n' +
-        '3. Set the expiration as needed\n' +
-        '4. Select the required scopes (Read for Build, Release, Code)\n' +
-        '5. Click "Create"\n' +
-        '6. Copy the generated token and paste it below.';
-    }, 1000);
-  }
-
-  pastedToken: string = '';
-
-  onTokenPaste(event: ClipboardEvent): void {
-    const pasted = event.clipboardData?.getData('text') ?? '';
-    if (pasted.trim()) {
-      this.pastedToken = pasted.trim();
-    }
-  }
-
-  copyToken(): void {
-    if (!this.pastedToken) return;
-    navigator.clipboard.writeText(this.pastedToken).then(() => {
-      this.tokenCopied = true;
-      setTimeout(() => (this.tokenCopied = false), 2000);
-    });
-  }
-
-  /** Download the CloudWatch Log Extractor Chrome Extension as a zip */
   downloadExtension(): void {
-    // We'll create the zip dynamically using JSZip loaded from CDN, or
-    // simply redirect to the assets folder for manual download.
-    // For simplicity, we'll download the extension folder as individual files
-    // bundled in a zip using JavaScript.
-    this.createExtensionZip();
+    this.createZip(
+      'assets/cloudwatch-log-extractor/',
+      ['manifest.json', 'popup.html', 'popup.js'],
+      'cloudwatch-log-extractor.zip',
+      'CW'
+    );
   }
 
   toggleHelp(): void {
     this.showExtensionHelp = !this.showExtensionHelp;
   }
 
-  private async createExtensionZip(): Promise<void> {
-    // Dynamically load JSZip
+  // ── Zip helpers ──
+
+  private async createZip(basePath: string, files: string[], zipName: string, iconLabel: string): Promise<void> {
     const JSZip = await this.loadJSZip();
     const zip = new JSZip();
-
-    // Fetch extension files from assets
-    const files = ['manifest.json', 'popup.html', 'popup.js'];
-    const basePath = 'assets/cloudwatch-log-extractor/';
 
     for (const file of files) {
       try {
@@ -83,29 +43,28 @@ export class ToolsComponent {
       }
     }
 
-    // Generate icon SVGs as simple PNG placeholders (base64-encoded simple red circle icon)
-    const iconSvg16 = this.generateIconSvg(16);
-    const iconSvg48 = this.generateIconSvg(48);
-    const iconSvg128 = this.generateIconSvg(128);
+    const iconSvg16 = this.generateIconSvg(16, iconLabel);
+    const iconSvg48 = this.generateIconSvg(48, iconLabel);
+    const iconSvg128 = this.generateIconSvg(128, iconLabel);
 
     zip.file('icon16.png', await this.svgToPng(iconSvg16, 16, 16));
     zip.file('icon48.png', await this.svgToPng(iconSvg48, 48, 48));
     zip.file('icon128.png', await this.svgToPng(iconSvg128, 128, 128));
 
-    // Generate and download
     const blob = await zip.generateAsync({ type: 'blob' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'cloudwatch-log-extractor.zip';
+    a.download = zipName;
     a.click();
     URL.revokeObjectURL(url);
   }
 
-  private generateIconSvg(size: number): string {
+  private generateIconSvg(size: number, label: string): string {
+    const bgColor = label === 'AZ' ? '#0078D4' : '#E60000';
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-      <rect width="${size}" height="${size}" rx="${size * 0.15}" fill="#E60000"/>
-      <text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-weight="bold" font-size="${size * 0.45}" fill="white">CW</text>
+      <rect width="${size}" height="${size}" rx="${size * 0.15}" fill="${bgColor}"/>
+      <text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-weight="bold" font-size="${size * 0.4}" fill="white">${label}</text>
     </svg>`;
   }
 
