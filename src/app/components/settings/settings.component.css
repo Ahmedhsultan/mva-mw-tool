@@ -31,7 +31,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px 16px;
-  border-bottom: 1px solid var(--slate-200);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .settings-title {
@@ -49,18 +49,19 @@
 }
 
 .close-btn {
-  background: none;
+  background: rgba(0, 0, 0, 0.04);
   border: none;
   padding: 6px;
   border-radius: var(--radius-sm);
   color: var(--slate-400);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.25s var(--ease-out);
 }
 
 .close-btn:hover {
   color: var(--slate-700);
-  background: var(--slate-100);
+  background: rgba(0, 0, 0, 0.08);
+  transform: rotate(90deg);
 }
 
 /* ── Tabs ────────────────────────────────────────────────── */
@@ -68,7 +69,7 @@
   display: flex;
   gap: 4px;
   padding: 12px 24px 0;
-  border-bottom: 1px solid var(--slate-200);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .settings-tab {
@@ -94,6 +95,7 @@
 .settings-tab.active {
   color: var(--primary-600);
   border-bottom-color: var(--primary-500);
+  text-shadow: 0 0 12px rgba(230, 0, 0, 0.15);
 }
 
 /* ── Body ────────────────────────────────────────────────── */
@@ -163,8 +165,8 @@
 }
 
 .add-input:focus {
-  border-color: var(--primary-500);
-  box-shadow: 0 0 0 3px var(--primary-50);
+  border-color: var(--neon-red);
+  box-shadow: 0 0 0 3px var(--neon-red-dim);
 }
 
 .add-input::placeholder {
@@ -186,18 +188,20 @@
   align-items: center;
   gap: 6px;
   padding: 6px 10px 6px 12px;
-  background: var(--slate-50);
-  border: 1px solid var(--slate-200);
+  background: rgba(248, 250, 252, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 20px;
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--slate-700);
-  transition: all var(--transition-fast);
+  transition: all 0.2s var(--ease-out);
 }
 
 .chip:hover {
-  background: var(--slate-100);
-  border-color: var(--slate-300);
+  background: rgba(241, 245, 249, 0.8);
+  border-color: rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .chip-env {
@@ -266,14 +270,15 @@
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
-  border: 1px solid var(--slate-200);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: var(--radius-md);
-  background: var(--surface-card);
-  transition: border-color var(--transition-fast);
+  background: rgba(255, 255, 255, 0.5);
+  transition: all 0.2s var(--ease-out);
 }
 
 .svc-row:hover {
-  border-color: var(--slate-300);
+  border-color: rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .svc-name {
@@ -323,8 +328,8 @@
 
 .svc-select:focus,
 .svc-input:focus {
-  border-color: var(--primary-500);
-  box-shadow: 0 0 0 2px var(--primary-50);
+  border-color: var(--neon-red);
+  box-shadow: 0 0 0 3px var(--neon-red-dim);
 }
 
 /* ── Form Groups (PAT tab) ───────────────────────────────── */
@@ -353,8 +358,8 @@
 }
 
 .form-input:focus {
-  border-color: var(--primary-500);
-  box-shadow: 0 0 0 3px var(--primary-50);
+  border-color: var(--neon-red);
+  box-shadow: 0 0 0 3px var(--neon-red-dim);
 }
 
 .form-input.mono {
@@ -417,12 +422,15 @@
 }
 
 .btn-primary {
-  background: var(--primary-500);
+  background: linear-gradient(135deg, var(--primary-500), var(--neon-red));
   color: #fff;
+  box-shadow: 0 4px 12px var(--glow-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--primary-600);
+  background: linear-gradient(135deg, var(--neon-red), var(--primary-600));
+  box-shadow: 0 6px 20px var(--glow-primary);
+  transform: translateY(-1px);
 }
 
 .btn-primary:disabled {

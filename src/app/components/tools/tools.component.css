@@ -45,38 +45,55 @@
 .tool-card {
   display: flex;
   gap: 20px;
-  background: var(--card-bg, #fff);
-  border: 1.5px solid var(--border, #e2e8f0);
-  border-radius: 14px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1.5px solid var(--glass-border);
+  border-radius: var(--radius-lg);
   padding: 24px;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: all 0.25s var(--ease-out);
+  box-shadow: var(--shadow-glass);
+  position: relative;
+  overflow: hidden;
+}
+
+.tool-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary-500), var(--neon-red), transparent);
 }
 
 .tool-card:hover {
-  border-color: var(--slate-300, #cbd5e1);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border-color: rgba(230, 0, 0, 0.12);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(230, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
 }
 
 .tool-card-icon {
   width: 52px;
   height: 52px;
-  border-radius: 12px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .tool-card-icon.azure-icon {
-  background: #e8f4fd;
+  background: rgba(0, 120, 212, 0.08);
 }
 
 .tool-card-icon.chrome-icon {
-  background: #eef2ff;
+  background: rgba(66, 133, 244, 0.08);
 }
 
 .tool-card-icon.vf-icon {
-  background: #fef2f2;
+  background: rgba(230, 0, 0, 0.06);
 }
 
 .tool-card-body {
@@ -119,12 +136,16 @@
 }
 
 .btn-primary {
-  background: var(--primary, #E60000);
+  background: linear-gradient(135deg, var(--primary-500), var(--neon-red));
   color: #fff;
+  box-shadow: 0 4px 16px var(--glow-primary);
+  transition: all 0.25s var(--ease-out);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #cc0000;
+  background: linear-gradient(135deg, var(--neon-red), var(--primary-600));
+  box-shadow: 0 6px 24px var(--glow-primary);
+  transform: translateY(-1px);
 }
 
 .btn-primary.azure-btn {
@@ -145,14 +166,17 @@
 }
 
 .btn-ghost {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
   color: var(--slate-600, #475569);
-  border: 1.5px solid var(--border, #e2e8f0);
+  border: 1.5px solid rgba(0, 0, 0, 0.06);
 }
 
 .btn-ghost:hover {
-  background: var(--slate-50, #f8fafc);
+  background: rgba(255, 255, 255, 0.85);
   border-color: var(--slate-300, #cbd5e1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
 .btn-sm {
@@ -183,9 +207,10 @@
 /* ── Token Section ── */
 .token-instructions {
   margin-top: 16px;
-  background: var(--slate-50, #f8fafc);
-  border: 1px solid var(--border, #e2e8f0);
-  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.5);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: var(--radius-md);
   padding: 14px 16px;
 }
 
@@ -230,7 +255,8 @@
 }
 
 .token-input:focus {
-  border-color: var(--primary, #E60000);
+  border-color: var(--neon-red);
+  box-shadow: 0 0 0 3px var(--neon-red-dim);
 }
 
 .token-input::placeholder {
@@ -240,10 +266,13 @@
 /* ── Help Panel ── */
 .help-panel {
   margin-top: 20px;
-  background: var(--slate-50, #f8fafc);
-  border: 1.5px solid var(--border, #e2e8f0);
-  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid var(--glass-border);
+  border-radius: var(--radius-lg);
   padding: 20px 22px;
+  box-shadow: var(--shadow-glass);
 }
 
 .help-panel h4 {
@@ -269,7 +298,7 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--primary, #E60000);
+  background: linear-gradient(135deg, var(--primary-500), var(--neon-red));
   color: #fff;
   font-size: 0.78rem;
   font-weight: 700;
@@ -278,6 +307,7 @@
   justify-content: center;
   flex-shrink: 0;
   margin-top: 1px;
+  box-shadow: 0 2px 8px var(--glow-primary);
 }
 
 .help-step strong {
@@ -452,8 +482,8 @@
 
 .form-field input:focus,
 .form-field select:focus {
-  border-color: #0078D4;
-  box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.08);
+  border-color: var(--neon-red);
+  box-shadow: 0 0 0 3px var(--neon-red-dim), 0 0 20px rgba(230, 0, 0, 0.06);
 }
 
 .form-field input::placeholder {

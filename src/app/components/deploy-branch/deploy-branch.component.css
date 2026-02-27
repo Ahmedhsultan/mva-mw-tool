@@ -7,11 +7,15 @@
 
 /* ── Card ───────────────────────────────────────────────────── */
 .db-card {
-  background: var(--surface-card);
-  border: 1px solid var(--slate-200);
-  border-radius: var(--radius-md);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1.5px solid var(--glass-border);
+  border-radius: var(--radius-lg);
   padding: 20px 24px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-glass);
+  position: relative;
+  overflow: hidden;
 }
 
 /* ── Config ─────────────────────────────────────────────────── */
@@ -21,18 +25,23 @@
   padding: 60px 16px;
 }
 .db-config-card {
-  background: var(--surface-card);
-  border: 1px solid var(--slate-200);
-  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1.5px solid var(--glass-border);
+  border-radius: var(--radius-xl);
   padding: 40px 36px;
   max-width: 420px;
   width: 100%;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-glass);
   text-align: center;
+  position: relative;
+  overflow: hidden;
 }
 .db-config-icon {
   width: 52px; height: 52px;
-  background: var(--primary-50);
+  background: linear-gradient(135deg, rgba(230, 0, 0, 0.08), rgba(255, 45, 45, 0.04));
+  border: 1px solid rgba(230, 0, 0, 0.1);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto 18px;
@@ -110,20 +119,21 @@
 /* ── Input ───────────────────────────────────────────────────── */
 .db-input {
   width: 100%;
-  background: var(--slate-50);
-  border: 1px solid var(--slate-200);
-  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-md);
   color: var(--slate-800);
   font-size: 14px;
-  padding: 9px 12px;
+  padding: 10px 14px;
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: all 0.25s var(--ease-out);
   box-sizing: border-box;
 }
 .db-input:focus {
-  border-color: var(--primary-500);
-  box-shadow: 0 0 0 3px rgba(230,0,0,.1);
-  background: #fff;
+  border-color: var(--neon-red);
+  box-shadow: 0 0 0 3px var(--neon-red-dim), 0 0 20px rgba(230, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.9);
 }
 .db-input::placeholder { color: var(--slate-400); }
 
@@ -160,13 +170,16 @@
 .db-chip:hover {
   border-color: var(--primary-400);
   color: var(--primary-600);
-  background: var(--primary-50);
+  background: rgba(230, 0, 0, 0.04);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 .db-chip.selected {
-  background: var(--primary-50);
+  background: linear-gradient(135deg, rgba(230, 0, 0, 0.06), rgba(255, 45, 45, 0.03));
   border-color: var(--primary-500);
   color: var(--primary-600);
   font-weight: 600;
+  box-shadow: 0 0 0 3px rgba(230, 0, 0, 0.06);
 }
 
 /* ── Buttons ─────────────────────────────────────────────────── */
@@ -182,8 +195,8 @@
 .db-btn:disabled { opacity: .4; cursor: not-allowed; }
 .db-btn-full { width: 100%; justify-content: center; }
 
-.db-btn-primary { background: var(--primary-500); color: #fff; }
-.db-btn-primary:hover:not(:disabled) { background: var(--primary-600); }
+.db-btn-primary { background: linear-gradient(135deg, var(--primary-500), var(--neon-red)); color: #fff; box-shadow: 0 4px 16px var(--glow-primary); }
+.db-btn-primary:hover:not(:disabled) { background: linear-gradient(135deg, var(--neon-red), var(--primary-600)); box-shadow: 0 8px 28px var(--glow-primary); transform: translateY(-1px); }
 
 .db-btn-ghost {
   background: transparent;
@@ -470,15 +483,18 @@
 /* ── Modal ───────────────────────────────────────────────────── */
 .db-modal-backdrop {
   position: fixed; inset: 0;
-  background: rgba(15,23,42,.5);
-  backdrop-filter: blur(4px);
+  background: rgba(15,23,42,.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   z-index: 1000;
   display: flex; align-items: center; justify-content: center;
 }
 .db-modal {
-  background: #fff;
-  border: 1px solid var(--slate-200);
-  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1.5px solid var(--glass-border);
+  border-radius: var(--radius-xl);
   padding: 36px 32px;
   max-width: 440px; width: 90%;
   text-align: center;
@@ -530,11 +546,13 @@
 /* ── History ──────────────────────────────────────────────── */
 .db-history-section {
   margin-top: 24px;
-  border: 1px solid var(--slate-200);
-  border-radius: var(--radius-md);
+  border: 1.5px solid var(--glass-border);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: var(--surface-card);
-  box-shadow: var(--shadow-sm);
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-glass);
 }
 .db-history-toggle {
   display: flex;
@@ -864,7 +882,9 @@
 .db-fv-modal {
   width: min(920px, 96vw);
   height: 100vh;
-  background: var(--surface-card);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
   display: flex;
   flex-direction: column;
   box-shadow: -4px 0 32px rgba(0,0,0,.18);

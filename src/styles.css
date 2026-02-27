@@ -31,10 +31,19 @@
   --danger-600: #dc2626;
   --warning-50: #fffbeb;
 
-  /* Surfaces */
-  --surface-bg: #f0f2f5;
-  --surface-card: #ffffff;
-  --surface-elevated: #ffffff;
+  /* Surfaces – futuristic glass */
+  --surface-bg: #eef0f4;
+  --surface-card: rgba(255, 255, 255, 0.7);
+  --surface-elevated: rgba(255, 255, 255, 0.85);
+
+  /* Glass tokens */
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.35);
+  --glass-blur: 24px;
+  --glow-primary: rgba(230, 0, 0, 0.35);
+  --glow-soft: rgba(230, 0, 0, 0.12);
+  --neon-red: #ff2d2d;
+  --neon-red-dim: rgba(255, 45, 45, 0.15);
 
   /* Shadows */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -42,13 +51,14 @@
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
-  --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-modal: 0 25px 60px -12px rgba(0, 0, 0, 0.3), 0 0 40px rgba(230, 0, 0, 0.06);
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 
   /* Radii */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
 
   /* Transitions */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
