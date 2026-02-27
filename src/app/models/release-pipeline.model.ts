@@ -20,7 +20,10 @@ export const LIBRARY_SERVICES: ReadonlySet<string> = new Set([
   'mvax-population-engine',
 ]);
 
-/** Returns true if the service is a library (no deploy, different branch name) */
+/**
+ * Returns true if the service is a library (no deploy, different branch name).
+ * @deprecated Use SettingsService.isLibraryService() for dynamic config
+ */
 export function isLibraryService(svc: string): boolean {
   return LIBRARY_SERVICES.has(svc);
 }
@@ -33,12 +36,18 @@ export const DROP_DB_BRANCHES: Record<string, string> = {
   'mvax-upgrades': 'release/dahab/drop_db',
 };
 
-/** Returns the drop_db branch for a service, or null if the service has no drop_db build */
+/**
+ * Returns the drop_db branch for a service, or null if the service has no drop_db build
+ * @deprecated Use SettingsService.getDropDbBranch() for dynamic config
+ */
 export function getDropDbBranch(svc: string): string | null {
   return DROP_DB_BRANCHES[svc] ?? null;
 }
 
-/** Get the release branch name for a service */
+/**
+ * Get the release branch name for a service
+ * @deprecated Use SettingsService.getReleaseBranch() for dynamic config
+ */
 export function getReleaseBranch(svc: string, releaseNumber: string): string {
   return isLibraryService(svc)
     ? `primary/${releaseNumber}`

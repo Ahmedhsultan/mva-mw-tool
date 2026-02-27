@@ -7,6 +7,7 @@ import { ENVIRONMENTS } from '../../models/reservation.model';
 import { AzureDevOpsService } from '../../services/azure-devops.service';
 import { ReservationService } from '../../services/reservation.service';
 import { DeployHistoryService } from '../../services/deploy-history.service';
+import { SettingsService } from '../../services/settings.service';
 import { syncStepStatus } from '../../models/deploy.model';
 import type { Reservation } from '../../models/reservation.model';
 import type {
@@ -29,9 +30,10 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
   private azureDevOps = inject(AzureDevOpsService);
   private reservationService = inject(ReservationService);
   private historyService = inject(DeployHistoryService);
+  private settingsService = inject(SettingsService);
 
-  readonly allServices = MICROSERVICES as readonly string[];
-  readonly allEnvironments = [...ENVIRONMENTS] as string[];
+  allServices: string[] = [];
+  allEnvironments: string[] = [];
 
   // ── Config ─────────────────────────────────────────────────
   pat = '';
@@ -89,19 +91,33 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
   private reservationSub?: Subscription;
 
   ngOnInit(): void {
+    // Load dynamic service/environment lists from settings
+    this.allServices = this.settingsService.servicesOnly;
+    this.allEnvironments = this.settingsService.envsDeploy;
+    this.settingsService.servicesOnly$.subscribe((s) => this.allServices = s);
+    this.settingsService.envsDeploy$.subscribe((e) => this.allEnvironments = e);
+
     const saved = this.azureDevOps.restoreConfig();
     if (saved) {
-      const raw = localStorage.getItem('azure-devops-config');
-      if (raw) {
-        try {
-          const cfg = JSON.parse(raw);
-          this.pat = cfg.pat ?? '';
-          this.organization = cfg.organization ?? 'vfuk-digital';
-          this.project = cfg.project ?? 'Digital';
-          this.isConfigured = true;
-        } catch {}
+      const patCfg = this.settingsService.patConfig;
+      if (patCfg) {
+        this.pat = patCfg.pat ?? '';
+        this.organization = patCfg.organization ?? 'vfuk-digital';
+        this.project = patCfg.project ?? 'Digital';
+        this.isConfigured = true;
       }
     }
+
+    // Also listen for async PAT loading from Firestore
+    this.settingsService.patConfig$.subscribe((cfg) => {
+      if (cfg && !this.isConfigured) {
+        this.pat = cfg.pat ?? '';
+        this.organization = cfg.organization ?? 'vfuk-digital';
+        this.project = cfg.project ?? 'Digital';
+        this.azureDevOps.configure(cfg);
+        this.isConfigured = true;
+      }
+    });
 
     this.reservationSub = this.reservationService.getReservations$().subscribe((r) => {
       this.allReservations = r;

@@ -1,14 +1,17 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription, firstValueFrom, filter, switchMap } from 'rxjs';
 import {
   Reservation,
   ENVIRONMENTS,
+  SERVICE_META,
 } from '../../models/reservation.model';
+import { MICROSERVICES } from '../../models/release-pipeline.model';
 import { ReservationService } from '../../services/reservation.service';
 import { AuthService } from '../../services/auth.service';
 import { AzureDevOpsService } from '../../services/azure-devops.service';
+import { SettingsService } from '../../services/settings.service';
 
 @Component({
   selector: 'app-environment-reservation',
@@ -18,7 +21,8 @@ import { AzureDevOpsService } from '../../services/azure-devops.service';
   styleUrl: './environment-reservation.component.css',
 })
 export class EnvironmentReservationComponent implements OnInit, OnDestroy {
-  environments = ENVIRONMENTS;
+  private settingsService = inject(SettingsService);
+  environments: readonly string[] = ENVIRONMENTS;
   reservations: Reservation[] = [];
   loadingReservations = true;
   private sub!: Subscription;
@@ -27,11 +31,16 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
   weekStart!: Date;
   weekDates: Date[] = [];
 
+  // Service map for template
+  serviceMeta = SERVICE_META;
+  allServices: string[] = [];
+
   // Reservation form modal
   showModal = false;
   modalEnv = '';
   modalDate = '';
   userName = '';
+  selectedServices: string[] = [];
   endDate = '';
   errorMessage = '';
   successMessage = '';
@@ -43,6 +52,7 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
   // Edit mode
   isEditing = false;
   editName = '';
+  editSelectedServices: string[] = [];
   editStartDate = '';
   editEndDate = '';
   editError = '';
@@ -71,8 +81,8 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
   openPatModal(): void {
     this.patInput = '';
     this.patError = '';
-    // Restore saved team name if available
-    const savedTeam = localStorage.getItem('azure-sprint-team');
+    // Restore saved team name from Firestore via SettingsService
+    const savedTeam = this.settingsService.sprintTeam;
     if (savedTeam) this.patTeam = savedTeam;
     this.showPatModal = true;
   }
@@ -96,7 +106,7 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
       const result = await this.azureDevOps.validatePat();
       if (result.success) {
         this.azureDevOps.persistConfig();
-        localStorage.setItem('azure-sprint-team', this.patTeam.trim());
+        this.settingsService.saveSprintTeam(this.patTeam.trim());
         this.patConfigured = true;
         this.showPatModal = false;
         this.patInput = '';
@@ -111,14 +121,21 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
   }
 
   disconnectPat(): void {
-    localStorage.removeItem('azure-devops-config');
-    localStorage.removeItem('azure-sprint-team');
+    this.settingsService.clearPatConfig();
     this.patConfigured = false;
     this.sprintLabelMap.clear();
     this.sprintIterations = [];
   }
 
   ngOnInit(): void {
+    // Load only deployable services (not libraries) from settings
+    this.allServices = this.settingsService.servicesOnly;
+    this.settingsService.servicesOnly$.subscribe((s) => this.allServices = s);
+
+    // Load reservation-specific environments
+    this.environments = this.settingsService.envsReservation;
+    this.settingsService.envsReservation$.subscribe((e) => this.environments = e);
+
     // Wait for auth to be ready, then subscribe to reservations
     this.sub = this.authService.user$.pipe(
       filter((user) => user !== null),
@@ -133,6 +150,15 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
     this.patConfigured = this.azureDevOps.isConfigured() || this.azureDevOps.restoreConfig();
     // Load sprint data from Azure DevOps if PAT is configured
     this.loadSprintData();
+
+    // Also listen for async PAT loading from Firestore
+    this.settingsService.patConfig$.subscribe((cfg) => {
+      if (cfg && !this.patConfigured) {
+        this.azureDevOps.configure(cfg);
+        this.patConfigured = true;
+        this.loadSprintData();
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -178,54 +204,54 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
     this.setWeekFromDate(new Date());
   }
 
-  /** Get reservation for a specific env+date cell */
-  getReservation(env: string, date: Date): Reservation | null {
+  /** Get all reservations for a specific env+date cell */
+  getReservations(env: string, date: Date): Reservation[] {
     const dateStr = this.toDateString(date);
-    return (
-      this.reservations.find((r) => {
-        if (r.environment !== env) return false;
-        return dateStr >= r.startDate && dateStr <= r.endDate;
-      }) ?? null
-    );
+    return this.reservations.filter((r) => {
+      if (r.environment !== env) return false;
+      return dateStr >= r.startDate && dateStr <= r.endDate;
+    });
   }
 
-  /** Check if this date is the start of a reservation span */
-  isSpanStart(env: string, date: Date): boolean {
-    const r = this.getReservation(env, date);
-    if (!r) return false;
-    const dateStr = this.toDateString(date);
-    if (dateStr === r.startDate) return true;
-    if (this.weekDates.length > 0) {
-      const firstVisible = this.toDateString(this.weekDates[0]);
-      return dateStr === firstVisible && r.startDate < firstVisible;
-    }
-    return false;
+  /** Toggle a service in the new-reservation form */
+  toggleService(svc: string): void {
+    const idx = this.selectedServices.indexOf(svc);
+    if (idx >= 0) this.selectedServices.splice(idx, 1);
+    else this.selectedServices.push(svc);
+  }
+  isServiceSelected(svc: string): boolean {
+    return this.selectedServices.includes(svc);
   }
 
-  /** Check if a cell is part of a span but NOT the start */
-  isSpanContinuation(env: string, date: Date): boolean {
-    const r = this.getReservation(env, date);
-    if (!r) return false;
-    return !this.isSpanStart(env, date);
+  /** Toggle a service in the edit form */
+  toggleEditService(svc: string): void {
+    const idx = this.editSelectedServices.indexOf(svc);
+    if (idx >= 0) this.editSelectedServices.splice(idx, 1);
+    else this.editSelectedServices.push(svc);
+  }
+  isEditServiceSelected(svc: string): boolean {
+    return this.editSelectedServices.includes(svc);
   }
 
-  /** Calculate colspan for a reservation starting at this date */
-  getColspan(env: string, date: Date): number {
-    const r = this.getReservation(env, date);
-    if (!r) return 1;
-    const startIdx = this.weekDates.findIndex(
-      (d) => this.toDateString(d) === this.toDateString(date)
-    );
-    let count = 0;
-    for (let i = startIdx; i < this.weekDates.length; i++) {
-      const ds = this.toDateString(this.weekDates[i]);
-      if (ds >= r.startDate && ds <= r.endDate) {
-        count++;
-      } else {
-        break;
-      }
-    }
-    return count;
+  getServiceAbbr(svc: string): string {
+    return SERVICE_META[svc]?.abbr || svc.substring(0, 2).toUpperCase();
+  }
+  getServiceColor(svc: string): string {
+    return SERVICE_META[svc]?.color || '#64748b';
+  }
+
+  /** Light tint background for reservation bar based on first service */
+  getBarTint(reservation: Reservation): string {
+    const svcs = reservation.services || [];
+    if (svcs.length === 0) return '#f8fafc';
+    const hex = this.getServiceColor(svcs[0]);
+    return hex + '12';  // ~7% opacity via hex alpha
+  }
+
+  getBarBorder(reservation: Reservation): string {
+    const svcs = reservation.services || [];
+    if (svcs.length === 0) return '#e2e8f0';
+    return this.getServiceColor(svcs[0]);
   }
 
   /** Click on empty cell to open reservation modal */
@@ -234,6 +260,7 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
     this.modalDate = this.toDateString(date);
     this.endDate = this.toDateString(date);
     this.userName = '';
+    this.selectedServices = [];
     this.errorMessage = '';
     this.successMessage = '';
     this.selectedReservation = null;
@@ -261,6 +288,7 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
   openEdit(): void {
     if (!this.selectedReservation) return;
     this.editName = this.selectedReservation.userName;
+    this.editSelectedServices = [...(this.selectedReservation.services || [])];
     this.editStartDate = this.selectedReservation.startDate;
     this.editEndDate = this.selectedReservation.endDate;
     this.editError = '';
@@ -278,17 +306,24 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
     if (!this.editName.trim()) { this.editError = 'Name is required.'; return; }
     if (!this.editStartDate || !this.editEndDate) { this.editError = 'Both dates are required.'; return; }
     if (this.editStartDate > this.editEndDate) { this.editError = 'End date must be on or after start date.'; return; }
-    // Check for conflicts with other reservations
+    // Check for conflicts: only when services overlap
+    const editSvcSet = new Set(this.editSelectedServices);
     const conflict = this.reservations.find((r) => {
       if (r.id === this.selectedReservation!.id) return false;
       if (r.environment !== this.selectedReservation!.environment) return false;
-      return this.editStartDate <= r.endDate && this.editEndDate >= r.startDate;
+      if (!(this.editStartDate <= r.endDate && this.editEndDate >= r.startDate)) return false;
+      return (r.services || []).some(s => editSvcSet.has(s));
     });
-    if (conflict) { this.editError = `Conflicts with "${conflict.userName}" (${conflict.startDate} → ${conflict.endDate}).`; return; }
+    if (conflict) {
+      const overlap = (conflict.services || []).filter(s => editSvcSet.has(s));
+      this.editError = `Service(s) ${overlap.join(', ')} conflict with "${conflict.userName}" (${conflict.startDate} → ${conflict.endDate}).`;
+      return;
+    }
     this.isSaving = true;
     try {
       await this.reservationService.updateReservation(this.selectedReservation.id, {
         userName: this.editName.trim(),
+        services: [...this.editSelectedServices],
         startDate: this.editStartDate,
         endDate: this.editEndDate,
       });
@@ -309,19 +344,27 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.selectedServices.length === 0) {
+      this.errorMessage = 'Please select at least one service.';
+      return;
+    }
+
     if (new Date(this.modalDate) > new Date(this.endDate)) {
       this.errorMessage = 'End date must be on or after start date.';
       return;
     }
 
-    // Check for conflicts using current snapshot
+    // Check for conflicts: only when services overlap
+    const newSvcSet = new Set(this.selectedServices);
     const conflict = this.reservations.find((r) => {
       if (r.environment !== this.modalEnv) return false;
-      return this.modalDate <= r.endDate && this.endDate >= r.startDate;
+      if (!(this.modalDate <= r.endDate && this.endDate >= r.startDate)) return false;
+      return (r.services || []).some(s => newSvcSet.has(s));
     });
 
     if (conflict) {
-      this.errorMessage = `Already reserved by "${conflict.userName}" (${conflict.startDate} → ${conflict.endDate}).`;
+      const overlap = (conflict.services || []).filter(s => newSvcSet.has(s));
+      this.errorMessage = `Service(s) ${overlap.join(', ')} already reserved by "${conflict.userName}" (${conflict.startDate} → ${conflict.endDate}).`;
       return;
     }
 
@@ -329,6 +372,7 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
     try {
       await this.reservationService.addReservation({
         userName: this.userName,
+        services: [...this.selectedServices],
         environment: this.modalEnv,
         startDate: this.modalDate,
         endDate: this.endDate,
@@ -408,7 +452,7 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
     }
 
     try {
-      const team = localStorage.getItem('azure-sprint-team') || this.patTeam;
+      const team = this.settingsService.sprintTeam || this.patTeam;
       this.sprintIterations = await this.azureDevOps.getAllIterations(team);
       console.log('[SprintLabels] Loaded iterations:', this.sprintIterations.length, this.sprintIterations.slice(0, 3));
     } catch (e) {

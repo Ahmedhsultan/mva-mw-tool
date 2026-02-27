@@ -10,14 +10,12 @@ import {
   PipelineRunRecord,
   ServiceStepResult,
   StepStatus,
-  isLibraryService,
-  getReleaseBranch,
-  getDropDbBranch,
 } from '../../models/release-pipeline.model';
 import { AzureDevOpsService } from '../../services/azure-devops.service';
 import { PipelineHistoryService } from '../../services/pipeline-history.service';
 import { AuthService } from '../../services/auth.service';
 import { RunPresenceService, RunViewer } from '../../services/run-presence.service';
+import { SettingsService } from '../../services/settings.service';
 
 @Component({
   selector: 'app-cicd-pipeline',
@@ -27,8 +25,9 @@ import { RunPresenceService, RunViewer } from '../../services/run-presence.servi
   styleUrl: './cicd-pipeline.component.css',
 })
 export class CicdPipelineComponent implements OnInit, OnDestroy {
-  microservices = MICROSERVICES;
-  environments = ['qc1', 'qc2', 'qcx'] as const;
+  private settingsService = inject(SettingsService);
+  microservices: readonly string[] = MICROSERVICES;
+  environments: string[] = ['qc1', 'qc2', 'qcx'];
 
   // Config
   pat = '';
@@ -91,6 +90,14 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    // Load dynamic service list from settings
+    this.microservices = this.settingsService.microservices;
+    this.settingsService.microservices$.subscribe((s) => this.microservices = s);
+
+    // Load cutoff-specific environments
+    this.environments = this.settingsService.envsCutoff;
+    this.settingsService.envsCutoff$.subscribe((e) => this.environments = e);
+
     // Restore Azure DevOps PAT config immediately (don't wait for Firestore)
     if (this.azureDevOps.restoreConfig()) {
       this.isConfigured = true;
@@ -250,7 +257,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
           { service: `${s} (release)`, status: 'pending' as StepStatus },
           { service: `${s} (master)`, status: 'pending' as StepStatus },
         ];
-        if (getDropDbBranch(s)) {
+        if (this.settingsService.getDropDbBranch(s)) {
           rows.push({ service: `${s} (drop db)`, status: 'pending' as StepStatus });
         }
         return rows;
@@ -259,7 +266,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     // Only services that have a drop db branch
     const makeDropDbResults = (): ServiceStepResult[] =>
       services
-        .filter((s) => !!getDropDbBranch(s))
+        .filter((s) => !!this.settingsService.getDropDbBranch(s))
         .map((s) => ({ service: s, status: 'pending' as StepStatus }));
 
     this.steps = [
@@ -381,7 +388,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
 
     // ── Step 1: Create branches (mvax-common uses primary/{relNum} from develop; others use release/primary/{relNum} from release/develop) ──
     await this.runStep(1, services, async (svc, result) => {
-      const branch = getReleaseBranch(svc, relNum);
+      const branch = this.settingsService.getReleaseBranch(svc, relNum);
       this.addLog(`[${svc}] Creating branch ${branch}...`);
       const res = await this.azureDevOps.createBranch(svc, relNum, branch);
       result.status = res.success ? 'success' : 'failed';
@@ -400,7 +407,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
 
     // ── Step 2: Create PRs ──
     await this.runStep(2, services, async (svc, result) => {
-      const branch = getReleaseBranch(svc, relNum);
+      const branch = this.settingsService.getReleaseBranch(svc, relNum);
       this.addLog(`[${svc}] Creating PR ${branch} → master...`);
       const res = await this.azureDevOps.createPullRequest(svc, relNum, branch);
       result.status = res.success ? 'success' : 'failed';
@@ -425,7 +432,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     }
 
     // ── Step 4: Deploy Drop DB Build (failure is expected and good) ──
-    const dropDbServices = services.filter((s) => !!getDropDbBranch(s));
+    const dropDbServices = services.filter((s) => !!this.settingsService.getDropDbBranch(s));
     if (dropDbServices.length > 0) {
       await this.runStep(4, dropDbServices, async (svc, result) => {
         const dropDbBuildResult = this.steps[3]?.results.find(
@@ -481,7 +488,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
 
     // ── Step 5: Deploy master build (skip library services) ──
     await this.runStep(5, services, async (svc, result) => {
-      if (isLibraryService(svc)) {
+      if (this.settingsService.isLibraryService(svc)) {
         result.status = 'skipped';
         result.message = 'Library — no deployment needed';
         this.addLog(`[${svc}] Skipped (library)`);
@@ -560,7 +567,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
 
     // ── Step 7: Deploy release build (skip library services) ──
     await this.runStep(6, services, async (svc, result) => {
-      if (isLibraryService(svc)) {
+      if (this.settingsService.isLibraryService(svc)) {
         result.status = 'skipped';
         result.message = 'Library — no deployment needed';
         this.addLog(`[${svc}] Skipped (library)`);
@@ -664,7 +671,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     const buildService = async (svc: string) => {
       const releaseResult = step.results.find((r) => r.service === `${svc} (release)`);
       const masterResult = step.results.find((r) => r.service === `${svc} (master)`);
-      const dropDbBranch = getDropDbBranch(svc);
+      const dropDbBranch = this.settingsService.getDropDbBranch(svc);
       const dropDbResult = dropDbBranch
         ? step.results.find((r) => r.service === `${svc} (drop db)`)
         : undefined;
@@ -710,7 +717,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       };
 
       // Run release, master and (optionally) drop_db builds in parallel
-      const svcBranch = getReleaseBranch(svc, relNum);
+      const svcBranch = this.settingsService.getReleaseBranch(svc, relNum);
       const builds: Promise<void>[] = [
         buildBranch(svcBranch, 'release', releaseResult, releaseBuildIds),
         buildBranch('master', 'master', masterResult, masterBuildIds),
@@ -1063,7 +1070,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
           const svc = result.service;
 
           // Skip library services — they don't need deployment
-          if (isLibraryService(svc)) {
+          if (this.settingsService.isLibraryService(svc)) {
             result.status = 'skipped';
             result.message = 'Library — no deployment needed';
             this.addLog(`[${svc}] Skipped (library)`);
@@ -1172,7 +1179,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         for (const result of step.results) {
           if (result.status === 'success') continue;
           result.status = 'running';
-          const branchName = getReleaseBranch(result.service, relNum);
+          const branchName = this.settingsService.getReleaseBranch(result.service, relNum);
           this.addLog(`[${result.service}] Checking if branch ${branchName} exists...`);
           const check = await this.azureDevOps.checkBranchExists(result.service, relNum, branchName);
           if (check.exists) {
@@ -1206,7 +1213,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         for (const result of step.results) {
           if (result.status === 'success') continue;
           result.status = 'running';
-          const branchName = getReleaseBranch(result.service, relNum);
+          const branchName = this.settingsService.getReleaseBranch(result.service, relNum);
           this.addLog(`[${result.service}] Checking if PR already exists...`);
           const check = await this.azureDevOps.findExistingPR(result.service, relNum, branchName);
           if (check.exists) {
@@ -1432,8 +1439,8 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         const branch = isMaster
           ? 'master'
           : isDropDb
-          ? (getDropDbBranch(svcName) ?? getReleaseBranch(svcName, activeRelNum))
-          : getReleaseBranch(svcName, activeRelNum);
+          ? (this.settingsService.getDropDbBranch(svcName) ?? this.settingsService.getReleaseBranch(svcName, activeRelNum))
+          : this.settingsService.getReleaseBranch(svcName, activeRelNum);
         result.status = 'running';
         result.message = 'Queuing new build...';
         const queueRes = await this.azureDevOps.queueBuild(svcName, branch);

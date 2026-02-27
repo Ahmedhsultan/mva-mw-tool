@@ -68,36 +68,36 @@
                 <span class="env-badge">{{ env | uppercase }}</span>
               </td>
               @for (date of weekDates; track date) {
-                @if (!isSpanContinuation(env, date)) {
-                  @if (getReservation(env, date); as reservation) {
-                    <td
-                      class="cal-cell reserved"
-                      [class.today-col]="isToday(date)"
-                      [attr.colspan]="getColspan(env, date)"
-                      (click)="selectReservation(reservation)"
-                    >
-                      <div class="reservation-bar">
-                        <div class="reservation-avatar">{{ reservation.userName.charAt(0) | uppercase }}</div>
-                        <span class="reservation-user">{{ reservation.userName }}</span>
-                      </div>
-                    </td>
+                <td
+                  class="cal-cell"
+                  [class.today-col]="isToday(date)"
+                  [class.weekend]="isWeekend(date)"
+                >
+                  @if (getReservations(env, date).length > 0) {
+                    <div class="cell-stack">
+                      @for (reservation of getReservations(env, date); track reservation.id) {
+                        <div class="event-chip"
+                          (click)="selectReservation(reservation); $event.stopPropagation()"
+                          [title]="reservation.userName + ' — ' + (reservation.services || []).join(', ')">
+                          <span class="event-dot" [style.background]="getBarBorder(reservation)"></span>
+                          <span class="event-name">{{ reservation.userName }}</span>
+                          @if ((reservation.services || []).length > 0) {
+                            <span class="event-count">{{ (reservation.services || []).length }}</span>
+                          }
+                        </div>
+                      }
+                      <button class="add-chip" (click)="openReserveModal(env, date); $event.stopPropagation()" title="Add reservation">
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M1 5h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                      </button>
+                    </div>
                   } @else {
-                    <td
-                      class="cal-cell empty"
-                      [class.today-col]="isToday(date)"
-                      [class.weekend]="isWeekend(date)"
-                      (click)="openReserveModal(env, date)"
-                    >
+                    <div class="empty-cell" (click)="openReserveModal(env, date)">
                       @if (env === 'prod1-blue' && getSprintLabel(date)) {
                         <span class="sprint-label">{{ getSprintLabel(date) }}</span>
-                      } @else {
-                        <span class="add-icon">
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                        </span>
                       }
-                    </td>
+                    </div>
                   }
-                }
+                </td>
               }
             </tr>
           }
@@ -131,6 +131,23 @@
               placeholder="e.g. John Smith"
               autofocus
             />
+          </div>
+          <div class="form-group">
+            <label>Services</label>
+            <div class="svc-picker">
+              @for (svc of allServices; track svc) {
+                <button
+                  type="button"
+                  class="svc-pick-btn"
+                  [class.selected]="isServiceSelected(svc)"
+                  [style.--svc-color]="getServiceColor(svc)"
+                  (click)="toggleService(svc)"
+                >
+                  <span class="svc-pick-abbr">{{ getServiceAbbr(svc) }}</span>
+                  <span class="svc-pick-name">{{ svc }}</span>
+                </button>
+              }
+            </div>
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -181,35 +198,66 @@
         @if (!isEditing) {
           <!-- View mode -->
           <div class="detail-body">
-            <div class="detail-card">
-              <div class="detail-avatar">{{ selectedReservation.userName.charAt(0) | uppercase }}</div>
-              <div>
+            <!-- Profile hero -->
+            <div class="detail-hero">
+              <div class="detail-avatar">
+                <span class="avatar-letter">{{ selectedReservation.userName.charAt(0) | uppercase }}</span>
+                <div class="avatar-ring"></div>
+              </div>
+              <div class="detail-hero-info">
                 <div class="detail-user-name">{{ selectedReservation.userName }}</div>
-                <div class="detail-env-name">{{ selectedReservation.environment | uppercase }}</div>
+                <div class="detail-env-pill">{{ selectedReservation.environment | uppercase }}</div>
               </div>
             </div>
-            <div class="detail-dates">
-              <div class="detail-date-block">
-                <span class="detail-date-label">From</span>
-                <span class="detail-date-value">{{ selectedReservation.startDate }}</span>
+
+            <!-- Services -->
+            @if (selectedReservation.services && selectedReservation.services.length > 0) {
+              <div class="detail-section">
+                <span class="detail-section-label">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Services
+                </span>
+                <div class="detail-services">
+                  @for (svc of selectedReservation.services; track svc) {
+                    <span class="svc-chip" [style.background]="getServiceColor(svc)" [title]="svc">{{ getServiceAbbr(svc) }}</span>
+                  }
+                </div>
               </div>
-              <div class="detail-date-arrow">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 10h8M11 7l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </div>
-              <div class="detail-date-block">
-                <span class="detail-date-label">To</span>
-                <span class="detail-date-value">{{ selectedReservation.endDate }}</span>
+            }
+
+            <!-- Date range -->
+            <div class="detail-section">
+              <span class="detail-section-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                Duration
+              </span>
+              <div class="detail-dates">
+                <div class="detail-date-block">
+                  <span class="detail-date-label">Start</span>
+                  <span class="detail-date-value">{{ selectedReservation.startDate }}</span>
+                </div>
+                <div class="detail-date-connector">
+                  <div class="connector-line"></div>
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M6 10h8M11 7l3 3-3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  <div class="connector-line"></div>
+                </div>
+                <div class="detail-date-block">
+                  <span class="detail-date-label">End</span>
+                  <span class="detail-date-value">{{ selectedReservation.endDate }}</span>
+                </div>
               </div>
             </div>
           </div>
+
+          <!-- Action buttons -->
           <div class="detail-actions">
             <button class="btn-edit" (click)="openEdit()">
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M11.5 2.5l-1 1-2-2 1-1a1 1 0 0 1 1.4 0l.6.6a1 1 0 0 1 0 1.4z" stroke="currentColor" stroke-width="1.4"/><path d="M9.5 4.5l-7 7H1v-1.5l7-7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Edit
             </button>
             <button class="btn-danger" (click)="deleteReservation(selectedReservation.id)">
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 4h11M5 4V2.5A.5.5 0 015.5 2h4a.5.5 0 01.5.5V4M6 7v4M9 7v4M3.5 4l.5 8.5a1 1 0 001 .5h5a1 1 0 001-.5L11.5 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Delete Reservation
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Delete
             </button>
           </div>
         } @else {
@@ -218,6 +266,23 @@
             <div class="form-group">
               <label for="editName">Name</label>
               <input id="editName" type="text" [(ngModel)]="editName" name="editName" placeholder="e.g. John Smith" />
+            </div>
+            <div class="form-group">
+              <label>Services</label>
+              <div class="svc-picker">
+                @for (svc of allServices; track svc) {
+                  <button
+                    type="button"
+                    class="svc-pick-btn"
+                    [class.selected]="isEditServiceSelected(svc)"
+                    [style.--svc-color]="getServiceColor(svc)"
+                    (click)="toggleEditService(svc)"
+                  >
+                    <span class="svc-pick-abbr">{{ getServiceAbbr(svc) }}</span>
+                    <span class="svc-pick-name">{{ svc }}</span>
+                  </button>
+                }
+              </div>
             </div>
             <div class="form-row">
               <div class="form-group">

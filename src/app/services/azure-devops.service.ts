@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { AzureDevOpsConfig } from '../models/release-pipeline.model';
+import { SettingsService, PatConfig } from './settings.service';
 
 // ── Shared Azure release status maps (single source of truth) ───────────────
 const RELEASE_STATUS_STRING_MAP: Record<string, number> = {
@@ -17,7 +18,17 @@ const RELEASE_IN_PROGRESS = new Set([0, 1, 2, 7, 64, 128]);
 
 @Injectable({ providedIn: 'root' })
 export class AzureDevOpsService {
+  private settingsService = inject(SettingsService);
   private config: AzureDevOpsConfig | null = null;
+
+  constructor() {
+    // Auto-configure when PAT config arrives from Firestore
+    this.settingsService.patConfig$.subscribe((patConfig) => {
+      if (patConfig) {
+        this.config = patConfig;
+      }
+    });
+  }
 
   private get headers(): HeadersInit {
     if (!this.config) throw new Error('Azure DevOps not configured');
@@ -455,22 +466,24 @@ export class AzureDevOpsService {
     }
   }
 
-  /** Persist PAT config to localStorage */
+  /** Persist PAT config to Firestore via SettingsService */
   persistConfig(): void {
     if (this.config) {
-      localStorage.setItem('azure-devops-config', JSON.stringify(this.config));
+      this.settingsService.savePatConfig({
+        pat: this.config.pat,
+        organization: this.config.organization,
+        project: this.config.project,
+      });
     }
   }
 
-  /** Restore PAT config from localStorage */
+  /** Restore PAT config from SettingsService (loaded from Firestore) */
   restoreConfig(): boolean {
-    try {
-      const raw = localStorage.getItem('azure-devops-config');
-      if (raw) {
-        this.config = JSON.parse(raw);
-        return true;
-      }
-    } catch {}
+    const config = this.settingsService.patConfig;
+    if (config) {
+      this.config = config;
+      return true;
+    }
     return false;
   }
 
