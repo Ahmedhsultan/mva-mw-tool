@@ -9,7 +9,6 @@ import {
   onSnapshot,
   DocumentReference,
 } from '@angular/fire/firestore';
-import { SERVICE_META } from '../models/reservation.model';
 import { AuthService } from './auth.service';
 
 // ── Per-service configuration ──────────────────────────────────────────
@@ -34,40 +33,7 @@ export interface ServiceConfig {
   dropDbBranch?: string;
 }
 
-// ── Default values (matching current hardcoded lists) ──────────────────
 
-export const DEFAULT_SERVICE_CONFIGS: ServiceConfig[] = [
-  { name: 'mvax-api',               type: 'service', branchPrefix: 'release/primary', pipelineType: 'release', dropDbBranch: 'release/gouna/drop_db' },
-  { name: 'mvax-native-billing',    type: 'service', branchPrefix: 'release/primary', pipelineType: 'release', dropDbBranch: 'release/dahab/drop_db' },
-  { name: 'mvax-offers',            type: 'service', branchPrefix: 'release/primary', pipelineType: 'release' },
-  { name: 'mvax-upgrades',          type: 'service', branchPrefix: 'release/primary', pipelineType: 'release', dropDbBranch: 'release/dahab/drop_db' },
-  { name: 'mvax-authentication',    type: 'service', branchPrefix: 'release/primary', pipelineType: 'release' },
-  { name: 'mvax-plan-services',     type: 'service', branchPrefix: 'release/primary', pipelineType: 'release', dropDbBranch: 'release/drop_db' },
-  { name: 'mvax-adobe-integrator',  type: 'service', branchPrefix: 'release/primary', pipelineType: 'release' },
-  { name: 'mvax-account-dashboard', type: 'service', branchPrefix: 'release/primary', pipelineType: 'release' },
-  { name: 'mvax-common',            type: 'library', branchPrefix: 'primary',         pipelineType: 'yaml' },
-  { name: 'mvax-population-engine', type: 'library', branchPrefix: 'primary',         pipelineType: 'yaml' },
-];
-
-export const DEFAULT_MICROSERVICES = DEFAULT_SERVICE_CONFIGS.map((c) => c.name);
-
-export const DEFAULT_ENVIRONMENTS = [
-  'int1',
-  'dev1',
-  'qcx',
-  'qc1',
-  'qc2',
-  'qc5',
-  'prodsup',
-  'pat2',
-  'pat3',
-  'prod1-blue',
-];
-
-/** Per-tab default environments */
-export const DEFAULT_ENVS_RESERVATION = ['int1', 'dev1', 'qcx', 'qc1', 'qc2', 'qc5', 'prodsup', 'pat2', 'pat3', 'prod1-blue'];
-export const DEFAULT_ENVS_CUTOFF     = ['qc1', 'qc2', 'qcx'];
-export const DEFAULT_ENVS_DEPLOY     = ['int1', 'dev1', 'qcx', 'qc1', 'qc2', 'qc5', 'prodsup', 'pat2', 'pat3', 'prod1-blue'];
 
 export type EnvCategory = 'reservation' | 'cutoff' | 'deploy';
 
@@ -85,7 +51,8 @@ export class SettingsService {
   private userDocRef: DocumentReference | null = null;
 
   // ── Service Configs (per-service settings) ─────────────────
-  private _serviceConfigs$ = new BehaviorSubject<ServiceConfig[]>([...DEFAULT_SERVICE_CONFIGS]);
+
+  private _serviceConfigs$ = new BehaviorSubject<ServiceConfig[]>([]);
   serviceConfigs$: Observable<ServiceConfig[]> = this._serviceConfigs$.asObservable();
 
   get serviceConfigs(): ServiceConfig[] {
@@ -93,7 +60,7 @@ export class SettingsService {
   }
 
   // ── Microservices (derived from service configs for backward compat) ──
-  private _microservices$ = new BehaviorSubject<string[]>([...DEFAULT_MICROSERVICES]);
+  private _microservices$ = new BehaviorSubject<string[]>([]);
   microservices$: Observable<string[]> = this._microservices$.asObservable();
 
   get microservices(): string[] {
@@ -113,7 +80,8 @@ export class SettingsService {
   );
 
   // ── Environments ───────────────────────────────────────────
-  private _environments$ = new BehaviorSubject<string[]>([...DEFAULT_ENVIRONMENTS]);
+
+  private _environments$ = new BehaviorSubject<string[]>([]);
   environments$: Observable<string[]> = this._environments$.asObservable();
 
   get environments(): string[] {
@@ -121,15 +89,16 @@ export class SettingsService {
   }
 
   // ── Per-tab Environments ───────────────────────────────────
-  private _envsReservation$ = new BehaviorSubject<string[]>([...DEFAULT_ENVS_RESERVATION]);
+
+  private _envsReservation$ = new BehaviorSubject<string[]>([]);
   envsReservation$: Observable<string[]> = this._envsReservation$.asObservable();
   get envsReservation(): string[] { return this._envsReservation$.value; }
 
-  private _envsCutoff$ = new BehaviorSubject<string[]>([...DEFAULT_ENVS_CUTOFF]);
+  private _envsCutoff$ = new BehaviorSubject<string[]>([]);
   envsCutoff$: Observable<string[]> = this._envsCutoff$.asObservable();
   get envsCutoff(): string[] { return this._envsCutoff$.value; }
 
-  private _envsDeploy$ = new BehaviorSubject<string[]>([...DEFAULT_ENVS_DEPLOY]);
+  private _envsDeploy$ = new BehaviorSubject<string[]>([]);
   envsDeploy$: Observable<string[]> = this._envsDeploy$.asObservable();
   get envsDeploy(): string[] { return this._envsDeploy$.value; }
 
@@ -192,12 +161,9 @@ export class SettingsService {
       const snap = await getDoc(this.settingsDocRef);
       if (snap.exists()) {
         this.applyFirestoreData(snap.data());
-      } else {
-        // First time — seed Firestore with current defaults
-        await this.syncToFirestore();
       }
     } catch (err) {
-      console.warn('Initial Firestore load failed (using defaults):', err);
+      console.warn('Initial Firestore load failed:', err);
     }
     // Now start real-time listener for ongoing changes from other clients
     this.listenToFirestore();
@@ -277,8 +243,8 @@ export class SettingsService {
   }
 
   resetMicroservices(): void {
-    this.saveMicroservices([...DEFAULT_MICROSERVICES]);
-    this.saveServiceConfigs([...DEFAULT_SERVICE_CONFIGS]);
+    this.saveMicroservices([]);
+    this.saveServiceConfigs([]);
   }
 
   // ── Service Config CRUD ────────────────────────────────────
@@ -287,9 +253,7 @@ export class SettingsService {
   getServiceConfig(name: string): ServiceConfig {
     const existing = this._serviceConfigs$.value.find((c) => c.name === name);
     if (existing) return existing;
-    // Fallback to defaults
-    const defaultCfg = DEFAULT_SERVICE_CONFIGS.find((c) => c.name === name);
-    return defaultCfg ?? { name, type: 'service', branchPrefix: 'release/primary', pipelineType: 'release' };
+    return { name, type: 'service', branchPrefix: 'release/primary', pipelineType: 'release' };
   }
 
   /** Update config for one service */
@@ -321,7 +285,7 @@ export class SettingsService {
 
   /** Reset service configs to defaults */
   resetServiceConfigs(): void {
-    this.saveServiceConfigs([...DEFAULT_SERVICE_CONFIGS]);
+    this.saveServiceConfigs([]);
   }
 
   // ── Dynamic model helpers (replace hardcoded functions) ────
@@ -366,7 +330,7 @@ export class SettingsService {
   }
 
   resetEnvironments(): void {
-    this.saveEnvironments([...DEFAULT_ENVIRONMENTS]);
+    this.saveEnvironments([]);
   }
 
   // ── Per-tab Environment CRUD ───────────────────────────────
@@ -395,8 +359,7 @@ export class SettingsService {
   }
 
   resetEnvs(cat: EnvCategory): void {
-    const defaults = cat === 'reservation' ? DEFAULT_ENVS_RESERVATION : cat === 'cutoff' ? DEFAULT_ENVS_CUTOFF : DEFAULT_ENVS_DEPLOY;
-    this.saveEnvList(cat, [...defaults]);
+    this.saveEnvList(cat, []);
   }
 
   private saveEnvList(cat: EnvCategory, list: string[]): void {

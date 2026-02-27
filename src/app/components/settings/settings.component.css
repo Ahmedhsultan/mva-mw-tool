@@ -305,6 +305,17 @@
   flex-shrink: 0;
 }
 
+.svc-na {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary, #94a3b8);
+  font-size: 11px;
+  cursor: default;
+  border-color: transparent;
+  background: transparent;
+}
+
 .svc-input {
   width: 110px;
   flex-shrink: 0;

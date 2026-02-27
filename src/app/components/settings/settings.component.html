@@ -68,10 +68,11 @@
             </select>
             <input class="svc-input" [ngModel]="cfg.branchPrefix"
               (ngModelChange)="updateConfig(cfg.name, 'branchPrefix', $event)" placeholder="release/primary" />
-            <select class="svc-select" [ngModel]="cfg.pipelineType" (ngModelChange)="updateConfig(cfg.name, 'pipelineType', $event)">
+            <select *ngIf="cfg.type === 'service'" class="svc-select" [ngModel]="cfg.pipelineType" (ngModelChange)="updateConfig(cfg.name, 'pipelineType', $event)">
               <option value="release">Release</option>
               <option value="yaml">YAML</option>
             </select>
+            <span *ngIf="cfg.type === 'library'" class="svc-select svc-na">N/A</span>
             <button class="chip-remove" (click)="removeService(cfg.name)" title="Remove">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                 <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>

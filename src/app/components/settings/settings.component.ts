@@ -3,9 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   SettingsService,
-  DEFAULT_MICROSERVICES,
-  DEFAULT_ENVIRONMENTS,
-  DEFAULT_SERVICE_CONFIGS,
   PatConfig,
   ServiceConfig,
   ServiceType,
@@ -121,6 +118,12 @@ export class SettingsComponent implements OnInit {
     const cfg = this.serviceConfigs.find((c) => c.name === name);
     if (!cfg) return;
     (cfg as any)[field] = value;
+    // Libraries always use YAML pipeline (no release pipeline)
+    if (field === 'type' && value === 'library') {
+      cfg.pipelineType = 'yaml';
+      this.settings.updateServiceConfig(name, { [field]: value, pipelineType: 'yaml' });
+      return;
+    }
     this.settings.updateServiceConfig(name, { [field]: value });
   }
 
