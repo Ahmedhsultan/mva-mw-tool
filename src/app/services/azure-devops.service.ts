@@ -277,8 +277,8 @@ export class AzureDevOpsService {
         const result = data.result; // succeeded, failed, canceled
 
         if (status === 'completed') {
-          if (result === 'succeeded') {
-            return { success: true, message: `Build #${buildId} succeeded` };
+          if (result === 'succeeded' || result === 'partiallySucceeded') {
+            return { success: true, message: `Build #${buildId} ${result}` };
           }
           return { success: false, message: `Build #${buildId} ${result}` };
         }
@@ -431,7 +431,7 @@ export class AzureDevOpsService {
       if (!res.ok) return { done: false, success: false, status: 'unknown' };
       const data = await this.safeJson(res);
       if (data.status === 'completed') {
-        return { done: true, success: data.result === 'succeeded', status: data.status, result: data.result };
+        return { done: true, success: data.result === 'succeeded' || data.result === 'partiallySucceeded', status: data.status, result: data.result };
       }
       return { done: false, success: false, status: data.status };
     } catch {

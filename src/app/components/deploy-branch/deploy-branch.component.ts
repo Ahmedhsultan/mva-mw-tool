@@ -751,6 +751,8 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
           : `Build #${task.buildId} ${result.result || 'failed'}`;
         this.syncBuildStep();
         this.saveCurrentRun();
+        // If all builds now pass and deploy hasn't run yet, auto-continue to deploy
+        await this.autoContinueToDeploy();
       } else {
         // Still running on Azure — resume polling to completion
         task.status = 'running';
@@ -763,8 +765,10 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
         task.status = w.success ? 'success' : 'failed';
         task.message = w.message;
         this.syncBuildStep();
+        // If all builds now pass and deploy hasn't run yet, auto-continue to deploy
+        await this.autoContinueToDeploy();
         const allDone = this.buildTasks.every((t) => t.status === 'success' || t.status === 'failed');
-        if (allDone) {
+        if (allDone && !this.isRunning) {
           this.isComplete = true;
           this.syncBuildStep();
           this.saveCurrentRun();
@@ -774,6 +778,29 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
       const next = new Set(this.refreshingActiveBuild);
       next.delete(task.service);
       this.refreshingActiveBuild = next;
+    }
+  }
+
+  /** After build refresh, auto-continue to deploy if all builds succeeded and deploy is still pending */
+  private async autoContinueToDeploy(): Promise<void> {
+    const allBuildsSucceeded = this.buildTasks.length > 0 && this.buildTasks.every((t) => t.status === 'success');
+    const deployStep = this.steps.find((s) => s.id === 'deploy');
+    const deployStillPending = deployStep && (deployStep.status === 'pending' || deployStep.status === 'failed');
+    if (allBuildsSucceeded && deployStillPending && !this.isRunning) {
+      this.log('✓ All builds succeeded after refresh — continuing to Deploy...');
+      this.isRunning = true;
+      this.isComplete = false;
+      this.wasInterrupted = false;
+      this.deployTasks = [];
+      this.saveCurrentRun();
+      try {
+        const services = this.buildTasks.filter((t) => t.buildId).map((t) => t.service);
+        const envs = Array.from(this.selectedEnvironments);
+        await this._doDeployStep(services, envs);
+      } catch (err: any) {
+        this.log(`Unexpected error: ${err.message || String(err)}`);
+        this.finish(false);
+      }
     }
   }
 
