@@ -365,6 +365,29 @@
                         @else {·}
                       </span>
                       <span class="db-row-name">{{ t.service }}</span>
+                      @if (t.phase) {
+                        <span class="db-phase-badge db-phase-{{ t.phase }}">
+                          @if (t.phase === 'creating') { Creating }
+                          @else if (t.phase === 'pending-approval') {
+                            <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Pending Approval
+                          }
+                          @else if (t.phase === 'approving') {
+                            <span class="db-spin db-spin-xs"></span> Approving
+                          }
+                          @else if (t.phase === 'approved') {
+                            <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Approved
+                          }
+                          @else if (t.phase === 'queued') { Queued }
+                          @else if (t.phase === 'deploying') {
+                            <span class="db-spin db-spin-xs"></span> Deploying
+                          }
+                          @else if (t.phase === 'succeeded') { Deployed }
+                          @else if (t.phase === 'rejected') { Rejected }
+                          @else if (t.phase === 'failed') { Failed }
+                        </span>
+                      }
                       <span class="db-row-msg">{{ t.message }}</span>
                       @if (t.releaseUrl) {
                         <a class="db-ext-link" [href]="t.releaseUrl" target="_blank">View &#8599;</a>
@@ -447,6 +470,35 @@
                     <span class="db-step-desc">{{ step.description }}</span>
                   </div>
                 </div>
+                <!-- Deploy substeps: show per-env phase under the Deploy step -->
+                @if (step.id === 'deploy' && deployTasks.length > 0) {
+                  <div class="db-deploy-substeps">
+                    @for (env of deployEnvs(); track env) {
+                      <div class="db-substep">
+                        <div class="db-substep-env">{{ env }}</div>
+                        <span class="db-phase-badge db-phase-{{ deployEnvPhase(env) }}">
+                          @if (deployEnvPhase(env) === 'creating') { Creating Release }
+                          @else if (deployEnvPhase(env) === 'pending-approval') {
+                            <svg width="9" height="9" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Pending Approval
+                          }
+                          @else if (deployEnvPhase(env) === 'approving') {
+                            <span class="db-spin db-spin-xs"></span> Approving
+                          }
+                          @else if (deployEnvPhase(env) === 'approved') { Approved }
+                          @else if (deployEnvPhase(env) === 'queued') { Queued }
+                          @else if (deployEnvPhase(env) === 'deploying') {
+                            <span class="db-spin db-spin-xs"></span> Deploying
+                          }
+                          @else if (deployEnvPhase(env) === 'succeeded') { Deployed }
+                          @else if (deployEnvPhase(env) === 'rejected') { Rejected }
+                          @else if (deployEnvPhase(env) === 'failed') { Failed }
+                          @else { Pending }
+                        </span>
+                      </div>
+                    }
+                  </div>
+                }
               }
             </div>
           </div>

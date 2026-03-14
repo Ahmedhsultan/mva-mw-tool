@@ -296,6 +296,11 @@ export class AzureDevOpsService {
   /**
    * Trigger a release / deployment.
    * Uses the Release Management API (vsrm.dev.azure.com).
+   *
+   * Strategy: create the release with ALL environments set to manual trigger,
+   * then explicitly deploy only the target environment via the PATCH API.
+   * This prevents Azure DevOps from auto-deploying to dev1 (or whichever
+   * stage has an automatic trigger).
    */
   async deploy(
     buildId: number,
@@ -306,7 +311,7 @@ export class AzureDevOpsService {
       // Find release definition for this repo
       const vsrmBase = `https://vsrm.dev.azure.com/${this.config!.organization}/${this.config!.project}`;
       const defRes = await fetch(
-        `${vsrmBase}/_apis/release/definitions?searchText=${repo}&api-version=7.1`,
+        `${vsrmBase}/_apis/release/definitions?searchText=${repo}&$expand=environments&api-version=7.1`,
         { headers: this.headers }
       );
       if (!defRes.ok) {
@@ -319,17 +324,24 @@ export class AzureDevOpsService {
       }
       const releaseDef = defData.value[0];
 
-      // Find the environment stage
+      // Find the target environment stage
       const envStage = releaseDef.environments?.find(
         (e: any) => e.name.toLowerCase().includes(environment.toLowerCase())
       );
+      if (!envStage) {
+        return { success: false, message: `Environment "${environment}" not found in release definition for ${repo}` };
+      }
 
-      // Create a release
+      // Collect all environment names so we can set them ALL to manual trigger
+      const allEnvNames: string[] = (releaseDef.environments || []).map((e: any) => e.name);
+
+      // Create a release with ALL environments set to manual (no auto-deploy)
       const body: any = {
         definitionId: releaseDef.id,
         description: `Automated release for ${repo} to ${environment}`,
         isDraft: false,
         reason: 'manual',
+        manualEnvironments: allEnvNames,
         artifacts: [],
       };
 
@@ -353,27 +365,176 @@ export class AzureDevOpsService {
         return { success: false, message: `Failed to create release: ${releaseRes.status} – ${err}` };
       }
       const releaseData = await this.safeJson(releaseRes);
+
+      // Find the target environment ID from the created release
+      const targetEnv = (releaseData.environments || []).find(
+        (e: any) => e.name.toLowerCase().includes(environment.toLowerCase())
+      );
+      if (!targetEnv) {
+        return { success: false, message: `Target environment "${environment}" not found in created release #${releaseData.id}` };
+      }
+
+      // Trigger deployment on ONLY the target environment
+      const deployRes = await fetch(
+        `${vsrmBase}/_apis/release/releases/${releaseData.id}/environments/${targetEnv.id}?api-version=7.1`,
+        {
+          method: 'PATCH',
+          headers: this.headers,
+          body: JSON.stringify({
+            status: 'inProgress',
+            comment: `Triggered by MVA MW Tool for ${environment}`,
+          }),
+        }
+      );
+      if (!deployRes.ok) {
+        const err = await deployRes.text();
+        // Release was created but deploy trigger failed — still return the release info
+        return {
+          success: true,
+          message: `Release #${releaseData.id} created but failed to trigger ${environment} deploy: ${err}`,
+          releaseId: releaseData.id as number,
+          releaseUrl: `https://dev.azure.com/${this.config!.organization}/${this.config!.project}/_releaseProgress?_a=release-environment-logs&releaseId=${releaseData.id}`,
+          releaseEnvironment: targetEnv.name || environment,
+        };
+      }
+
       const releaseUrl = `https://dev.azure.com/${this.config!.organization}/${this.config!.project}/_releaseProgress?_a=release-environment-logs&releaseId=${releaseData.id}`;
       return {
         success: true,
-        message: `Release #${releaseData.id} created for ${repo} → ${environment}`,
+        message: `Release #${releaseData.id} created → deploying to ${targetEnv.name}`,
         releaseId: releaseData.id as number,
         releaseUrl,
-        releaseEnvironment: envStage?.name || environment,
+        releaseEnvironment: targetEnv.name || environment,
       };
     } catch (e: any) {
       return { success: false, message: e.message || String(e) };
     }
   }
 
+  // ─── Approval helpers ──────────────────────────────────────
+
+  /**
+   * Fetch pending pre-deployment approvals for a release.
+   * Optionally filter by environment name.
+   * If no filter match, returns ALL pending approvals for the release (to avoid missing them).
+   */
+  async getPendingApprovals(
+    releaseId: number,
+    environmentName?: string
+  ): Promise<{ id: number; envName: string; approver: string; isGroup: boolean }[]> {
+    try {
+      const vsrmBase = `https://vsrm.dev.azure.com/${this.config!.organization}/${this.config!.project}`;
+      const res = await fetch(
+        `${vsrmBase}/_apis/release/approvals?releaseIdsFilter=${releaseId}&statusFilter=pending&api-version=7.1`,
+        { headers: this.headers }
+      );
+      if (!res.ok) {
+        console.warn('[Approvals] Failed to fetch:', res.status);
+        return [];
+      }
+      const data = await this.safeJson(res);
+      const approvals: any[] = data.value || [];
+      console.log(`[Approvals] Found ${approvals.length} pending for release #${releaseId}`, approvals.map((a: any) => ({
+        id: a.id,
+        env: a.releaseEnvironment?.name,
+        approver: a.approver?.displayName || a.approver?.uniqueName,
+        isAutomated: a.isAutomated,
+      })));
+
+      // First try to match by environment name
+      let filtered = approvals;
+      if (environmentName) {
+        const envMatch = approvals.filter((a: any) =>
+          (a.releaseEnvironment?.name || '').toLowerCase().includes(environmentName.toLowerCase())
+        );
+        // If we found matches, use them; otherwise fall back to all pending
+        if (envMatch.length > 0) {
+          filtered = envMatch;
+        } else {
+          console.warn(`[Approvals] No match for "${environmentName}", using all ${approvals.length} pending approvals`);
+        }
+      }
+
+      return filtered.map((a: any) => ({
+        id: a.id,
+        envName: a.releaseEnvironment?.name || '',
+        approver: a.approver?.displayName || a.approver?.uniqueName || 'unknown',
+        isGroup: a.approver?.isContainer === true,
+      }));
+    } catch (e) {
+      console.error('[Approvals] Error fetching:', e);
+      return [];
+    }
+  }
+
+  /**
+   * Approve a single pending approval by its ID.
+   * For group-based approvals, the approvedBy is implicit (the PAT user).
+   */
+  async approveDeployment(approvalId: number, comments = 'Auto-approved by MVA MW Tool'): Promise<{ success: boolean; message: string }> {
+    try {
+      const vsrmBase = `https://vsrm.dev.azure.com/${this.config!.organization}/${this.config!.project}`;
+      const res = await fetch(
+        `${vsrmBase}/_apis/release/approvals/${approvalId}?api-version=7.1`,
+        {
+          method: 'PATCH',
+          headers: this.headers,
+          body: JSON.stringify({ status: 'approved', comments }),
+        }
+      );
+      if (!res.ok) {
+        const err = await res.text();
+        console.error(`[Approvals] PATCH failed for #${approvalId}:`, res.status, err);
+        return { success: false, message: `Approval failed (${res.status}): ${err}` };
+      }
+      const result = await this.safeJson(res);
+      console.log(`[Approvals] Approved #${approvalId}:`, result.status);
+      return { success: true, message: `Approval #${approvalId} approved` };
+    } catch (e: any) {
+      console.error(`[Approvals] Error approving #${approvalId}:`, e);
+      return { success: false, message: e.message || String(e) };
+    }
+  }
+
+  /**
+   * Approve all pending pre-deployment approvals for a release environment.
+   */
+  async approveAllForEnvironment(
+    releaseId: number,
+    environmentName: string,
+    onProgress?: (msg: string) => void
+  ): Promise<{ approved: number; failed: number; messages: string[] }> {
+    const pending = await this.getPendingApprovals(releaseId, environmentName);
+    const messages: string[] = [];
+    let approved = 0;
+    let failed = 0;
+    if (pending.length === 0) {
+      messages.push(`No pending approvals found for ${environmentName}`);
+      return { approved, failed, messages };
+    }
+    for (const a of pending) {
+      onProgress?.(`Approving deployment to ${a.envName} (approval #${a.id}, approver: ${a.approver})...`);
+      const result = await this.approveDeployment(a.id);
+      if (result.success) {
+        approved++;
+        messages.push(`✓ Approved deployment to ${a.envName}`);
+      } else {
+        failed++;
+        messages.push(`✗ Failed to approve ${a.envName}: ${result.message}`);
+      }
+    }
+    return { approved, failed, messages };
+  }
+
   /** Poll a release environment until deployment completes or fails */
   async waitForDeployment(
     releaseId: number,
     environmentName: string,
-    onProgress?: (status: string) => void
+    onProgress?: (status: string, phase?: string) => void
   ): Promise<{ success: boolean; message: string }> {
     const vsrmBase = `https://vsrm.dev.azure.com/${this.config!.organization}/${this.config!.project}`;
     const maxAttempts = 720; // 60 minutes at 5s intervals
+    let approvalSucceeded = false;
 
     for (let i = 0; i < maxAttempts; i++) {
       try {
@@ -392,25 +553,45 @@ export class AzureDevOpsService {
         );
 
         if (env) {
-          // Azure DevOps EnvironmentStatus codes:
-          // 0=undefined, 1=notStarted, 2=inProgress, 4=succeeded,
-          // 7=queued, 64=scheduled, 128=pending  ← transient, keep polling
-          // 3=partiallySucceeded, 5=rejected, 6=canceled, 8=rejected ← terminal
           const status: number = typeof env.status === 'number'
             ? env.status
             : (RELEASE_STATUS_STRING_MAP[env.status] ?? -1);
           const statusName = RELEASE_STATUS_NAMES[status] || `unknown(${status})`;
 
           if (status === 4) {
+            onProgress?.(`Release #${releaseId} deployment succeeded`, 'succeeded');
             return { success: true, message: `Release #${releaseId} deployment ${statusName}` };
           }
           if (!RELEASE_IN_PROGRESS.has(status)) {
+            onProgress?.(`Release #${releaseId} deployment ${statusName}`, statusName === 'rejected' ? 'rejected' : 'failed');
             return { success: false, message: `Release #${releaseId} deployment ${statusName}` };
           }
 
-          onProgress?.(`Release #${releaseId}: deployment ${statusName}...`);
+          // Auto-approve pending pre-deployment approvals while env is waiting
+          if (!approvalSucceeded && (status === 1 || status === 128 || status === 0)) {
+            const pending = await this.getPendingApprovals(releaseId, environmentName);
+            if (pending.length > 0) {
+              onProgress?.(`Release #${releaseId}: approving deployment to ${environmentName}...`, 'approving');
+              const appResult = await this.approveAllForEnvironment(releaseId, environmentName, (m) => onProgress?.(m, 'approving'));
+              appResult.messages.forEach((m) => onProgress?.(m, 'approving'));
+              if (appResult.approved > 0 && appResult.failed === 0) {
+                approvalSucceeded = true;
+                onProgress?.(`Release #${releaseId}: approved — waiting for deployment to start...`, 'approved');
+              }
+              await this.delay(3000);
+              continue;
+            }
+            // Approval not yet available
+            onProgress?.(`Release #${releaseId}: waiting for approval gate on ${environmentName}...`, 'pending-approval');
+          } else if (status === 2) {
+            onProgress?.(`Release #${releaseId}: deployment in progress...`, 'deploying');
+          } else if (status === 7) {
+            onProgress?.(`Release #${releaseId}: deployment queued...`, 'queued');
+          } else {
+            onProgress?.(`Release #${releaseId}: deployment ${statusName}...`, statusName as any);
+          }
         } else {
-          onProgress?.(`Release #${releaseId}: waiting for environment...`);
+          onProgress?.(`Release #${releaseId}: waiting for environment...`, 'creating');
         }
 
         await this.delay(5000);

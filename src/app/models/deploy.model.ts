@@ -18,6 +18,17 @@ export interface EnvTask {
   deployments: DeployTask[];
 }
 
+export type DeployPhase =
+  | 'creating'           // Creating release
+  | 'pending-approval'   // Waiting for approval gate
+  | 'approving'          // Auto-approving
+  | 'approved'           // Approval done, waiting to start
+  | 'queued'             // Queued for deployment
+  | 'deploying'          // Deployment in progress
+  | 'succeeded'          // Deployment succeeded
+  | 'failed'             // Deployment failed
+  | 'rejected';          // Approval rejected
+
 export interface DeployTask {
   service: string;
   env: string;
@@ -25,6 +36,7 @@ export interface DeployTask {
   message: string;
   releaseId?: number;
   releaseUrl?: string;
+  phase?: DeployPhase;
 }
 
 export interface DeployStep {

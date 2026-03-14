@@ -17,6 +17,7 @@ import type {
   DeployTask,
   DeployStep,
   DeployHistoryEntry,
+  DeployPhase,
 } from '../../models/deploy.model';
 
 @Component({
@@ -387,16 +388,17 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
           envs.map(async (env) => {
             let task = this.deployTasks.find((t) => t.service === svc && t.env === env);
             if (!task) {
-              task = { service: svc, env, status: 'running', message: `Creating release for ${env}...` };
+              task = { service: svc, env, status: 'running', message: `Creating release for ${env}...`, phase: 'creating' };
               this.deployTasks.push(task);
             } else {
               task.status = 'running';
               task.message = `Creating release for ${env}...`;
+              task.phase = 'creating';
             }
             this.log(`[${svc}→${env}] Deploying build #${build.buildId}...`);
             const res = await this.azureDevOps.deploy(build.buildId!, env, svc);
             if (!res.success) {
-              task.status = 'failed'; task.message = res.message;
+              task.status = 'failed'; task.message = res.message; task.phase = 'failed';
               this.log(`[${svc}→${env}] ✗ ${res.message}`); return;
             }
             task.releaseId = res.releaseId;
@@ -405,12 +407,17 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
             this.log(`[${svc}→${env}] ${res.message}`);
             if (res.releaseId) {
               const waitRes = await this.azureDevOps.waitForDeployment(
-                res.releaseId, res.releaseEnvironment || env, (s) => { task!.message = s; }
+                res.releaseId, res.releaseEnvironment || env, (s, phase) => {
+                  task!.message = s;
+                  if (phase) task!.phase = phase as DeployPhase;
+                  this.log(`[${svc}→${env}] ${s}`);
+                }
               );
               task.status = waitRes.success ? 'success' : 'failed';
+              task.phase = waitRes.success ? 'succeeded' : 'failed';
               task.message = waitRes.message;
               this.log(`[${svc}→${env}] ${waitRes.message}`);
-            } else { task.status = 'success'; }
+            } else { task.status = 'success'; task.phase = 'succeeded'; }
           })
         );
       })
@@ -611,6 +618,20 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
 
   deployByEnv(env: string): DeployTask[] {
     return this.deployTasks.filter((t) => t.env === env);
+  }
+
+  /** Get the most representative phase for a given environment across all services */
+  deployEnvPhase(env: string): string {
+    const tasks = this.deployByEnv(env);
+    if (!tasks.length) return 'pending';
+    // Priority order: deploying > approving > pending-approval > queued > approved > creating > failed > rejected > succeeded
+    const phasePriority: string[] = [
+      'deploying', 'approving', 'pending-approval', 'queued', 'approved', 'creating', 'failed', 'rejected', 'succeeded'
+    ];
+    for (const phase of phasePriority) {
+      if (tasks.some((t) => t.phase === phase)) return phase;
+    }
+    return tasks[0]?.phase || 'pending';
   }
 
   reset(): void {

@@ -313,6 +313,31 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0;
 }
 .db-row-msg { flex: 1; font-size: 12px; color: var(--slate-500); }
+
+/* ── Deploy Phase Badges ────────────────────────────────────── */
+.db-phase-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.02em;
+  padding: 2px 8px; border-radius: 10px;
+  white-space: nowrap; flex-shrink: 0;
+  line-height: 1.4;
+}
+.db-phase-creating       { background: #e0e7ff; color: #3730a3; }
+.db-phase-pending-approval { background: #fef3c7; color: #92400e; }
+.db-phase-approving      { background: #fef3c7; color: #92400e; }
+.db-phase-approved        { background: #d1fae5; color: #065f46; }
+.db-phase-queued          { background: #e0e7ff; color: #3730a3; }
+.db-phase-deploying       { background: #dbeafe; color: #1e40af; }
+.db-phase-succeeded       { background: #d1fae5; color: #065f46; }
+.db-phase-failed          { background: #fee2e2; color: #991b1b; }
+.db-phase-rejected        { background: #fee2e2; color: #991b1b; }
+
+.db-spin-xs {
+  display: inline-block; width: 8px; height: 8px;
+  border: 1.5px solid currentColor; border-top-color: transparent;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+
 .db-ext-link {
   font-size: 11px; font-weight: 600;
   color: var(--primary-500); text-decoration: none; white-space: nowrap; flex-shrink: 0;
@@ -475,6 +500,19 @@
 .db-step-success .db-step-label { color: #15803d; }
 .db-step-failed  .db-step-label { color: var(--danger-600); }
 .db-step-running .db-step-label { color: #2563eb; }
+
+/* ── Deploy Substeps (sidebar per-env phases) ────────────── */
+.db-deploy-substeps {
+  margin-left: 36px; margin-top: -10px; margin-bottom: 8px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.db-substep {
+  display: flex; align-items: center; gap: 8px;
+}
+.db-substep-env {
+  font-size: 11px; font-weight: 600; color: var(--slate-600);
+  min-width: 48px;
+}
 
 /* Button size variants */
 .db-btn-sm { padding: 5px 11px; font-size: 12px; }
