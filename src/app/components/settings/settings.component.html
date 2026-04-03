@@ -85,7 +85,7 @@
             <div class="svc-card-body" *ngIf="expandedService === cfg.name">
               <div class="svc-field">
                 <label class="svc-field-label">Type</label>
-                <select class="svc-field-input" [ngModel]="cfg.type" (ngModelChange)="updateConfig(cfg.name, 'type', $event)">
+                <select class="svc-field-input svc-select" [ngModel]="cfg.type" (ngModelChange)="updateConfig(cfg.name, 'type', $event)">
                   <option value="service">Service</option>
                   <option value="library">Library</option>
                 </select>
@@ -97,12 +97,12 @@
               </div>
               <div class="svc-field" *ngIf="cfg.type === 'service'">
                 <label class="svc-field-label">Pipeline</label>
-                <select class="svc-field-input" [ngModel]="cfg.pipelineType" (ngModelChange)="updateConfig(cfg.name, 'pipelineType', $event)">
+                <select class="svc-field-input svc-select" [ngModel]="cfg.pipelineType" (ngModelChange)="updateConfig(cfg.name, 'pipelineType', $event)">
                   <option value="release">Release</option>
                   <option value="yaml">YAML</option>
                 </select>
               </div>
-              <div class="svc-field svc-field--full" *ngIf="cfg.type === 'service'">
+              <div class="svc-field" *ngIf="cfg.type === 'service'">
                 <label class="svc-field-label">Drop DB Branch</label>
                 <div class="svc-dropdb-row">
                   <button class="svc-dropdb-toggle"
