@@ -22,7 +22,7 @@ export class AzureDevOpsService {
   private config: AzureDevOpsConfig | null = null;
 
   constructor() {
-    // Auto-configure when PAT config arrives from Firestore
+    // Auto-configure when PAT config arrives
     this.settingsService.patConfig$.subscribe((patConfig) => {
       if (patConfig) {
         this.config = patConfig;
@@ -722,7 +722,7 @@ export class AzureDevOpsService {
     }
   }
 
-  /** Restore PAT config from SettingsService (loaded from Firestore) */
+  /** Restore PAT config from SettingsService (loaded from localStorage) */
   restoreConfig(): boolean {
     const config = this.settingsService.patConfig;
     if (config) {

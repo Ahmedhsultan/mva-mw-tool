@@ -1,0 +1,20 @@
+{
+  "serviceConfigs": [
+    { "name": "mvax-api", "type": "service", "branchPrefix": "release/primary", "pipelineType": "release", "dropDbBranch": "release/gouna/drop_db" },
+    { "name": "mvax-native-billing", "type": "service", "branchPrefix": "release/primary", "pipelineType": "release", "dropDbBranch": "release/dahab/drop_db" },
+    { "name": "mvax-offers", "type": "service", "branchPrefix": "release/primary", "pipelineType": "release" },
+    { "name": "mvax-upgrades", "type": "service", "branchPrefix": "release/primary", "pipelineType": "release", "dropDbBranch": "release/dahab/drop_db" },
+    { "name": "mvax-authentication", "type": "service", "branchPrefix": "release/primary", "pipelineType": "release" },
+    { "name": "mvax-plan-services", "type": "service", "branchPrefix": "release/primary", "pipelineType": "release", "dropDbBranch": "release/drop_db" },
+    { "name": "mvax-adobe-integrator", "type": "service", "branchPrefix": "release/primary", "pipelineType": "release" },
+    { "name": "mvax-account-dashboard", "type": "service", "branchPrefix": "release/primary", "pipelineType": "release" },
+    { "name": "mvax-common", "type": "library", "branchPrefix": "primary", "pipelineType": "release" },
+    { "name": "mvax-population-engine", "type": "library", "branchPrefix": "primary", "pipelineType": "release" }
+  ],
+  "environments": ["int1", "dev1", "qcx", "qc1", "qc2", "qc5", "prodsup", "pat2", "pat3", "prod1-blue"],
+  "envs_reservation": ["int1", "dev1", "qcx", "qc1", "qc2", "qc5", "prodsup", "pat2", "pat3", "prod1-blue"],
+  "envs_cutoff": ["qc1", "qc2", "qcx"],
+  "envs_deploy": ["int1", "dev1", "qcx", "qc1", "qc2", "qc5", "prodsup", "pat2", "pat3", "prod1-blue"],
+  "disabledPipelineSteps": [],
+  "disabledBuildCategories": ["drop-db"]
+}

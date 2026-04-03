@@ -2,7 +2,7 @@
 
 /** A time-boxed environment reservation for one or more microservices */
 export interface Reservation {
-  /** Firestore document ID */
+  /** Unique identifier */
   id: string;
   /** Display name of the person who made the reservation */
   userName: string;

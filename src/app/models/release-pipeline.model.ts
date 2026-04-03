@@ -86,7 +86,7 @@ export interface ReleasePipeline {
   completedAt?: Date;
 }
 
-/** A persisted pipeline run record (stored in Firestore) */
+/** A persisted pipeline run record (stored in localStorage) */
 export interface PipelineRunRecord {
   id: string;
   releaseNumber: string;
@@ -98,7 +98,7 @@ export interface PipelineRunRecord {
   currentStepIndex: number;
   steps: PipelineStep[];
   logs: string[];
-  /** Firebase auth UID of the user who started the run */
+  /** Auth UID of the user who started the run */
   createdBy?: string;
 }
 

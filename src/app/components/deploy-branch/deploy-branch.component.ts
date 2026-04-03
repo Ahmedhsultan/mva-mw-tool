@@ -88,7 +88,7 @@ export class DeployBranchComponent implements OnInit {
   private approvalResolver: ((approved: boolean) => void) | null = null;
   approvalDecision: boolean | null = null;
 
-  // Firestore reservations
+  // Reservations
   private allReservations: Reservation[] = [];
 
   ngOnInit(): void {
@@ -113,7 +113,7 @@ export class DeployBranchComponent implements OnInit {
       }
     }
 
-    // Also listen for async PAT loading from Firestore
+    // Also listen for async PAT loading from settings
     this.settingsService.patConfig$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((cfg) => {

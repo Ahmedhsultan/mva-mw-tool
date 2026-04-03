@@ -1,9 +1,10 @@
 // ── Service barrel exports ───────────────────────────────────
 // Import from '@services' or '../../services' instead of individual files.
 
-export { AuthService } from './auth.service';
+export { AuthService, type AppUser } from './auth.service';
 export { AzureDevOpsService } from './azure-devops.service';
 export { DeployHistoryService, type SavedRunState } from './deploy-history.service';
+export { JsonDbService, type JsonDbConfig } from './json-db.service';
 export { PipelineHistoryService } from './pipeline-history.service';
 export { ReservationService } from './reservation.service';
 export { RunPresenceService, type RunViewer } from './run-presence.service';

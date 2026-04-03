@@ -288,7 +288,7 @@ export class EnvironmentReservationComponent implements OnInit {
       });
       this.showModal = false;
     } catch (err: any) {
-      this.errorMessage = this.formatFirebaseError(err);
+      this.errorMessage = this.formatApiError(err);
     } finally {
       this.isSubmitting = false;
     }
@@ -362,7 +362,7 @@ export class EnvironmentReservationComponent implements OnInit {
       await this.reservationService.deleteReservation(id);
       this.selectedReservation = null;
     } catch {
-      // Reservation list auto-updates via Firestore subscription
+      // Reservation list auto-updates via subscription
     }
   }
 
@@ -529,14 +529,17 @@ export class EnvironmentReservationComponent implements OnInit {
     return `Service(s) ${overlap.join(', ')} conflict with "${conflict.userName}" (${conflict.startDate} → ${conflict.endDate}).`;
   }
 
-  /** Map Firebase errors to user-friendly messages */
-  private formatFirebaseError(err: any): string {
+  /** Map API errors to user-friendly messages */
+  private formatApiError(err: any): string {
     const msg = err?.message ?? err?.code ?? String(err);
-    if (msg.includes('PERMISSION_DENIED') || msg.includes('permission')) {
-      return 'Permission denied. Make sure Firestore is in test mode (Firebase Console → Firestore → Rules).';
+    if (msg.includes('PAT not configured') || msg.includes('Not configured')) {
+      return 'Azure DevOps PAT not configured. Please set up your PAT in Settings.';
     }
-    if (msg.includes('NOT_FOUND') || msg.includes('not found')) {
-      return 'Firestore database not found. Create it in Firebase Console → Firestore Database → Create database.';
+    if (msg.includes('401') || msg.includes('403') || msg.includes('Authentication')) {
+      return 'Authentication failed. Your PAT may be invalid or expired.';
+    }
+    if (msg.includes('409') || msg.includes('conflict')) {
+      return 'Conflict detected — another user may have updated reservations. Please try again.';
     }
     return `Failed to save: ${msg}`;
   }

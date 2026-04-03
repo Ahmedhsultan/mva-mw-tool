@@ -1,15 +1,7 @@
 import { inject, Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, filter, take } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import {
-  Firestore,
-  doc,
-  setDoc,
-  getDoc,
-  onSnapshot,
-  DocumentReference,
-} from '@angular/fire/firestore';
-import { AuthService } from './auth.service';
+import { JsonDbService } from './json-db.service';
 import { DROP_DB_BRANCHES } from '../models/release-pipeline.model';
 
 // ── Per-service configuration ──────────────────────────────────────────
@@ -106,10 +98,10 @@ export const PIPELINE_STEP_DESCRIPTIONS: Record<PipelineStepId, string> = {
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
-  private firestore = inject(Firestore);
-  private authService = inject(AuthService);
-  private settingsDocRef = doc(this.firestore, 'settings', 'global');
-  private userDocRef: DocumentReference | null = null;
+  private jsonDb = inject(JsonDbService);
+
+  private static readonly SETTINGS_FILE = '/db/settings.json';
+  private static readonly SETTINGS_CACHE_KEY = 'mva_settings_cache';
 
   // ── Service Configs (per-service settings) ─────────────────
 
@@ -163,7 +155,7 @@ export class SettingsService {
   envsDeploy$: Observable<string[]> = this._envsDeploy$.asObservable();
   get envsDeploy(): string[] { return this._envsDeploy$.value; }
 
-  // ── PAT Config (per-user, stored in Firestore) ────────────
+  // ── PAT Config (per-user, stored in localStorage) ─────────
   private static readonly PAT_STORAGE_KEY = 'mva_pat_config';
   private _patConfig$ = new BehaviorSubject<PatConfig | null>(this.loadPatFromLocalStorage());
   patConfig$: Observable<PatConfig | null> = this._patConfig$.asObservable();
@@ -181,15 +173,24 @@ export class SettingsService {
     }
   }
 
-  // ── Sprint Team (per-user, stored in Firestore) ────────────
-  private _sprintTeam$ = new BehaviorSubject<string>('');
+  // ── Sprint Team (per-user, stored in localStorage) ─────────
+  private static readonly SPRINT_TEAM_KEY = 'mva_sprint_team';
+  private _sprintTeam$ = new BehaviorSubject<string>(this.loadSprintTeamFromLocalStorage());
   sprintTeam$: Observable<string> = this._sprintTeam$.asObservable();
 
   get sprintTeam(): string {
     return this._sprintTeam$.value;
   }
 
-  // ── Pipeline Step Toggles (shared, stored in Firestore) ───
+  private loadSprintTeamFromLocalStorage(): string {
+    try {
+      return localStorage.getItem('mva_sprint_team') || '';
+    } catch {
+      return '';
+    }
+  }
+
+  // ── Pipeline Step Toggles (shared, stored in JSON DB) ─────
   private _disabledSteps$ = new BehaviorSubject<PipelineStepId[]>([]);
   disabledSteps$: Observable<PipelineStepId[]> = this._disabledSteps$.asObservable();
 
@@ -210,10 +211,10 @@ export class SettingsService {
   /** Reset all pipeline steps to enabled */
   resetPipelineSteps(): void {
     this._disabledSteps$.next([]);
-    this.syncToFirestore();
+    this.syncToJsonDb();
   }
 
-  // ── Build Category Toggles (shared, stored in Firestore) ──
+  // ── Build Category Toggles (shared, stored in JSON DB) ────
   private _disabledBuildCategories$ = new BehaviorSubject<BuildCategoryId[]>(['drop-db']);
   disabledBuildCategories$: Observable<BuildCategoryId[]> = this._disabledBuildCategories$.asObservable();
 
@@ -238,63 +239,88 @@ export class SettingsService {
       list.push(id);
     }
     subject.next(list);
-    this.syncToFirestore();
+    this.syncToJsonDb();
   }
 
-  /** Whether the per-user settings have been loaded from Firestore */
-  private _userSettingsReady$ = new BehaviorSubject<boolean>(false);
-  userSettingsReady$: Observable<boolean> = this._userSettingsReady$.asObservable();
+  /** Whether settings have been loaded */
+  private _settingsReady$ = new BehaviorSubject<boolean>(false);
+  settingsReady$: Observable<boolean> = this._settingsReady$.asObservable();
 
   constructor() {
-    // Load shared settings from Firestore
-    this.initFromFirestore();
-    // Load per-user settings (PAT, sprint team) from Firestore
-    this.initUserSettings();
+    // 1. Load from localStorage cache (instant, works without PAT)
+    this.loadFromCache();
+    // 2. Then try to load from the JSON DB (async, needs PAT)
+    this.initFromJsonDb();
   }
 
-  /** Load per-user settings from Firestore once auth is ready */
-  private initUserSettings(): void {
-    this.authService.user$.pipe(
-      filter((user) => user !== null),
-      take(1),
-    ).subscribe(async (user) => {
-      if (!user) return;
-      this.userDocRef = doc(this.firestore, 'users', user.uid);
-      try {
-        const snap = await getDoc(this.userDocRef);
-        if (snap.exists()) {
-          const data = snap.data();
-          if (data['patConfig']) {
-            this._patConfig$.next(data['patConfig']);
-            try { localStorage.setItem(SettingsService.PAT_STORAGE_KEY, JSON.stringify(data['patConfig'])); } catch {}
-          }
-          if (data['sprintTeam']) {
-            this._sprintTeam$.next(data['sprintTeam']);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to load user settings from Firestore:', err);
-      }
-      this._userSettingsReady$.next(true);
-    });
-  }
+  // ── Load from localStorage cache ──────────────────────────
 
-  /** One-time initial fetch from Firestore, then start real-time listener */
-  private async initFromFirestore(): Promise<void> {
+  private loadFromCache(): void {
     try {
-      const snap = await getDoc(this.settingsDocRef);
-      if (snap.exists()) {
-        this.applyFirestoreData(snap.data());
+      const raw = localStorage.getItem(SettingsService.SETTINGS_CACHE_KEY);
+      if (raw) {
+        const data = JSON.parse(raw);
+        this.applyData(data);
+      }
+    } catch {
+      // Cache miss or corrupt — will load from repo
+    }
+  }
+
+  /** Save current state to localStorage cache */
+  private saveToCache(): void {
+    try {
+      const data = this.buildSettingsPayload();
+      localStorage.setItem(SettingsService.SETTINGS_CACHE_KEY, JSON.stringify(data));
+    } catch {
+      // localStorage full or unavailable
+    }
+  }
+
+  // ── Load from JSON DB (git repo) or local asset ──────────
+
+  private async initFromJsonDb(): Promise<void> {
+    try {
+      // First try reading from the git repo (latest version)
+      let data = await this.jsonDb.readFile(SettingsService.SETTINGS_FILE);
+      // If no PAT or repo read failed, fall back to the local static asset
+      if (!data) {
+        data = await this.fetchLocalAsset();
+      }
+      if (data) {
+        this.applyData(data);
+        this.saveToCache();
       }
     } catch (err) {
-      console.warn('Initial Firestore load failed:', err);
+      console.warn('Failed to load settings from JSON DB:', err);
+      // Last resort: try local asset
+      try {
+        const data = await this.fetchLocalAsset();
+        if (data) {
+          this.applyData(data);
+          this.saveToCache();
+        }
+      } catch { /* already cached from constructor */ }
     }
-    // Now start real-time listener for ongoing changes from other clients
-    this.listenToFirestore();
+    this._settingsReady$.next(true);
   }
 
-  /** Apply Firestore data to all BehaviorSubjects */
-  private applyFirestoreData(data: any): void {
+  /** Fetch settings from the local static asset served by Angular */
+  private async fetchLocalAsset(): Promise<any> {
+    try {
+      const res = await fetch('/db/settings.json');
+      if (res.ok) return res.json();
+    } catch { /* not available */ }
+    return null;
+  }
+
+  /** Refresh settings from the JSON DB (can be called manually) */
+  async refreshFromDb(): Promise<void> {
+    await this.initFromJsonDb();
+  }
+
+  /** Apply settings data to all BehaviorSubjects */
+  private applyData(data: any): void {
     if (Array.isArray(data.serviceConfigs) && data.serviceConfigs.length) {
       const configs: ServiceConfig[] = data.serviceConfigs;
       this._serviceConfigs$.next(configs);
@@ -324,31 +350,30 @@ export class SettingsService {
     }
   }
 
-  /** Listen for real-time changes from Firestore and update local state */
-  private listenToFirestore(): void {
-    onSnapshot(this.settingsDocRef, (snap) => {
-      if (!snap.exists()) return;
-      this.applyFirestoreData(snap.data());
-    }, (err) => {
-      console.warn('Firestore settings listener error:', err);
-    });
+  /** Build the settings payload for persistence */
+  private buildSettingsPayload(): any {
+    return {
+      serviceConfigs: structuredClone(this._serviceConfigs$.value),
+      environments: [...this._environments$.value],
+      envs_reservation: [...this._envsReservation$.value],
+      envs_cutoff: [...this._envsCutoff$.value],
+      envs_deploy: [...this._envsDeploy$.value],
+      disabledPipelineSteps: [...this._disabledSteps$.value],
+      disabledBuildCategories: [...this._disabledBuildCategories$.value],
+      updatedAt: new Date().toISOString(),
+    };
   }
 
-  /** Persist current shared settings to Firestore */
-  private async syncToFirestore(): Promise<void> {
+  /** Persist current shared settings to JSON DB (git repo) and local cache */
+  private async syncToJsonDb(): Promise<void> {
+    // Always update local cache immediately
+    this.saveToCache();
+    // Then try to push to the repo
     try {
-      await setDoc(this.settingsDocRef, {
-        serviceConfigs: structuredClone(this._serviceConfigs$.value),
-        environments: [...this._environments$.value],
-        envs_reservation: [...this._envsReservation$.value],
-        envs_cutoff: [...this._envsCutoff$.value],
-        envs_deploy: [...this._envsDeploy$.value],
-        disabledPipelineSteps: [...this._disabledSteps$.value],
-        disabledBuildCategories: [...this._disabledBuildCategories$.value],
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
+      const payload = this.buildSettingsPayload();
+      await this.jsonDb.writeFile(SettingsService.SETTINGS_FILE, payload, 'Update settings');
     } catch (err) {
-      console.warn('Failed to sync settings to Firestore:', err);
+      console.warn('Failed to sync settings to JSON DB:', err);
     }
   }
 
@@ -505,7 +530,7 @@ export class SettingsService {
 
   private saveEnvList(cat: EnvCategory, list: string[]): void {
     this.envSubjectMap[cat]?.next(list);
-    this.syncToFirestore();
+    this.syncToJsonDb();
   }
 
   // ── PAT Config ─────────────────────────────────────────────
@@ -513,52 +538,36 @@ export class SettingsService {
   savePatConfig(config: PatConfig): void {
     this._patConfig$.next(config);
     try { localStorage.setItem(SettingsService.PAT_STORAGE_KEY, JSON.stringify(config)); } catch {}
-    this.syncUserSettings();
   }
 
   clearPatConfig(): void {
     this._patConfig$.next(null);
     this._sprintTeam$.next('');
     try { localStorage.removeItem(SettingsService.PAT_STORAGE_KEY); } catch {}
-    this.syncUserSettings();
+    try { localStorage.removeItem(SettingsService.SPRINT_TEAM_KEY); } catch {}
   }
 
   // ── Sprint Team ────────────────────────────────────────────
 
   saveSprintTeam(team: string): void {
     this._sprintTeam$.next(team);
-    this.syncUserSettings();
+    try { localStorage.setItem(SettingsService.SPRINT_TEAM_KEY, team); } catch {}
   }
 
   // ── Private helpers ────────────────────────────────────────
 
-  /** Persist per-user settings (PAT, sprint team) to Firestore */
-  private async syncUserSettings(): Promise<void> {
-    if (!this.userDocRef) return;
-    try {
-      const pat = this._patConfig$.value;
-      await setDoc(this.userDocRef, {
-        patConfig: pat ? structuredClone(pat) : null,
-        sprintTeam: this._sprintTeam$.value || null,
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
-    } catch (err) {
-      console.warn('Failed to sync user settings to Firestore:', err);
-    }
-  }
-
   private saveMicroservices(list: string[]): void {
     this._microservices$.next(list);
-    this.syncToFirestore();
+    this.syncToJsonDb();
   }
 
   private saveEnvironments(list: string[]): void {
     this._environments$.next(list);
-    this.syncToFirestore();
+    this.syncToJsonDb();
   }
 
   private saveServiceConfigs(configs: ServiceConfig[]): void {
     this._serviceConfigs$.next(configs);
-    this.syncToFirestore();
+    this.syncToJsonDb();
   }
 }

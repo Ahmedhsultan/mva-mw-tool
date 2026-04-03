@@ -1,36 +1,32 @@
-import { inject, Injectable } from '@angular/core';
-import { Auth, signInAnonymously, onAuthStateChanged, User } from '@angular/fire/auth';
+import { Injectable } from '@angular/core';
 import { Observable, ReplaySubject } from 'rxjs';
+
+/** Lightweight user identity (replaces Firebase anonymous auth) */
+export interface AppUser {
+  uid: string;
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  private auth = inject(Auth);
-  private userSubject = new ReplaySubject<User | null>(1);
+  private static readonly UID_KEY = 'mva_user_uid';
+  private userSubject = new ReplaySubject<AppUser | null>(1);
 
-  /** Observable of the current auth user */
-  user$: Observable<User | null> = this.userSubject.asObservable();
+  /** Observable of the current user identity */
+  user$: Observable<AppUser | null> = this.userSubject.asObservable();
 
   constructor() {
-    // Listen for auth state changes
-    onAuthStateChanged(this.auth, (user) => {
-      if (user) {
-        this.userSubject.next(user);
-      } else {
-        // Auto sign-in anonymously when no user
-        this.signIn();
-      }
-    });
+    let uid = localStorage.getItem(AuthService.UID_KEY);
+    if (!uid) {
+      uid = crypto.randomUUID();
+      localStorage.setItem(AuthService.UID_KEY, uid);
+    }
+    this.userSubject.next({ uid });
   }
 
-  private async signIn(): Promise<void> {
-    try {
-      const cred = await signInAnonymously(this.auth);
-      this.userSubject.next(cred.user);
-    } catch (err) {
-      console.error('Anonymous sign-in failed:', err);
-      this.userSubject.next(null);
-    }
+  /** Get the current user UID synchronously */
+  get uid(): string {
+    return localStorage.getItem(AuthService.UID_KEY) || '';
   }
 }

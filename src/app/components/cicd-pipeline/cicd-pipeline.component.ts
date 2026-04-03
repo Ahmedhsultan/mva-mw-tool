@@ -73,7 +73,7 @@ export class CicdPipelineComponent implements OnInit {
   // Sub-tabs in pipeline panel
   pipelineSubTab: 'run' = 'run';
 
-  // Run history (from Firebase)
+  // Run history (from localStorage)
   private currentRunId: string | null = null;
   private resumeAttempted = false;
   runHistory: PipelineRunRecord[] = [];
@@ -122,7 +122,7 @@ export class CicdPipelineComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((e) => this.environments = e);
 
-    // Restore Azure DevOps PAT config immediately (don't wait for Firestore)
+    // Restore Azure DevOps PAT config immediately
     if (this.azureDevOps.restoreConfig()) {
       this.isConfigured = true;
     }
@@ -149,7 +149,7 @@ export class CicdPipelineComponent implements OnInit {
         }
       });
 
-    // Wait for anonymous auth to be ready, then subscribe to Firestore
+    // Load user identity and subscribe to history
     this.authService.user$
       .pipe(filter((user) => !!user), take(1), takeUntilDestroyed(this.destroyRef))
       .subscribe((user) => {
@@ -185,7 +185,7 @@ export class CicdPipelineComponent implements OnInit {
           this.tryOpenPendingRun();
         },
         error: (err) => {
-          console.warn('Firestore pipeline-runs subscription error:', err);
+          console.warn('Pipeline history subscription error:', err);
           this.loadingHistory = false;
           if (!this.resumeAttempted) {
             this.resumeAttempted = true;
@@ -376,11 +376,11 @@ export class CicdPipelineComponent implements OnInit {
     this.runHistory.unshift(runRecord);
     try {
       await this.historyService.saveRun(runRecord);
-      this.addLog('Run record saved to Firebase.');
+      this.addLog('Run record saved.');
     } catch (err: any) {
       const msg = err?.message || err?.code || String(err);
-      console.error('Failed to save run to Firestore:', err);
-      this.addLog(`⚠ Firebase save failed: ${msg}`);
+      console.error('Failed to save run:', err);
+      this.addLog(`⚠ Save failed: ${msg}`);
     }
 
     const services = Array.from(this.selectedServices);
@@ -634,7 +634,7 @@ export class CicdPipelineComponent implements OnInit {
 
       this.addLog('✓ Release deploy approved by user.');
       // Mark step as running and persist immediately — so a page refresh after approval
-      // won't find 'waiting-approval' in Firestore and re-prompt for approval.
+      // won't find 'waiting-approval' in localStorage and re-prompt for approval.
       this.steps[6].status = 'running';
       await this.persistRunningState();
 
@@ -908,7 +908,7 @@ export class CicdPipelineComponent implements OnInit {
     return this.isRunOwner(run);
   }
 
-  // ─── Run History (Firebase) ─────────────────────────────────────
+  // ─── Run History (localStorage) ─────────────────────────────────────
 
   private async finalizeRunRecord(status: 'success' | 'failed'): Promise<void> {
     const record = this.currentRunId
@@ -924,12 +924,12 @@ export class CicdPipelineComponent implements OnInit {
       await this.historyService.saveRun(record);
     } catch (err: any) {
       const msg = err?.message || err?.code || String(err);
-      console.error('Failed to finalize run in Firestore:', err);
-      this.addLog(`⚠ Firebase finalize failed: ${msg}`);
+      console.error('Failed to finalize run:', err);
+      this.addLog(`⚠ Finalize failed: ${msg}`);
     }
   }
 
-  /** Persist current running pipeline state to Firebase */
+  /** Persist current running pipeline state to localStorage */
   private async persistRunningState(): Promise<void> {
     const record = this.currentRunId
       ? this.runHistory.find((r) => r.id === this.currentRunId)
@@ -940,7 +940,7 @@ export class CicdPipelineComponent implements OnInit {
     record.logs = [...this.logs];
     // Fire-and-forget save to avoid blocking the pipeline
     this.historyService.saveRun(record).catch((err: any) => {
-      console.error('Failed to persist state to Firestore:', err);
+      console.error('Failed to persist state:', err);
     });
   }
 
@@ -954,7 +954,7 @@ export class CicdPipelineComponent implements OnInit {
 
   /** On page load, check for any running pipeline and resume tracking */
   private tryRestoreAndResume(): void {
-    // Find any running pipeline from Firestore
+    // Find any running pipeline from localStorage
     const running = this.runHistory.find((r) => r.status === 'running');
     if (!running || !this.isConfigured) return;
 
@@ -1393,7 +1393,7 @@ export class CicdPipelineComponent implements OnInit {
   /** Open a past run in the stepper panel */
   viewRun(run: PipelineRunRecord): void {
     // If this is the currently-running pipeline, just switch to the run tab
-    // without overwriting the live steps/logs with a stale Firestore snapshot
+    // without overwriting the live steps/logs with a stale snapshot
     if (this.isRunning && run.id === this.currentRunId) {
       this.pipelineSubTab = 'run';
       this.location.replaceState('/pipeline/run/' + run.id);
@@ -1851,7 +1851,7 @@ export class CicdPipelineComponent implements OnInit {
     });
   }
 
-  /** Save current steps & logs to Firestore — works for both active and finished runs */
+  /** Save current steps & logs to localStorage — works for both active and finished runs */
   private async persistStepsToHistory(): Promise<void> {
     const runId = this.currentRunId ?? this.viewingRun?.id;
     const record = runId ? this.runHistory.find((r) => r.id === runId) : null;
@@ -1875,7 +1875,7 @@ export class CicdPipelineComponent implements OnInit {
     record.status = anyFailed ? 'failed' : hasRemainingWork ? 'running' : 'success';
 
     await this.historyService.saveRun(record).catch((err: any) => {
-      console.error('Failed to persist steps to Firestore:', err);
+      console.error('Failed to persist steps:', err);
     });
     if (this.viewingRun?.id === record.id) {
       this.viewingRun = { ...this.viewingRun!, steps: record.steps, logs: record.logs, status: record.status };
