@@ -1,8 +1,9 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
-import { Subscription, filter, take } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter, take } from 'rxjs';
 import {
   MICROSERVICES,
   RELEASE_ENVIRONMENTS,
@@ -24,8 +25,17 @@ import { SettingsService, ALL_PIPELINE_STEPS, PIPELINE_STEP_LABELS, PIPELINE_STE
   templateUrl: './cicd-pipeline.component.html',
   styleUrl: './cicd-pipeline.component.css',
 })
-export class CicdPipelineComponent implements OnInit, OnDestroy {
-  private settingsService = inject(SettingsService);
+export class CicdPipelineComponent implements OnInit {
+  // ── Injected Dependencies ────────────────────────────────
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly settingsService = inject(SettingsService);
+  private readonly azureDevOps = inject(AzureDevOpsService);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly location = inject(Location);
+  private readonly authService = inject(AuthService);
+  private readonly historyService = inject(PipelineHistoryService);
+  private readonly presenceService = inject(RunPresenceService);
   microservices: readonly string[] = MICROSERVICES;
   environments: string[] = ['qc1', 'qc2', 'qcx'];
 
@@ -64,9 +74,6 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
   pipelineSubTab: 'run' = 'run';
 
   // Run history (from Firebase)
-  private authService = inject(AuthService);
-  private historyService = inject(PipelineHistoryService);
-  private historySub?: Subscription;
   private currentRunId: string | null = null;
   private resumeAttempted = false;
   runHistory: PipelineRunRecord[] = [];
@@ -76,11 +83,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
   private pendingRunId: string | null = null;
 
   // Concurrent viewers
-  private presenceService = inject(RunPresenceService);
   runViewers: RunViewer[] = [];
-  private viewersSub?: Subscription;
-
-  private routeSub?: Subscription;
 
   // Pipeline step settings modal
   showStepSettings = false;
@@ -103,21 +106,21 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
   buildCategoryLabels = BUILD_CATEGORY_LABELS;
   buildCategoryDescriptions = BUILD_CATEGORY_DESCRIPTIONS;
 
-  constructor(
-    private azureDevOps: AzureDevOpsService,
-    private router: Router,
-    private route: ActivatedRoute,
-    private location: Location,
-  ) {}
-
   ngOnInit(): void {
+    // Clean up presence tracking on destroy
+    this.destroyRef.onDestroy(() => this.presenceService.leaveRun());
+
     // Load dynamic service list from settings
     this.microservices = this.settingsService.microservices;
-    this.settingsService.microservices$.subscribe((s) => this.microservices = s);
+    this.settingsService.microservices$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((s) => this.microservices = s);
 
     // Load cutoff-specific environments
     this.environments = this.settingsService.envsCutoff;
-    this.settingsService.envsCutoff$.subscribe((e) => this.environments = e);
+    this.settingsService.envsCutoff$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((e) => this.environments = e);
 
     // Restore Azure DevOps PAT config immediately (don't wait for Firestore)
     if (this.azureDevOps.restoreConfig()) {
@@ -125,29 +128,30 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     }
 
     // Subscribe to concurrent viewers
-    this.viewersSub = this.presenceService.viewers$.subscribe(
-      (viewers) => (this.runViewers = viewers)
-    );
+    this.presenceService.viewers$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((viewers) => (this.runViewers = viewers));
 
     // Sync sub-tab and runId from route params
-    this.routeSub = this.route.paramMap.subscribe((params) => {
-      const tab = params.get('subTab');
-      const runId = params.get('runId');
+    this.route.paramMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        const runId = params.get('runId');
 
-      if (runId) {
-        // Deep-link to a specific run: /pipeline/run/:runId
-        this.pipelineSubTab = 'run';
-        this.pendingRunId = runId;
-        // If history is already loaded, open the run immediately
-        this.tryOpenPendingRun();
-      } else {
-        this.pipelineSubTab = 'run';
-      }
-    });
+        if (runId) {
+          // Deep-link to a specific run: /pipeline/run/:runId
+          this.pipelineSubTab = 'run';
+          this.pendingRunId = runId;
+          // If history is already loaded, open the run immediately
+          this.tryOpenPendingRun();
+        } else {
+          this.pipelineSubTab = 'run';
+        }
+      });
 
     // Wait for anonymous auth to be ready, then subscribe to Firestore
     this.authService.user$
-      .pipe(filter((user) => !!user), take(1))
+      .pipe(filter((user) => !!user), take(1), takeUntilDestroyed(this.destroyRef))
       .subscribe((user) => {
         this.currentUserUid = user!.uid;
         this.subscribeToHistory();
@@ -155,44 +159,39 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
   }
 
   private subscribeToHistory(): void {
-    this.historySub = this.historyService.getRuns$().subscribe({
-      next: (runs) => {
-        this.loadingHistory = false;
-        // Only update local list if we're not actively running (avoid overwriting live state)
-        if (!this.isRunning) {
-          this.runHistory = runs;
-        } else {
-          // Merge: keep current running record, update the rest
-          const currentId = this.currentRunId;
-          this.runHistory = runs.map((r) =>
-            r.id === currentId ? (this.runHistory.find((h) => h.id === currentId) || r) : r
-          );
-        }
+    this.historyService.getRuns$()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (runs) => {
+          this.loadingHistory = false;
+          // Only update local list if we're not actively running (avoid overwriting live state)
+          if (!this.isRunning) {
+            this.runHistory = runs;
+          } else {
+            // Merge: keep current running record, update the rest
+            const currentId = this.currentRunId;
+            this.runHistory = runs.map((r) =>
+              r.id === currentId ? (this.runHistory.find((h) => h.id === currentId) || r) : r
+            );
+          }
 
-        // On first load, try to resume a running pipeline
-        if (!this.resumeAttempted) {
-          this.resumeAttempted = true;
-          this.tryRestoreAndResume();
-        }
+          // On first load, try to resume a running pipeline
+          if (!this.resumeAttempted) {
+            this.resumeAttempted = true;
+            this.tryRestoreAndResume();
+          }
 
-        // If there's a pending runId from URL, open it
-        this.tryOpenPendingRun();
-      },
-      error: (err) => {
-        console.warn('Firestore pipeline-runs subscription error:', err);
-        this.loadingHistory = false;
-        if (!this.resumeAttempted) {
-          this.resumeAttempted = true;
-        }
-      },
-    });
-  }
-
-  ngOnDestroy(): void {
-    this.historySub?.unsubscribe();
-    this.routeSub?.unsubscribe();
-    this.viewersSub?.unsubscribe();
-    this.presenceService.leaveRun();
+          // If there's a pending runId from URL, open it
+          this.tryOpenPendingRun();
+        },
+        error: (err) => {
+          console.warn('Firestore pipeline-runs subscription error:', err);
+          this.loadingHistory = false;
+          if (!this.resumeAttempted) {
+            this.resumeAttempted = true;
+          }
+        },
+      });
   }
 
   /** Save PAT config */

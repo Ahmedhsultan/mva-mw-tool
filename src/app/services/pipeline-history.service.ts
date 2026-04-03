@@ -27,7 +27,7 @@ export class PipelineHistoryService {
   async saveRun(record: PipelineRunRecord): Promise<void> {
     const docRef = doc(this.firestore, 'pipeline-runs', record.id);
     // Deep-clone to strip any class instances, proxies, or non-serializable refs
-    const plain = JSON.parse(JSON.stringify(record));
+    const plain = structuredClone(record);
     await setDoc(docRef, plain);
   }
 

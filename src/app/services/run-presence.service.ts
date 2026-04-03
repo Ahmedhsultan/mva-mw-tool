@@ -74,7 +74,7 @@ export class RunPresenceService implements OnDestroy {
     if (!uid) return;
 
     // Write initial presence doc
-    await this.writePresence(runId, uid);
+    await this.writePresence(runId, uid, true);
 
     // Start heartbeat
     this.heartbeatTimer = setInterval(() => {
@@ -149,20 +149,21 @@ export class RunPresenceService implements OnDestroy {
     this.viewersSubject.next([]);
   }
 
-  /** Write/update the presence document */
-  private async writePresence(runId: string, uid: string): Promise<void> {
+  /** Write/update the presence document. Only sets joinedAt on initial write. */
+  private async writePresence(runId: string, uid: string, isInitial = false): Promise<void> {
     try {
       const docRef = doc(this.firestore, 'pipeline-runs', runId, 'viewers', uid);
-      const viewer: RunViewer = {
+      const now = new Date().toISOString();
+      const viewer: Partial<RunViewer> = {
         uid,
         label: this.uidLabel(uid),
         color: this.uidColor(uid),
-        joinedAt: new Date().toISOString(),
-        lastSeen: new Date().toISOString(),
+        lastSeen: now,
+        ...(isInitial ? { joinedAt: now } : {}),
       };
       await setDoc(docRef, viewer, { merge: true });
-    } catch (err) {
-      console.warn('Presence write failed:', err);
+    } catch {
+      // Best effort — presence is non-critical
     }
   }
 

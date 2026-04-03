@@ -1,17 +1,33 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subscription, firstValueFrom, filter, switchMap } from 'rxjs';
-import {
-  Reservation,
-  ENVIRONMENTS,
-  SERVICE_META,
-} from '../../models/reservation.model';
-import { MICROSERVICES } from '../../models/release-pipeline.model';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter, switchMap } from 'rxjs';
+
+import { Reservation, ENVIRONMENTS, SERVICE_META, getServiceAbbr, getServiceColor } from '../../models/reservation.model';
 import { ReservationService } from '../../services/reservation.service';
 import { AuthService } from '../../services/auth.service';
 import { AzureDevOpsService } from '../../services/azure-devops.service';
 import { SettingsService } from '../../services/settings.service';
+import {
+  toDateString,
+  isToday as dateIsToday,
+  getWeekStart,
+  buildDateRange,
+  shiftDays,
+  formatDay as dateFmtDay,
+  formatShortDate,
+  formatFullDate,
+  dateRangesOverlap,
+} from '../../utils/date.utils';
+
+// ── Sprint Iteration Shape ───────────────────────────────────
+interface SprintIteration {
+  name: string;
+  path: string;
+  startDate: string;
+  finishDate: string;
+}
 
 @Component({
   selector: 'app-environment-reservation',
@@ -20,22 +36,28 @@ import { SettingsService } from '../../services/settings.service';
   templateUrl: './environment-reservation.component.html',
   styleUrl: './environment-reservation.component.css',
 })
-export class EnvironmentReservationComponent implements OnInit, OnDestroy {
-  private settingsService = inject(SettingsService);
-  environments: readonly string[] = ENVIRONMENTS;
-  reservations: Reservation[] = [];
-  loadingReservations = true;
-  private sub!: Subscription;
+export class EnvironmentReservationComponent implements OnInit {
+  // ── Injected Dependencies ────────────────────────────────
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly settingsService = inject(SettingsService);
+  private readonly reservationService = inject(ReservationService);
+  private readonly authService = inject(AuthService);
+  private readonly azureDevOps = inject(AzureDevOpsService);
 
-  // Calendar state
+  // ── Calendar State ───────────────────────────────────────
+  environments: readonly string[] = ENVIRONMENTS;
   weekStart!: Date;
   weekDates: Date[] = [];
 
-  // Service map for template
+  // ── Reservations ─────────────────────────────────────────
+  reservations: Reservation[] = [];
+  loadingReservations = true;
+
+  // ── Service Metadata ─────────────────────────────────────
   serviceMeta = SERVICE_META;
   allServices: string[] = [];
 
-  // Reservation form modal
+  // ── Reserve Modal State ──────────────────────────────────
   showModal = false;
   modalEnv = '';
   modalDate = '';
@@ -46,10 +68,8 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
   successMessage = '';
   isSubmitting = false;
 
-  // Tooltip / selected reservation
+  // ── Reservation Detail / Edit ────────────────────────────
   selectedReservation: Reservation | null = null;
-
-  // Edit mode
   isEditing = false;
   editName = '';
   editSelectedServices: string[] = [];
@@ -58,7 +78,7 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
   editError = '';
   isSaving = false;
 
-  // PAT config
+  // ── PAT / Sprint Config ──────────────────────────────────
   showPatModal = false;
   patInput = '';
   patTeam = 'MVA-Nubia';
@@ -66,22 +86,293 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
   patValidating = false;
   patError = '';
 
-  constructor(
-    private reservationService: ReservationService,
-    private authService: AuthService,
-    private azureDevOps: AzureDevOpsService
-  ) {
-    this.setWeekFromDate(new Date());
+  // ── Sprint Label Map ─────────────────────────────────────
+  sprintLabelMap = new Map<string, string>();
+  private sprintIterations: SprintIteration[] = [];
+
+  // ─────────────────────────────────────────────────────────
+  // Lifecycle
+  // ─────────────────────────────────────────────────────────
+
+  constructor() {
+    this.initWeek(new Date());
   }
 
-  // Sprint / PI label map for prod1-blue
-  sprintLabelMap: Map<string, string> = new Map();
-  private sprintIterations: { name: string; path: string; startDate: string; finishDate: string }[] = [];
+  ngOnInit(): void {
+    this.subscribeToSettings();
+    this.subscribeToReservations();
+    this.initPatConfig();
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Subscription Setup (auto-cleaned via DestroyRef)
+  // ─────────────────────────────────────────────────────────
+
+  private subscribeToSettings(): void {
+    this.allServices = this.settingsService.servicesOnly;
+    this.settingsService.servicesOnly$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((s) => (this.allServices = s));
+
+    this.environments = this.settingsService.envsReservation;
+    this.settingsService.envsReservation$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((e) => (this.environments = e));
+  }
+
+  private subscribeToReservations(): void {
+    this.authService.user$
+      .pipe(
+        filter((user) => user !== null),
+        switchMap(() => this.reservationService.getReservations$()),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((reservations) => {
+        this.reservations = reservations;
+        this.loadingReservations = false;
+      });
+  }
+
+  private initPatConfig(): void {
+    this.patConfigured = this.azureDevOps.isConfigured() || this.azureDevOps.restoreConfig();
+    this.loadSprintData();
+
+    this.settingsService.patConfig$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((cfg) => {
+        if (cfg && !this.patConfigured) {
+          this.azureDevOps.configure(cfg);
+          this.patConfigured = true;
+          this.loadSprintData();
+        }
+      });
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Calendar Navigation
+  // ─────────────────────────────────────────────────────────
+
+  private initWeek(date: Date): void {
+    this.weekStart = getWeekStart(date);
+    this.rebuildWeekDates();
+  }
+
+  private rebuildWeekDates(): void {
+    this.weekDates = buildDateRange(this.weekStart, 14);
+    if (this.sprintIterations.length > 0) {
+      this.buildSprintLabels();
+    }
+  }
+
+  prevWeek(): void {
+    this.weekStart = getWeekStart(shiftDays(this.weekStart, -7));
+    this.rebuildWeekDates();
+  }
+
+  nextWeek(): void {
+    this.weekStart = getWeekStart(shiftDays(this.weekStart, 7));
+    this.rebuildWeekDates();
+  }
+
+  goToToday(): void {
+    this.initWeek(new Date());
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Reservation Queries
+  // ─────────────────────────────────────────────────────────
+
+  getReservations(env: string, date: Date): Reservation[] {
+    const dateStr = toDateString(date);
+    return this.reservations.filter(
+      (r) => r.environment === env && dateStr >= r.startDate && dateStr <= r.endDate,
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Service Selection (shared between create & edit forms)
+  // ─────────────────────────────────────────────────────────
+
+  toggleService(svc: string): void {
+    toggleInArray(this.selectedServices, svc);
+  }
+
+  isServiceSelected(svc: string): boolean {
+    return this.selectedServices.includes(svc);
+  }
+
+  toggleEditService(svc: string): void {
+    toggleInArray(this.editSelectedServices, svc);
+  }
+
+  isEditServiceSelected(svc: string): boolean {
+    return this.editSelectedServices.includes(svc);
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Service Metadata Accessors (delegated to model helpers)
+  // ─────────────────────────────────────────────────────────
+
+  getServiceAbbr(svc: string): string {
+    return getServiceAbbr(svc);
+  }
+
+  getServiceColor(svc: string): string {
+    return getServiceColor(svc);
+  }
+
+  getBarTint(reservation: Reservation): string {
+    const svcs = reservation.services ?? [];
+    if (svcs.length === 0) return '#f8fafc';
+    return getServiceColor(svcs[0]) + '12';
+  }
+
+  getBarBorder(reservation: Reservation): string {
+    const svcs = reservation.services ?? [];
+    return svcs.length === 0 ? '#e2e8f0' : getServiceColor(svcs[0]);
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Reserve Modal
+  // ─────────────────────────────────────────────────────────
+
+  openReserveModal(env: string, date: Date): void {
+    this.modalEnv = env;
+    this.modalDate = toDateString(date);
+    this.endDate = toDateString(date);
+    this.userName = '';
+    this.selectedServices = [];
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.selectedReservation = null;
+    this.showModal = true;
+  }
+
+  closeModal(): void {
+    this.showModal = false;
+    this.errorMessage = '';
+    this.successMessage = '';
+  }
+
+  async onSubmit(): Promise<void> {
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    if (!this.userName || !this.endDate) {
+      this.errorMessage = 'Please fill in all fields.';
+      return;
+    }
+    if (this.selectedServices.length === 0) {
+      this.errorMessage = 'Please select at least one service.';
+      return;
+    }
+    if (this.modalDate > this.endDate) {
+      this.errorMessage = 'End date must be on or after start date.';
+      return;
+    }
+
+    const conflict = this.findConflict(this.modalEnv, this.modalDate, this.endDate, this.selectedServices);
+    if (conflict) {
+      this.errorMessage = conflict;
+      return;
+    }
+
+    this.isSubmitting = true;
+    try {
+      await this.reservationService.addReservation({
+        userName: this.userName,
+        services: [...this.selectedServices],
+        environment: this.modalEnv,
+        startDate: this.modalDate,
+        endDate: this.endDate,
+      });
+      this.showModal = false;
+    } catch (err: any) {
+      this.errorMessage = this.formatFirebaseError(err);
+    } finally {
+      this.isSubmitting = false;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Reservation Details / Edit
+  // ─────────────────────────────────────────────────────────
+
+  selectReservation(reservation: Reservation): void {
+    this.selectedReservation = reservation;
+    this.showModal = false;
+  }
+
+  closeDetails(): void {
+    this.selectedReservation = null;
+    this.isEditing = false;
+    this.editError = '';
+  }
+
+  openEdit(): void {
+    if (!this.selectedReservation) return;
+    this.editName = this.selectedReservation.userName;
+    this.editSelectedServices = [...(this.selectedReservation.services ?? [])];
+    this.editStartDate = this.selectedReservation.startDate;
+    this.editEndDate = this.selectedReservation.endDate;
+    this.editError = '';
+    this.isEditing = true;
+  }
+
+  cancelEdit(): void {
+    this.isEditing = false;
+    this.editError = '';
+  }
+
+  async saveEdit(): Promise<void> {
+    if (!this.selectedReservation) return;
+    this.editError = '';
+
+    if (!this.editName.trim()) { this.editError = 'Name is required.'; return; }
+    if (!this.editStartDate || !this.editEndDate) { this.editError = 'Both dates are required.'; return; }
+    if (this.editStartDate > this.editEndDate) { this.editError = 'End date must be on or after start date.'; return; }
+
+    const conflict = this.findConflict(
+      this.selectedReservation.environment,
+      this.editStartDate,
+      this.editEndDate,
+      this.editSelectedServices,
+      this.selectedReservation.id,
+    );
+    if (conflict) { this.editError = conflict; return; }
+
+    this.isSaving = true;
+    try {
+      await this.reservationService.updateReservation(this.selectedReservation.id, {
+        userName: this.editName.trim(),
+        services: [...this.editSelectedServices],
+        startDate: this.editStartDate,
+        endDate: this.editEndDate,
+      });
+      this.isEditing = false;
+    } catch (err: any) {
+      this.editError = `Failed to save: ${err?.message ?? String(err)}`;
+    } finally {
+      this.isSaving = false;
+    }
+  }
+
+  async deleteReservation(id: string): Promise<void> {
+    try {
+      await this.reservationService.deleteReservation(id);
+      this.selectedReservation = null;
+    } catch {
+      // Reservation list auto-updates via Firestore subscription
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // PAT Modal
+  // ─────────────────────────────────────────────────────────
 
   openPatModal(): void {
     this.patInput = '';
     this.patError = '';
-    // Restore saved team name from Firestore via SettingsService
     const savedTeam = this.settingsService.sprintTeam;
     if (savedTeam) this.patTeam = savedTeam;
     this.showPatModal = true;
@@ -97,11 +388,13 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
     if (!this.patInput.trim()) return;
     this.patValidating = true;
     this.patError = '';
+
     this.azureDevOps.configure({
       pat: this.patInput.trim(),
       organization: 'vfuk-digital',
       project: 'Digital',
     });
+
     try {
       const result = await this.azureDevOps.validatePat();
       if (result.success) {
@@ -116,8 +409,9 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
       }
     } catch (e: any) {
       this.patError = e.message || 'Validation failed';
+    } finally {
+      this.patValidating = false;
     }
-    this.patValidating = false;
   }
 
   disconnectPat(): void {
@@ -127,383 +421,132 @@ export class EnvironmentReservationComponent implements OnInit, OnDestroy {
     this.sprintIterations = [];
   }
 
-  ngOnInit(): void {
-    // Load only deployable services (not libraries) from settings
-    this.allServices = this.settingsService.servicesOnly;
-    this.settingsService.servicesOnly$.subscribe((s) => this.allServices = s);
-
-    // Load reservation-specific environments
-    this.environments = this.settingsService.envsReservation;
-    this.settingsService.envsReservation$.subscribe((e) => this.environments = e);
-
-    // Wait for auth to be ready, then subscribe to reservations
-    this.sub = this.authService.user$.pipe(
-      filter((user) => user !== null),
-      switchMap(() => this.reservationService.getReservations$())
-    ).subscribe(
-      (reservations) => {
-        this.reservations = reservations;
-        this.loadingReservations = false;
-      }
-    );
-    // Check if PAT is already configured
-    this.patConfigured = this.azureDevOps.isConfigured() || this.azureDevOps.restoreConfig();
-    // Load sprint data from Azure DevOps if PAT is configured
-    this.loadSprintData();
-
-    // Also listen for async PAT loading from Firestore
-    this.settingsService.patConfig$.subscribe((cfg) => {
-      if (cfg && !this.patConfigured) {
-        this.azureDevOps.configure(cfg);
-        this.patConfigured = true;
-        this.loadSprintData();
-      }
-    });
-  }
-
-  ngOnDestroy(): void {
-    this.sub?.unsubscribe();
-  }
-
-  /** Set the week starting from Monday of the given date */
-  setWeekFromDate(date: Date): void {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
-    this.weekStart = new Date(d.setDate(diff));
-    this.weekStart.setHours(0, 0, 0, 0);
-    this.buildWeekDates();
-  }
-
-  buildWeekDates(): void {
-    this.weekDates = [];
-    for (let i = 0; i < 14; i++) {
-      const d = new Date(this.weekStart);
-      d.setDate(d.getDate() + i);
-      this.weekDates.push(d);
-    }
-    // Rebuild sprint labels for new visible dates
-    if (this.sprintIterations.length > 0) {
-      this.buildSprintLabels();
-    }
-  }
-
-  prevWeek(): void {
-    const d = new Date(this.weekStart);
-    d.setDate(d.getDate() - 7);
-    this.setWeekFromDate(d);
-  }
-
-  nextWeek(): void {
-    const d = new Date(this.weekStart);
-    d.setDate(d.getDate() + 7);
-    this.setWeekFromDate(d);
-  }
-
-  goToToday(): void {
-    this.setWeekFromDate(new Date());
-  }
-
-  /** Get all reservations for a specific env+date cell */
-  getReservations(env: string, date: Date): Reservation[] {
-    const dateStr = this.toDateString(date);
-    return this.reservations.filter((r) => {
-      if (r.environment !== env) return false;
-      return dateStr >= r.startDate && dateStr <= r.endDate;
-    });
-  }
-
-  /** Toggle a service in the new-reservation form */
-  toggleService(svc: string): void {
-    const idx = this.selectedServices.indexOf(svc);
-    if (idx >= 0) this.selectedServices.splice(idx, 1);
-    else this.selectedServices.push(svc);
-  }
-  isServiceSelected(svc: string): boolean {
-    return this.selectedServices.includes(svc);
-  }
-
-  /** Toggle a service in the edit form */
-  toggleEditService(svc: string): void {
-    const idx = this.editSelectedServices.indexOf(svc);
-    if (idx >= 0) this.editSelectedServices.splice(idx, 1);
-    else this.editSelectedServices.push(svc);
-  }
-  isEditServiceSelected(svc: string): boolean {
-    return this.editSelectedServices.includes(svc);
-  }
-
-  getServiceAbbr(svc: string): string {
-    return SERVICE_META[svc]?.abbr || svc.substring(0, 2).toUpperCase();
-  }
-  getServiceColor(svc: string): string {
-    return SERVICE_META[svc]?.color || '#64748b';
-  }
-
-  /** Light tint background for reservation bar based on first service */
-  getBarTint(reservation: Reservation): string {
-    const svcs = reservation.services || [];
-    if (svcs.length === 0) return '#f8fafc';
-    const hex = this.getServiceColor(svcs[0]);
-    return hex + '12';  // ~7% opacity via hex alpha
-  }
-
-  getBarBorder(reservation: Reservation): string {
-    const svcs = reservation.services || [];
-    if (svcs.length === 0) return '#e2e8f0';
-    return this.getServiceColor(svcs[0]);
-  }
-
-  /** Click on empty cell to open reservation modal */
-  openReserveModal(env: string, date: Date): void {
-    this.modalEnv = env;
-    this.modalDate = this.toDateString(date);
-    this.endDate = this.toDateString(date);
-    this.userName = '';
-    this.selectedServices = [];
-    this.errorMessage = '';
-    this.successMessage = '';
-    this.selectedReservation = null;
-    this.showModal = true;
-  }
-
-  /** Click on reserved cell to show details */
-  selectReservation(reservation: Reservation): void {
-    this.selectedReservation = reservation;
-    this.showModal = false;
-  }
-
-  closeModal(): void {
-    this.showModal = false;
-    this.errorMessage = '';
-    this.successMessage = '';
-  }
-
-  closeDetails(): void {
-    this.selectedReservation = null;
-    this.isEditing = false;
-    this.editError = '';
-  }
-
-  openEdit(): void {
-    if (!this.selectedReservation) return;
-    this.editName = this.selectedReservation.userName;
-    this.editSelectedServices = [...(this.selectedReservation.services || [])];
-    this.editStartDate = this.selectedReservation.startDate;
-    this.editEndDate = this.selectedReservation.endDate;
-    this.editError = '';
-    this.isEditing = true;
-  }
-
-  cancelEdit(): void {
-    this.isEditing = false;
-    this.editError = '';
-  }
-
-  async saveEdit(): Promise<void> {
-    if (!this.selectedReservation) return;
-    this.editError = '';
-    if (!this.editName.trim()) { this.editError = 'Name is required.'; return; }
-    if (!this.editStartDate || !this.editEndDate) { this.editError = 'Both dates are required.'; return; }
-    if (this.editStartDate > this.editEndDate) { this.editError = 'End date must be on or after start date.'; return; }
-    // Check for conflicts: only when services overlap
-    const editSvcSet = new Set(this.editSelectedServices);
-    const conflict = this.reservations.find((r) => {
-      if (r.id === this.selectedReservation!.id) return false;
-      if (r.environment !== this.selectedReservation!.environment) return false;
-      if (!(this.editStartDate <= r.endDate && this.editEndDate >= r.startDate)) return false;
-      return (r.services || []).some(s => editSvcSet.has(s));
-    });
-    if (conflict) {
-      const overlap = (conflict.services || []).filter(s => editSvcSet.has(s));
-      this.editError = `Service(s) ${overlap.join(', ')} conflict with "${conflict.userName}" (${conflict.startDate} → ${conflict.endDate}).`;
-      return;
-    }
-    this.isSaving = true;
-    try {
-      await this.reservationService.updateReservation(this.selectedReservation.id, {
-        userName: this.editName.trim(),
-        services: [...this.editSelectedServices],
-        startDate: this.editStartDate,
-        endDate: this.editEndDate,
-      });
-      this.isEditing = false;
-    } catch (err: any) {
-      this.editError = `Failed to save: ${err?.message || String(err)}`;
-    } finally {
-      this.isSaving = false;
-    }
-  }
-
-  async onSubmit(): Promise<void> {
-    this.errorMessage = '';
-    this.successMessage = '';
-
-    if (!this.userName || !this.endDate) {
-      this.errorMessage = 'Please fill in all fields.';
-      return;
-    }
-
-    if (this.selectedServices.length === 0) {
-      this.errorMessage = 'Please select at least one service.';
-      return;
-    }
-
-    if (new Date(this.modalDate) > new Date(this.endDate)) {
-      this.errorMessage = 'End date must be on or after start date.';
-      return;
-    }
-
-    // Check for conflicts: only when services overlap
-    const newSvcSet = new Set(this.selectedServices);
-    const conflict = this.reservations.find((r) => {
-      if (r.environment !== this.modalEnv) return false;
-      if (!(this.modalDate <= r.endDate && this.endDate >= r.startDate)) return false;
-      return (r.services || []).some(s => newSvcSet.has(s));
-    });
-
-    if (conflict) {
-      const overlap = (conflict.services || []).filter(s => newSvcSet.has(s));
-      this.errorMessage = `Service(s) ${overlap.join(', ')} already reserved by "${conflict.userName}" (${conflict.startDate} → ${conflict.endDate}).`;
-      return;
-    }
-
-    this.isSubmitting = true;
-    try {
-      await this.reservationService.addReservation({
-        userName: this.userName,
-        services: [...this.selectedServices],
-        environment: this.modalEnv,
-        startDate: this.modalDate,
-        endDate: this.endDate,
-      });
-      this.showModal = false;
-    } catch (err: any) {
-      console.error('Firebase reservation error:', err);
-      const msg = err?.message || err?.code || String(err);
-      if (msg.includes('PERMISSION_DENIED') || msg.includes('permission')) {
-        this.errorMessage = 'Permission denied. Make sure Firestore is in test mode (Firebase Console → Firestore → Rules).';
-      } else if (msg.includes('NOT_FOUND') || msg.includes('not found')) {
-        this.errorMessage = 'Firestore database not found. Create it in Firebase Console → Firestore Database → Create database.';
-      } else {
-        this.errorMessage = `Failed to save: ${msg}`;
-      }
-    } finally {
-      this.isSubmitting = false;
-    }
-  }
-
-  async deleteReservation(id: string): Promise<void> {
-    try {
-      await this.reservationService.deleteReservation(id);
-      this.selectedReservation = null;
-    } catch (err) {
-      // Reservation list will auto-update via the subscription
-    }
-  }
+  // ─────────────────────────────────────────────────────────
+  // Date Formatting (template-facing wrappers)
+  // ─────────────────────────────────────────────────────────
 
   isToday(date: Date): boolean {
-    const today = new Date();
-    return this.toDateString(date) === this.toDateString(today);
+    return dateIsToday(date);
   }
 
   isWeekend(date: Date): boolean {
     const day = date.getDay();
-    return day === 5 || day === 6; // Friday + Saturday
+    return day === 5 || day === 6; // Fri + Sat (regional weekend)
   }
 
   formatDay(date: Date): string {
-    return date.toLocaleDateString('en-US', { weekday: 'short' });
+    return dateFmtDay(date);
   }
 
   formatDate(date: Date): string {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return formatShortDate(date);
   }
 
   formatWeekRange(): string {
-    const end = new Date(this.weekStart);
-    end.setDate(end.getDate() + 13);
-    return `${this.weekStart.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    })} – ${end.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })}`;
+    const end = shiftDays(this.weekStart, 13);
+    return `${formatShortDate(this.weekStart)} – ${formatFullDate(end)}`;
   }
 
   toDateString(date: Date): string {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return toDateString(date);
   }
 
-  // ── Sprint / PI label helpers ─────────────────────────────────
+  // ─────────────────────────────────────────────────────────
+  // Sprint / PI Labels
+  // ─────────────────────────────────────────────────────────
 
   async loadSprintData(): Promise<void> {
     if (!this.azureDevOps.isConfigured()) {
       this.azureDevOps.restoreConfig();
     }
-    if (!this.azureDevOps.isConfigured()) {
-      console.warn('[SprintLabels] Azure DevOps not configured, skipping sprint labels');
-      return;
-    }
+    if (!this.azureDevOps.isConfigured()) return;
 
     try {
       const team = this.settingsService.sprintTeam || this.patTeam;
       this.sprintIterations = await this.azureDevOps.getAllIterations(team);
-      console.log('[SprintLabels] Loaded iterations:', this.sprintIterations.length, this.sprintIterations.slice(0, 3));
-    } catch (e) {
-      console.error('[SprintLabels] Failed to load iterations:', e);
+    } catch {
+      // Sprint labels are optional; silently degrade
     }
     this.buildSprintLabels();
-    console.log('[SprintLabels] Label map size:', this.sprintLabelMap.size, Object.fromEntries(this.sprintLabelMap));
   }
 
-  /** Rebuild the sprint label map for all visible dates */
+  getSprintLabel(date: Date): string {
+    return this.sprintLabelMap.get(toDateString(date)) ?? '';
+  }
+
   private buildSprintLabels(): void {
     this.sprintLabelMap.clear();
     for (const date of this.weekDates) {
       const label = this.computeSprintLabel(date);
       if (label) {
-        this.sprintLabelMap.set(this.toDateString(date), label);
+        this.sprintLabelMap.set(toDateString(date), label);
       }
     }
   }
 
-  /**
-   * Compute the label: PI.Sprint.SprintWeek.DayOfWeek
-   * Iteration names are expected to follow pattern like "PI 25.1\\Sprint 1" or "PI25.1\\Sprint 2"
-   * Parses PI number, sprint number, calculates the week within the sprint,
-   * and day-of-week (1=Mon..5=Fri).
-   */
   private computeSprintLabel(date: Date): string {
-    const dateStr = this.toDateString(date);
-    const dayOfWeek = date.getDay(); // 0=Sun..6=Sat
-    if (dayOfWeek === 5 || dayOfWeek === 6) return ''; // skip Fri+Sat weekends
+    const dateStr = toDateString(date);
+    const dayOfWeek = date.getDay();
+    if (dayOfWeek === 5 || dayOfWeek === 6) return '';
 
-    // Map Sun-Thu to work day 1-5 (Sun=1, Mon=2, Tue=3, Wed=4, Thu=5)
     const workDay = dayOfWeek === 0 ? 1 : dayOfWeek + 1;
-
-    // Find the iteration that contains this date
     const iteration = this.sprintIterations.find(
-      (it) => dateStr >= it.startDate && dateStr <= it.finishDate
+      (it) => dateStr >= it.startDate && dateStr <= it.finishDate,
     );
     if (!iteration) return '';
 
-    // Use iteration name directly, append week and work day
-    // Calculate sprint week: how many weeks into the sprint is this date?
     const sprintStart = new Date(iteration.startDate + 'T00:00:00');
-    const dayDiff = Math.floor((date.getTime() - sprintStart.getTime()) / (1000 * 60 * 60 * 24));
+    const dayDiff = Math.floor((date.getTime() - sprintStart.getTime()) / 86_400_000);
     const sprintWeek = Math.floor(dayDiff / 7) + 1;
 
     return `BAU ${iteration.name}.${sprintWeek}.${workDay}`;
   }
 
-  /** Get the sprint label for a specific date (used in template) */
-  getSprintLabel(date: Date): string {
-    return this.sprintLabelMap.get(this.toDateString(date)) || '';
+  // ─────────────────────────────────────────────────────────
+  // Private Helpers
+  // ─────────────────────────────────────────────────────────
+
+  /**
+   * Find a conflicting reservation for the given env / date range / services.
+   * Returns a user-friendly error message, or null if no conflict.
+   */
+  private findConflict(
+    env: string,
+    startDate: string,
+    endDate: string,
+    services: string[],
+    excludeId?: string,
+  ): string | null {
+    const svcSet = new Set(services);
+    const conflict = this.reservations.find((r) => {
+      if (excludeId && r.id === excludeId) return false;
+      if (r.environment !== env) return false;
+      if (!dateRangesOverlap(startDate, endDate, r.startDate, r.endDate)) return false;
+      return (r.services ?? []).some((s) => svcSet.has(s));
+    });
+    if (!conflict) return null;
+    const overlap = (conflict.services ?? []).filter((s) => svcSet.has(s));
+    return `Service(s) ${overlap.join(', ')} conflict with "${conflict.userName}" (${conflict.startDate} → ${conflict.endDate}).`;
   }
+
+  /** Map Firebase errors to user-friendly messages */
+  private formatFirebaseError(err: any): string {
+    const msg = err?.message ?? err?.code ?? String(err);
+    if (msg.includes('PERMISSION_DENIED') || msg.includes('permission')) {
+      return 'Permission denied. Make sure Firestore is in test mode (Firebase Console → Firestore → Rules).';
+    }
+    if (msg.includes('NOT_FOUND') || msg.includes('not found')) {
+      return 'Firestore database not found. Create it in Firebase Console → Firestore Database → Create database.';
+    }
+    return `Failed to save: ${msg}`;
+  }
+}
+
+// ── Standalone Helper ────────────────────────────────────────
+
+/** Toggle an item in/out of an array (mutates in place) */
+function toggleInArray<T>(arr: T[], item: T): void {
+  const idx = arr.indexOf(item);
+  if (idx >= 0) arr.splice(idx, 1);
+  else arr.push(item);
 }

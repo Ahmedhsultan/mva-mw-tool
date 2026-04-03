@@ -204,16 +204,7 @@ export class SettingsService {
 
   /** Toggle a pipeline step on or off */
   togglePipelineStep(stepId: PipelineStepId, enabled: boolean): void {
-    let disabled = [...this._disabledSteps$.value];
-    if (enabled) {
-      disabled = disabled.filter((id) => id !== stepId);
-    } else {
-      if (!disabled.includes(stepId)) {
-        disabled.push(stepId);
-      }
-    }
-    this._disabledSteps$.next(disabled);
-    this.syncToFirestore();
+    this.toggleInList(this._disabledSteps$, stepId, enabled);
   }
 
   /** Reset all pipeline steps to enabled */
@@ -235,15 +226,18 @@ export class SettingsService {
   }
 
   toggleBuildCategory(catId: BuildCategoryId, enabled: boolean): void {
-    let disabled = [...this._disabledBuildCategories$.value];
+    this.toggleInList(this._disabledBuildCategories$, catId, enabled);
+  }
+
+  /** Generic toggle helper: add/remove an item from a BehaviorSubject list and sync */
+  private toggleInList<T>(subject: BehaviorSubject<T[]>, id: T, enabled: boolean): void {
+    let list = [...subject.value];
     if (enabled) {
-      disabled = disabled.filter((id) => id !== catId);
-    } else {
-      if (!disabled.includes(catId)) {
-        disabled.push(catId);
-      }
+      list = list.filter((item) => item !== id);
+    } else if (!list.includes(id)) {
+      list.push(id);
     }
-    this._disabledBuildCategories$.next(disabled);
+    subject.next(list);
     this.syncToFirestore();
   }
 
@@ -312,15 +306,10 @@ export class SettingsService {
     }
 
     // Per-tab environments
-    const envSubjects: Record<EnvCategory, BehaviorSubject<string[]>> = {
-      reservation: this._envsReservation$,
-      cutoff:      this._envsCutoff$,
-      deploy:      this._envsDeploy$,
-    };
-    for (const [cat, subj] of Object.entries(envSubjects)) {
+    for (const cat of ['reservation', 'cutoff', 'deploy'] as EnvCategory[]) {
       const key = `envs_${cat}`;
       if (Array.isArray(data[key])) {
-        subj.next(data[key]);
+        this.envSubjectMap[cat].next(data[key]);
       }
     }
 
@@ -349,7 +338,7 @@ export class SettingsService {
   private async syncToFirestore(): Promise<void> {
     try {
       await setDoc(this.settingsDocRef, {
-        serviceConfigs: JSON.parse(JSON.stringify(this._serviceConfigs$.value)),
+        serviceConfigs: structuredClone(this._serviceConfigs$.value),
         environments: [...this._environments$.value],
         envs_reservation: [...this._envsReservation$.value],
         envs_cutoff: [...this._envsCutoff$.value],
@@ -480,12 +469,19 @@ export class SettingsService {
 
   // ── Per-tab Environment CRUD ───────────────────────────────
 
+  /** Map from EnvCategory to the corresponding subject */
+  private readonly envSubjectMap = {
+    reservation: this._envsReservation$,
+    cutoff: this._envsCutoff$,
+    deploy: this._envsDeploy$,
+  };
+
   getEnvs(cat: EnvCategory): string[] {
-    return cat === 'reservation' ? this.envsReservation : cat === 'cutoff' ? this.envsCutoff : this.envsDeploy;
+    return this.envSubjectMap[cat]?.value ?? this.envsDeploy;
   }
 
   getEnvs$(cat: EnvCategory): Observable<string[]> {
-    return cat === 'reservation' ? this.envsReservation$ : cat === 'cutoff' ? this.envsCutoff$ : this.envsDeploy$;
+    return this.envSubjectMap[cat]?.asObservable() ?? this.envsDeploy$;
   }
 
   addEnv(cat: EnvCategory, name: string): void {
@@ -508,8 +504,7 @@ export class SettingsService {
   }
 
   private saveEnvList(cat: EnvCategory, list: string[]): void {
-    const subj = cat === 'reservation' ? this._envsReservation$ : cat === 'cutoff' ? this._envsCutoff$ : this._envsDeploy$;
-    subj.next(list);
+    this.envSubjectMap[cat]?.next(list);
     this.syncToFirestore();
   }
 
@@ -543,7 +538,7 @@ export class SettingsService {
     try {
       const pat = this._patConfig$.value;
       await setDoc(this.userDocRef, {
-        patConfig: pat ? JSON.parse(JSON.stringify(pat)) : null,
+        patConfig: pat ? structuredClone(pat) : null,
         sprintTeam: this._sprintTeam$.value || null,
         updatedAt: new Date().toISOString(),
       }, { merge: true });

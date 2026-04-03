@@ -1,7 +1,7 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MICROSERVICES } from '../../models/release-pipeline.model';
 import { ENVIRONMENTS } from '../../models/reservation.model';
 import { AzureDevOpsService } from '../../services/azure-devops.service';
@@ -27,11 +27,12 @@ import type {
   templateUrl: './deploy-branch.component.html',
   styleUrl: './deploy-branch.component.css',
 })
-export class DeployBranchComponent implements OnInit, OnDestroy {
-  private azureDevOps = inject(AzureDevOpsService);
-  private reservationService = inject(ReservationService);
-  private historyService = inject(DeployHistoryService);
-  private settingsService = inject(SettingsService);
+export class DeployBranchComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly azureDevOps = inject(AzureDevOpsService);
+  private readonly reservationService = inject(ReservationService);
+  private readonly historyService = inject(DeployHistoryService);
+  private readonly settingsService = inject(SettingsService);
 
   allServices: string[] = [];
   allEnvironments: string[] = [];
@@ -89,14 +90,17 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
 
   // Firestore reservations
   private allReservations: Reservation[] = [];
-  private reservationSub?: Subscription;
 
   ngOnInit(): void {
     // Load dynamic service/environment lists from settings
     this.allServices = this.settingsService.servicesOnly;
     this.allEnvironments = this.settingsService.envsDeploy;
-    this.settingsService.servicesOnly$.subscribe((s) => this.allServices = s);
-    this.settingsService.envsDeploy$.subscribe((e) => this.allEnvironments = e);
+    this.settingsService.servicesOnly$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((s) => this.allServices = s);
+    this.settingsService.envsDeploy$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((e) => this.allEnvironments = e);
 
     const saved = this.azureDevOps.restoreConfig();
     if (saved) {
@@ -110,25 +114,26 @@ export class DeployBranchComponent implements OnInit, OnDestroy {
     }
 
     // Also listen for async PAT loading from Firestore
-    this.settingsService.patConfig$.subscribe((cfg) => {
-      if (cfg && !this.isConfigured) {
-        this.pat = cfg.pat ?? '';
-        this.organization = cfg.organization ?? 'vfuk-digital';
-        this.project = cfg.project ?? 'Digital';
-        this.azureDevOps.configure(cfg);
-        this.isConfigured = true;
-      }
-    });
+    this.settingsService.patConfig$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((cfg) => {
+        if (cfg && !this.isConfigured) {
+          this.pat = cfg.pat ?? '';
+          this.organization = cfg.organization ?? 'vfuk-digital';
+          this.project = cfg.project ?? 'Digital';
+          this.azureDevOps.configure(cfg);
+          this.isConfigured = true;
+        }
+      });
 
-    this.reservationSub = this.reservationService.getReservations$().subscribe((r) => {
-      this.allReservations = r;
-    });
+    this.reservationService.getReservations$()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((r) => {
+        this.allReservations = r;
+      });
+
     this.loadHistory();
     this.restoreRunState();
-  }
-
-  ngOnDestroy(): void {
-    this.reservationSub?.unsubscribe();
   }
 
   // ── Config ─────────────────────────────────────────────────

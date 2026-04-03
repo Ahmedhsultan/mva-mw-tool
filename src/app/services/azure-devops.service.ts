@@ -44,6 +44,17 @@ export class AzureDevOpsService {
     return `https://dev.azure.com/${this.config.organization}/${this.config.project}`;
   }
 
+  /** Visual Studio Release Management base URL */
+  private get vsrmBaseUrl(): string {
+    if (!this.config) throw new Error('Azure DevOps not configured');
+    return `https://vsrm.dev.azure.com/${this.config.organization}/${this.config.project}`;
+  }
+
+  /** Find a release environment stage by name (case-insensitive partial match) */
+  private findEnvByName(environments: Record<string, any>[], name: string): Record<string, any> | undefined {
+    return environments.find((e) => (e['name'] || '').toLowerCase().includes(name.toLowerCase()));
+  }
+
   /**
    * Safely parse a fetch Response as JSON.
    * Throws a descriptive error if the response is HTML (expired/invalid PAT redirect).
@@ -309,9 +320,8 @@ export class AzureDevOpsService {
   ): Promise<{ success: boolean; message: string; releaseId?: number; releaseUrl?: string; releaseEnvironment?: string }> {
     try {
       // Find release definition for this repo
-      const vsrmBase = `https://vsrm.dev.azure.com/${this.config!.organization}/${this.config!.project}`;
       const defRes = await fetch(
-        `${vsrmBase}/_apis/release/definitions?searchText=${repo}&$expand=environments,artifacts&api-version=7.1`,
+        `${this.vsrmBaseUrl}/_apis/release/definitions?searchText=${repo}&$expand=environments,artifacts&api-version=7.1`,
         { headers: this.headers }
       );
       if (!defRes.ok) {
@@ -331,7 +341,7 @@ export class AzureDevOpsService {
       let artifacts: any[] = releaseDef.artifacts || [];
       if (!artifacts.length) {
         const fullDefRes = await fetch(
-          `${vsrmBase}/_apis/release/definitions/${releaseDef.id}?api-version=7.1`,
+          `${this.vsrmBaseUrl}/_apis/release/definitions/${releaseDef.id}?api-version=7.1`,
           { headers: this.headers }
         );
         if (fullDefRes.ok) {
@@ -341,9 +351,7 @@ export class AzureDevOpsService {
       }
 
       // Find the target environment stage
-      const envStage = releaseDef.environments?.find(
-        (e: any) => e.name.toLowerCase().includes(environment.toLowerCase())
-      );
+      const envStage = this.findEnvByName(releaseDef.environments || [], environment);
       if (!envStage) {
         return { success: false, message: `Environment "${environment}" not found in release definition for ${repo}` };
       }
@@ -389,7 +397,7 @@ export class AzureDevOpsService {
       }
 
       const releaseRes = await fetch(
-        `${vsrmBase}/_apis/release/releases?api-version=7.1`,
+        `${this.vsrmBaseUrl}/_apis/release/releases?api-version=7.1`,
         { method: 'POST', headers: this.headers, body: JSON.stringify(body) }
       );
       if (!releaseRes.ok) {
@@ -399,16 +407,14 @@ export class AzureDevOpsService {
       const releaseData = await this.safeJson(releaseRes);
 
       // Find the target environment ID from the created release
-      const targetEnv = (releaseData.environments || []).find(
-        (e: any) => e.name.toLowerCase().includes(environment.toLowerCase())
-      );
+      const targetEnv = this.findEnvByName(releaseData.environments || [], environment);
       if (!targetEnv) {
         return { success: false, message: `Target environment "${environment}" not found in created release #${releaseData.id}` };
       }
 
       // Trigger deployment on ONLY the target environment
       const deployRes = await fetch(
-        `${vsrmBase}/_apis/release/releases/${releaseData.id}/environments/${targetEnv.id}?api-version=7.1`,
+        `${this.vsrmBaseUrl}/_apis/release/releases/${releaseData.id}/environments/${(targetEnv as any).id}?api-version=7.1`,
         {
           method: 'PATCH',
           headers: this.headers,
@@ -426,17 +432,17 @@ export class AzureDevOpsService {
           message: `Release #${releaseData.id} created but failed to trigger ${environment} deploy: ${err}`,
           releaseId: releaseData.id as number,
           releaseUrl: `https://dev.azure.com/${this.config!.organization}/${this.config!.project}/_releaseProgress?_a=release-environment-logs&releaseId=${releaseData.id}&definitionId=${releaseDef.id}`,
-          releaseEnvironment: targetEnv.name || environment,
+          releaseEnvironment: targetEnv['name'] || environment,
         };
       }
 
       const releaseUrl = `https://dev.azure.com/${this.config!.organization}/${this.config!.project}/_releaseProgress?_a=release-environment-logs&releaseId=${releaseData.id}&definitionId=${releaseDef.id}`;
       return {
         success: true,
-        message: `Release #${releaseData.id} created → deploying to ${targetEnv.name}`,
+        message: `Release #${releaseData.id} created → deploying to ${targetEnv['name']}`,
         releaseId: releaseData.id as number,
         releaseUrl,
-        releaseEnvironment: targetEnv.name || environment,
+        releaseEnvironment: targetEnv['name'] || environment,
       };
     } catch (e: any) {
       return { success: false, message: e.message || String(e) };
@@ -455,9 +461,8 @@ export class AzureDevOpsService {
     environmentName?: string
   ): Promise<{ id: number; envName: string; approver: string; isGroup: boolean }[]> {
     try {
-      const vsrmBase = `https://vsrm.dev.azure.com/${this.config!.organization}/${this.config!.project}`;
       const res = await fetch(
-        `${vsrmBase}/_apis/release/approvals?releaseIdsFilter=${releaseId}&statusFilter=pending&api-version=7.1`,
+        `${this.vsrmBaseUrl}/_apis/release/approvals?releaseIdsFilter=${releaseId}&statusFilter=pending&api-version=7.1`,
         { headers: this.headers }
       );
       if (!res.ok) {
@@ -466,12 +471,6 @@ export class AzureDevOpsService {
       }
       const data = await this.safeJson(res);
       const approvals: any[] = data.value || [];
-      console.log(`[Approvals] Found ${approvals.length} pending for release #${releaseId}`, approvals.map((a: any) => ({
-        id: a.id,
-        env: a.releaseEnvironment?.name,
-        approver: a.approver?.displayName || a.approver?.uniqueName,
-        isAutomated: a.isAutomated,
-      })));
 
       // First try to match by environment name
       let filtered = approvals;
@@ -482,8 +481,6 @@ export class AzureDevOpsService {
         // If we found matches, use them; otherwise fall back to all pending
         if (envMatch.length > 0) {
           filtered = envMatch;
-        } else {
-          console.warn(`[Approvals] No match for "${environmentName}", using all ${approvals.length} pending approvals`);
         }
       }
 
@@ -493,8 +490,7 @@ export class AzureDevOpsService {
         approver: a.approver?.displayName || a.approver?.uniqueName || 'unknown',
         isGroup: a.approver?.isContainer === true,
       }));
-    } catch (e) {
-      console.error('[Approvals] Error fetching:', e);
+    } catch {
       return [];
     }
   }
@@ -505,9 +501,8 @@ export class AzureDevOpsService {
    */
   async approveDeployment(approvalId: number, comments = 'Auto-approved by MVA MW Tool'): Promise<{ success: boolean; message: string }> {
     try {
-      const vsrmBase = `https://vsrm.dev.azure.com/${this.config!.organization}/${this.config!.project}`;
       const res = await fetch(
-        `${vsrmBase}/_apis/release/approvals/${approvalId}?api-version=7.1`,
+        `${this.vsrmBaseUrl}/_apis/release/approvals/${approvalId}?api-version=7.1`,
         {
           method: 'PATCH',
           headers: this.headers,
@@ -516,14 +511,11 @@ export class AzureDevOpsService {
       );
       if (!res.ok) {
         const err = await res.text();
-        console.error(`[Approvals] PATCH failed for #${approvalId}:`, res.status, err);
         return { success: false, message: `Approval failed (${res.status}): ${err}` };
       }
-      const result = await this.safeJson(res);
-      console.log(`[Approvals] Approved #${approvalId}:`, result.status);
+      await this.safeJson(res);
       return { success: true, message: `Approval #${approvalId} approved` };
     } catch (e: any) {
-      console.error(`[Approvals] Error approving #${approvalId}:`, e);
       return { success: false, message: e.message || String(e) };
     }
   }
@@ -564,14 +556,13 @@ export class AzureDevOpsService {
     environmentName: string,
     onProgress?: (status: string, phase?: string) => void
   ): Promise<{ success: boolean; message: string }> {
-    const vsrmBase = `https://vsrm.dev.azure.com/${this.config!.organization}/${this.config!.project}`;
     const maxAttempts = 720; // 60 minutes at 5s intervals
     let approvalSucceeded = false;
 
     for (let i = 0; i < maxAttempts; i++) {
       try {
         const res = await fetch(
-          `${vsrmBase}/_apis/release/releases/${releaseId}?api-version=7.1`,
+          `${this.vsrmBaseUrl}/_apis/release/releases/${releaseId}?api-version=7.1`,
           { headers: this.headers }
         );
         if (!res.ok) {
@@ -580,14 +571,12 @@ export class AzureDevOpsService {
         const data = await this.safeJson(res);
 
         // Find the target environment/stage
-        const env = data.environments?.find(
-          (e: any) => e.name.toLowerCase().includes(environmentName.toLowerCase())
-        );
+        const env = this.findEnvByName(data.environments || [], environmentName);
 
         if (env) {
-          const status: number = typeof env.status === 'number'
-            ? env.status
-            : (RELEASE_STATUS_STRING_MAP[env.status] ?? -1);
+          const status: number = typeof env['status'] === 'number'
+            ? env['status']
+            : (RELEASE_STATUS_STRING_MAP[env['status']] ?? -1);
           const statusName = RELEASE_STATUS_NAMES[status] || `unknown(${status})`;
 
           if (status === 4) {
@@ -655,20 +644,17 @@ export class AzureDevOpsService {
   /** Single-poll: check deployment status without looping */
   async checkDeploymentStatus(releaseId: number, environmentName: string): Promise<{ done: boolean; success: boolean; statusName: string }> {
     try {
-      const vsrmBase = `https://vsrm.dev.azure.com/${this.config!.organization}/${this.config!.project}`;
       const res = await fetch(
-        `${vsrmBase}/_apis/release/releases/${releaseId}?api-version=7.1`,
+        `${this.vsrmBaseUrl}/_apis/release/releases/${releaseId}?api-version=7.1`,
         { headers: this.headers }
       );
       if (!res.ok) return { done: false, success: false, statusName: 'unknown' };
       const data = await this.safeJson(res);
-      const env = data.environments?.find(
-        (e: any) => e.name.toLowerCase().includes(environmentName.toLowerCase())
-      );
+      const env = this.findEnvByName(data.environments || [], environmentName);
       if (!env) return { done: false, success: false, statusName: 'waiting' };
-      const envStatus: number = typeof env.status === 'number'
-        ? env.status
-        : (RELEASE_STATUS_STRING_MAP[env.status] ?? -1);
+      const envStatus: number = typeof env['status'] === 'number'
+        ? env['status']
+        : (RELEASE_STATUS_STRING_MAP[env['status']] ?? -1);
       if (envStatus === 4) return { done: true, success: true, statusName: 'succeeded' };
       if (!RELEASE_IN_PROGRESS.has(envStatus)) {
         return { done: true, success: false, statusName: RELEASE_STATUS_NAMES[envStatus] || `failed(${envStatus})` };
@@ -678,8 +664,6 @@ export class AzureDevOpsService {
       return { done: false, success: false, statusName: 'error' };
     }
   }
-
-  /** Persist PAT config to Firestore via SettingsService */
 
   /**
    * Find the latest successful build for a given repo + branch.
@@ -820,21 +804,33 @@ export class AzureDevOpsService {
     if (!this.config) return [];
     try {
       const url = `${this.baseUrl}/${encodeURIComponent(team)}/_apis/work/teamsettings/iterations?api-version=7.1`;
-      console.log('[Iterations] Fetching:', url);
       const res = await fetch(url, { headers: this.headers });
-      console.log('[Iterations] Response status:', res.status);
       if (!res.ok) return [];
       const data = await this.safeJson(res);
-      console.log('[Iterations] Raw count:', data.value?.length, 'First:', data.value?.[0]);
-      return (data.value || []).map((it: any) => ({
-        name: it.name,
-        path: it.path || it.name,
-        startDate: it.attributes?.startDate?.split('T')[0] || '',
-        finishDate: it.attributes?.finishDate?.split('T')[0] || '',
-      })).filter((it: any) => it.startDate && it.finishDate)
-        .sort((a: any, b: any) => a.startDate.localeCompare(b.startDate));
-    } catch (e) {
-      console.error('[Iterations] Error:', e);
+
+      interface RawIteration {
+        name: string;
+        path?: string;
+        attributes?: { startDate?: string; finishDate?: string };
+      }
+
+      interface ParsedIteration {
+        name: string;
+        path: string;
+        startDate: string;
+        finishDate: string;
+      }
+
+      return (data.value || [] as RawIteration[])
+        .map((it: RawIteration) => ({
+          name: it.name,
+          path: it.path || it.name,
+          startDate: it.attributes?.startDate?.split('T')[0] || '',
+          finishDate: it.attributes?.finishDate?.split('T')[0] || '',
+        }))
+        .filter((it: ParsedIteration) => it.startDate && it.finishDate)
+        .sort((a: ParsedIteration, b: ParsedIteration) => a.startDate.localeCompare(b.startDate));
+    } catch {
       return [];
     }
   }

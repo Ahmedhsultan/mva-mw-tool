@@ -1,6 +1,12 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+/** Icon file paths within the zip (remaps icon.png → icons/icon.png) */
+const ICON_ZIP_PATH: Record<string, string> = { 'icon.png': 'icons/icon.png' };
+
+/** Extensions treated as binary blobs during zip creation */
+const BINARY_EXTENSIONS = ['.png', '.jpg', '.ico'];
+
 @Component({
   selector: 'app-tools',
   standalone: true,
@@ -9,24 +15,17 @@ import { CommonModule } from '@angular/common';
   styleUrl: './tools.component.css',
 })
 export class ToolsComponent {
-  // ── CloudWatch extension state ──
   showExtensionHelp = false;
 
-  // ── CloudWatch Extension ──
+  // ─────────────────────────────────────────────────────────
+  // Public Actions
+  // ─────────────────────────────────────────────────────────
 
   downloadExtension(): void {
     this.createZip(
       'assets/cloudwatch-log-extractor/',
-      [
-        'manifest.json',
-        'curl-printer.js',
-        'content.js',
-        'popup.html',
-        'popup.js',
-        'icon.png'
-      ],
+      ['manifest.json', 'curl-printer.js', 'content.js', 'popup.html', 'popup.js', 'icon.png'],
       'mvax_log_to_curl.zip',
-      'CW'
     );
   }
 
@@ -34,68 +33,41 @@ export class ToolsComponent {
     this.showExtensionHelp = !this.showExtensionHelp;
   }
 
-  // ── Zip helpers ──
+  // ─────────────────────────────────────────────────────────
+  // Zip Helpers
+  // ─────────────────────────────────────────────────────────
 
-  private async createZip(basePath: string, files: string[], zipName: string, iconLabel: string): Promise<void> {
+  private async createZip(basePath: string, files: string[], zipName: string): Promise<void> {
     const JSZip = await this.loadJSZip();
     const zip = new JSZip();
 
     for (const file of files) {
       try {
         const response = await fetch(basePath + file);
-        if (file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.ico')) {
-          const blob = await response.blob();
-          // Place icon.png inside icons/ subfolder in the zip
-          const zipPath = file === 'icon.png' ? 'icons/icon.png' : file;
-          zip.file(zipPath, blob);
+        const isBinary = BINARY_EXTENSIONS.some((ext) => file.endsWith(ext));
+        const zipPath = ICON_ZIP_PATH[file] ?? file;
+
+        if (isBinary) {
+          zip.file(zipPath, await response.blob());
         } else {
-          const text = await response.text();
-          zip.file(file, text);
+          zip.file(zipPath, await response.text());
         }
-      } catch (e) {
-        console.error(`Failed to fetch ${file}:`, e);
+      } catch {
+        // Skip files that fail to fetch — zip will still work with the rest
       }
     }
 
     const blob = await zip.generateAsync({ type: 'blob' });
+    this.triggerDownload(blob, zipName);
+  }
+
+  private triggerDownload(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = zipName;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-  }
-
-  private generateIconSvg(size: number, label: string): string {
-    const bgColor = label === 'AZ' ? '#0078D4' : '#E60000';
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-      <rect width="${size}" height="${size}" rx="${size * 0.15}" fill="${bgColor}"/>
-      <text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-family="Arial" font-weight="bold" font-size="${size * 0.4}" fill="white">${label}</text>
-    </svg>`;
-  }
-
-  private svgToPng(svgString: string, width: number, height: number): Promise<Uint8Array> {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d')!;
-      const img = new Image();
-      const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, width, height);
-        URL.revokeObjectURL(url);
-        canvas.toBlob((b) => {
-          if (b) {
-            b.arrayBuffer().then((buf) => resolve(new Uint8Array(buf)));
-          } else {
-            resolve(new Uint8Array());
-          }
-        }, 'image/png');
-      };
-      img.src = url;
-    });
   }
 
   private loadJSZip(): Promise<any> {
