@@ -1,21 +1,23 @@
 {
   "manifest_version": 3,
-  "name": "VOIS Curl Extractor",
-  "version": "1.0",
-  "description": "Extract VOIS curl from aws logs",
+  "name": "MVAX Log to cURL",
+  "version": "2.0.0",
+  "description": "Floating button on CloudWatch pages — reads MVAX_AUDIT log from clipboard and generates a cURL command.",
   "author": "Sultan",
-  "permissions": ["scripting", "activeTab"],
-  "host_permissions": [
-    "https://eu-west-1.console.aws.amazon.com/cloudwatch/home*"
-  ],
+  "permissions": ["clipboardRead", "clipboardWrite"],
+  "icons": {
+    "16": "icons/icon.png",
+    "48": "icons/icon.png",
+    "128": "icons/icon.png"
+  },
   "content_scripts": [
     {
-      "matches": ["https://eu-west-1.console.aws.amazon.com/cloudwatch/home*"],
-      "js": ["content.js"],
+      "matches": ["https://*.console.aws.amazon.com/cloudwatch/*"],
+      "js": ["curl-printer.js", "content.js"],
       "run_at": "document_idle"
     }
-  ],
-  "icons": {
-    "48": "icon.png"
-  }
+  ]
 }
+
+
+

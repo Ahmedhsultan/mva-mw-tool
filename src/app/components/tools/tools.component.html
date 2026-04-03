@@ -29,10 +29,10 @@
         </svg>
       </div>
       <div class="tool-card-body">
-        <h3>CloudWatch Log to Curl</h3>
+        <h3>MVAX Log to cURL</h3>
         <p class="tool-card-desc">
-          Chrome Extension to extract and parse CloudWatch log entries.
-          Copies the log stream, then extracts fields and generates a cURL command.
+          Chrome Extension — floating button on CloudWatch pages. Reads MVAX_AUDIT log from clipboard
+          and generates a ready-to-use cURL command. One click: paste → convert → copy.
         </p>
 
         <div class="tool-actions">
@@ -59,69 +59,25 @@
           <div class="help-panel">
             <h4>How to install & use the extension</h4>
 
-            <div class="help-steps">
-              <div class="help-step">
-                <span class="step-number">1</span>
-                <div>
-                  <strong>Download & unzip</strong>
-                  <p>Click "Download Extension (.zip)" above and unzip the file.</p>
-                </div>
-              </div>
-              <div class="help-step">
-                <span class="step-number">2</span>
-                <div>
-                  <strong>Load in Chrome</strong>
-                  <p>Open <code>chrome://extensions</code>, enable "Developer mode", then click "Load unpacked" and select the unzipped folder.</p>
-                </div>
-              </div>
-              <div class="help-step">
-                <span class="step-number">3</span>
-                <div>
-                  <strong>Open CloudWatch Logs</strong>
-                  <p>Go to <strong>AWS CloudWatch → Logs → Log Insights</strong> and run your query.</p>
-                </div>
-              </div>
-              <div class="help-step">
-                <span class="step-number">4</span>
-                <div>
-                  <strong>Open a log stream</strong>
-                  <p>Click on a log entry to expand it, then click on the <strong>&#64;logStream</strong> link to open the full log stream.</p>
-                  <img class="step-screenshot" src="assets/cloudwatch-log-extractor/step-logstream.png" alt="CloudWatch Log Insights — click the @logStream link" />
-                </div>
-              </div>
-              <div class="help-step">
-                <span class="step-number">5</span>
-                <div>
-                  <strong>Copy the log entry</strong>
-                  <p>Expand the log message you're interested in. Select and <strong>copy</strong> the icon.</p>
-                </div>
-              </div>
-              <div class="help-step">
-                <span class="step-number">6</span>
-                <div>
-                  <strong>Extract with the extension</strong>
-                  <p>Click the <strong>CloudWatch Log to Curl</strong> extension icon in Chrome toolbar, then click <strong>"Extract cURL"</strong>.</p>
-                  <img class="step-screenshot" src="assets/cloudwatch-log-extractor/step-extract.png" alt="Log events page — copy log entry then click Extract cURL" />
-                </div>
-              </div>
-              <div class="help-step">
-                <span class="step-number">7</span>
-                <div>
-                  <strong>Get the cURL command</strong>
-                  <p>The extension will parse the log and show you extracted fields (API name, URL, status, etc.) and a ready-to-use <strong>cURL command</strong> you can copy.</p>
-                </div>
-              </div>
+            <div class="help-video-wrap">
+              <video
+                class="help-video"
+                src="assets/cloudwatch-log-extractor/help-video.mov"
+                controls
+                preload="metadata"
+                poster=""
+                playsinline>
+                Your browser does not support the video tag.
+              </video>
             </div>
 
-            <div class="help-screenshots">
-              <p class="help-note">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="12" y1="16" x2="12" y2="12"/>
-                  <line x1="12" y1="8" x2="12.01" y2="8"/>
-                </svg>
-                <span>The extension reads from your <strong>clipboard</strong> — make sure you've copied the log entry before clicking "Extract from Clipboard".</span>
-              </p>
+            <div class="help-note" style="margin-top: 14px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              <span>The extension reads from your <strong>clipboard</strong> — copy the log entry, then click the floating <strong>"Log → cURL"</strong> button on the CloudWatch page.</span>
             </div>
           </div>
         }

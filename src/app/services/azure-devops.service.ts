@@ -311,7 +311,7 @@ export class AzureDevOpsService {
       // Find release definition for this repo
       const vsrmBase = `https://vsrm.dev.azure.com/${this.config!.organization}/${this.config!.project}`;
       const defRes = await fetch(
-        `${vsrmBase}/_apis/release/definitions?searchText=${repo}&$expand=environments&api-version=7.1`,
+        `${vsrmBase}/_apis/release/definitions?searchText=${repo}&$expand=environments,artifacts&api-version=7.1`,
         { headers: this.headers }
       );
       if (!defRes.ok) {
@@ -322,7 +322,23 @@ export class AzureDevOpsService {
       if (!defData.value?.length) {
         return { success: false, message: `No release definition found for ${repo}` };
       }
-      const releaseDef = defData.value[0];
+      // Pick the definition whose name best matches the repo
+      const repoLower = repo.toLowerCase();
+      const releaseDef = defData.value.find((d: any) => (d.name || '').toLowerCase() === repoLower)
+        || defData.value[0];
+
+      // If the list endpoint didn't include full artifacts, fetch the definition directly
+      let artifacts: any[] = releaseDef.artifacts || [];
+      if (!artifacts.length) {
+        const fullDefRes = await fetch(
+          `${vsrmBase}/_apis/release/definitions/${releaseDef.id}?api-version=7.1`,
+          { headers: this.headers }
+        );
+        if (fullDefRes.ok) {
+          const fullDef = await this.safeJson(fullDefRes);
+          artifacts = fullDef.artifacts || [];
+        }
+      }
 
       // Find the target environment stage
       const envStage = releaseDef.environments?.find(
@@ -345,15 +361,31 @@ export class AzureDevOpsService {
         artifacts: [],
       };
 
-      // If we have artifact info from the build
-      if (releaseDef.artifacts?.length) {
-        body.artifacts = releaseDef.artifacts.map((a: any) => ({
-          alias: a.alias,
-          instanceReference: {
-            id: String(buildId),
-            name: null,
-          },
-        }));
+      // Override ONLY the artifact that corresponds to our repo/build.
+      // Other artifacts (e.g. shared template repos) keep their default versions.
+      if (artifacts.length) {
+        // Try to match by alias or definition name containing the repo name
+        let matched = artifacts.filter((a: any) => {
+          if (a.type !== 'Build') return false;
+          const alias = (a.alias || '').toLowerCase();
+          const defName = (a.definitionReference?.definition?.name || '').toLowerCase();
+          return alias.includes(repoLower) || alias === `_${repoLower}` || defName.includes(repoLower);
+        });
+
+        // Fallback: if no match by name, override ALL Build-type artifacts
+        if (!matched.length) {
+          matched = artifacts.filter((a: any) => a.type === 'Build');
+        }
+
+        if (matched.length) {
+          body.artifacts = matched.map((a: any) => ({
+            alias: a.alias,
+            instanceReference: {
+              id: String(buildId),
+              name: null,
+            },
+          }));
+        }
       }
 
       const releaseRes = await fetch(
@@ -393,12 +425,12 @@ export class AzureDevOpsService {
           success: true,
           message: `Release #${releaseData.id} created but failed to trigger ${environment} deploy: ${err}`,
           releaseId: releaseData.id as number,
-          releaseUrl: `https://dev.azure.com/${this.config!.organization}/${this.config!.project}/_releaseProgress?_a=release-environment-logs&releaseId=${releaseData.id}`,
+          releaseUrl: `https://dev.azure.com/${this.config!.organization}/${this.config!.project}/_releaseProgress?_a=release-environment-logs&releaseId=${releaseData.id}&definitionId=${releaseDef.id}`,
           releaseEnvironment: targetEnv.name || environment,
         };
       }
 
-      const releaseUrl = `https://dev.azure.com/${this.config!.organization}/${this.config!.project}/_releaseProgress?_a=release-environment-logs&releaseId=${releaseData.id}`;
+      const releaseUrl = `https://dev.azure.com/${this.config!.organization}/${this.config!.project}/_releaseProgress?_a=release-environment-logs&releaseId=${releaseData.id}&definitionId=${releaseDef.id}`;
       return {
         success: true,
         message: `Release #${releaseData.id} created → deploying to ${targetEnv.name}`,
@@ -648,6 +680,54 @@ export class AzureDevOpsService {
   }
 
   /** Persist PAT config to Firestore via SettingsService */
+
+  /**
+   * Find the latest successful build for a given repo + branch.
+   * Returns the build ID, URL, and branch — or null if none found.
+   */
+  async getLatestBuild(
+    repo: string,
+    branch: string
+  ): Promise<{ buildId: number; buildUrl: string; branch: string } | null> {
+    try {
+      const repoId = await this.getRepoId(repo);
+      if (!repoId) return null;
+
+      // Find ALL build definitions for this repo
+      const defRes = await fetch(
+        `${this.baseUrl}/_apis/build/definitions?repositoryId=${repoId}&repositoryType=TfsGit&api-version=7.1`,
+        { headers: this.headers }
+      );
+      if (!defRes.ok) return null;
+      const defData = await this.safeJson(defRes);
+      if (!defData.value?.length) return null;
+
+      // Search across ALL definitions (some repos have multiple pipelines)
+      const branchRef = branch.startsWith('refs/heads/') ? branch : `refs/heads/${branch}`;
+      const definitionIds = defData.value.map((d: any) => d.id).join(',');
+
+      // Try succeeded first, then fall back to any completed build (partiallySucceeded, etc.)
+      let url = `${this.baseUrl}/_apis/build/builds?definitions=${definitionIds}&branchName=${encodeURIComponent(branchRef)}&statusFilter=completed&resultFilter=succeeded&$top=1&api-version=7.1`;
+      let res = await fetch(url, { headers: this.headers });
+      let data = res.ok ? await this.safeJson(res) : { value: [] };
+
+      if (!data.value?.length) {
+        // Broaden search: any completed build (partiallySucceeded, failed, etc.)
+        url = `${this.baseUrl}/_apis/build/builds?definitions=${definitionIds}&branchName=${encodeURIComponent(branchRef)}&statusFilter=completed&$top=1&api-version=7.1`;
+        res = await fetch(url, { headers: this.headers });
+        if (!res.ok) return null;
+        data = await this.safeJson(res);
+      }
+      if (!data.value?.length) return null;
+
+      const build = data.value[0];
+      const buildUrl = build._links?.web?.href || `${this.baseUrl}/_build/results?buildId=${build.id}`;
+      return { buildId: build.id, buildUrl, branch };
+    } catch {
+      return null;
+    }
+  }
+
   persistConfig(): void {
     if (this.config) {
       this.settingsService.savePatConfig({

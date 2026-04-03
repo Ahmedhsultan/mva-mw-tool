@@ -10,6 +10,7 @@ import {
   DocumentReference,
 } from '@angular/fire/firestore';
 import { AuthService } from './auth.service';
+import { DROP_DB_BRANCHES } from '../models/release-pipeline.model';
 
 // ── Per-service configuration ──────────────────────────────────────────
 
@@ -42,6 +43,66 @@ export interface PatConfig {
   project: string;
   pat: string;
 }
+
+/** Build categories that can be toggled on/off */
+export type BuildCategoryId = 'release' | 'master' | 'drop-db';
+
+export const ALL_BUILD_CATEGORIES: BuildCategoryId[] = ['release', 'master', 'drop-db'];
+
+export const BUILD_CATEGORY_LABELS: Record<BuildCategoryId, string> = {
+  'release': 'Release Build',
+  'master': 'Master Build',
+  'drop-db': 'Drop DB Build',
+};
+
+export const BUILD_CATEGORY_DESCRIPTIONS: Record<BuildCategoryId, string> = {
+  'release': 'Build the release branch for deployment',
+  'master': 'Build master branch in parallel',
+  'drop-db': 'Build drop DB branch for applicable services',
+};
+
+/** Pipeline step IDs that can be toggled on/off */
+export type PipelineStepId =
+  | 'validate-pat'
+  | 'create-branch'
+  | 'create-pr'
+  | 'build-both'
+  | 'deploy-drop-db'
+  | 'deploy-master'
+  | 'deploy-release';
+
+/** Default: all steps enabled */
+export const ALL_PIPELINE_STEPS: PipelineStepId[] = [
+  'validate-pat',
+  'create-branch',
+  'create-pr',
+  'build-both',
+  'deploy-drop-db',
+  'deploy-master',
+  'deploy-release',
+];
+
+/** Human-readable labels for each step */
+export const PIPELINE_STEP_LABELS: Record<PipelineStepId, string> = {
+  'validate-pat': 'Validate PAT',
+  'create-branch': 'Create Release Branch',
+  'create-pr': 'Create Pull Request',
+  'build-both': 'Build Release & Master',
+  'deploy-drop-db': 'Deploy Drop DB',
+  'deploy-master': 'Deploy Master Build',
+  'deploy-release': 'Deploy Release Build',
+};
+
+/** Descriptions for each step */
+export const PIPELINE_STEP_DESCRIPTIONS: Record<PipelineStepId, string> = {
+  'validate-pat': 'Verify Azure DevOps PAT has access',
+  'create-branch': 'Create release branch from develop',
+  'create-pr': 'Create Pull Request from release → master',
+  'build-both': 'Build release branch and master in parallel',
+  'deploy-drop-db': 'Deploy drop DB build (failure expected)',
+  'deploy-master': 'Deploy master build to target environment',
+  'deploy-release': 'Deploy release build to target environment',
+};
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
@@ -103,11 +164,21 @@ export class SettingsService {
   get envsDeploy(): string[] { return this._envsDeploy$.value; }
 
   // ── PAT Config (per-user, stored in Firestore) ────────────
-  private _patConfig$ = new BehaviorSubject<PatConfig | null>(null);
+  private static readonly PAT_STORAGE_KEY = 'mva_pat_config';
+  private _patConfig$ = new BehaviorSubject<PatConfig | null>(this.loadPatFromLocalStorage());
   patConfig$: Observable<PatConfig | null> = this._patConfig$.asObservable();
 
   get patConfig(): PatConfig | null {
     return this._patConfig$.value;
+  }
+
+  private loadPatFromLocalStorage(): PatConfig | null {
+    try {
+      const raw = localStorage.getItem(SettingsService.PAT_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
   }
 
   // ── Sprint Team (per-user, stored in Firestore) ────────────
@@ -116,6 +187,64 @@ export class SettingsService {
 
   get sprintTeam(): string {
     return this._sprintTeam$.value;
+  }
+
+  // ── Pipeline Step Toggles (shared, stored in Firestore) ───
+  private _disabledSteps$ = new BehaviorSubject<PipelineStepId[]>([]);
+  disabledSteps$: Observable<PipelineStepId[]> = this._disabledSteps$.asObservable();
+
+  get disabledSteps(): PipelineStepId[] {
+    return this._disabledSteps$.value;
+  }
+
+  /** Returns true if the given pipeline step is enabled (not disabled) */
+  isStepEnabled(stepId: PipelineStepId): boolean {
+    return !this._disabledSteps$.value.includes(stepId);
+  }
+
+  /** Toggle a pipeline step on or off */
+  togglePipelineStep(stepId: PipelineStepId, enabled: boolean): void {
+    let disabled = [...this._disabledSteps$.value];
+    if (enabled) {
+      disabled = disabled.filter((id) => id !== stepId);
+    } else {
+      if (!disabled.includes(stepId)) {
+        disabled.push(stepId);
+      }
+    }
+    this._disabledSteps$.next(disabled);
+    this.syncToFirestore();
+  }
+
+  /** Reset all pipeline steps to enabled */
+  resetPipelineSteps(): void {
+    this._disabledSteps$.next([]);
+    this.syncToFirestore();
+  }
+
+  // ── Build Category Toggles (shared, stored in Firestore) ──
+  private _disabledBuildCategories$ = new BehaviorSubject<BuildCategoryId[]>(['drop-db']);
+  disabledBuildCategories$: Observable<BuildCategoryId[]> = this._disabledBuildCategories$.asObservable();
+
+  get disabledBuildCategories(): BuildCategoryId[] {
+    return this._disabledBuildCategories$.value;
+  }
+
+  isBuildCategoryEnabled(catId: BuildCategoryId): boolean {
+    return !this._disabledBuildCategories$.value.includes(catId);
+  }
+
+  toggleBuildCategory(catId: BuildCategoryId, enabled: boolean): void {
+    let disabled = [...this._disabledBuildCategories$.value];
+    if (enabled) {
+      disabled = disabled.filter((id) => id !== catId);
+    } else {
+      if (!disabled.includes(catId)) {
+        disabled.push(catId);
+      }
+    }
+    this._disabledBuildCategories$.next(disabled);
+    this.syncToFirestore();
   }
 
   /** Whether the per-user settings have been loaded from Firestore */
@@ -143,6 +272,7 @@ export class SettingsService {
           const data = snap.data();
           if (data['patConfig']) {
             this._patConfig$.next(data['patConfig']);
+            try { localStorage.setItem(SettingsService.PAT_STORAGE_KEY, JSON.stringify(data['patConfig'])); } catch {}
           }
           if (data['sprintTeam']) {
             this._sprintTeam$.next(data['sprintTeam']);
@@ -193,6 +323,16 @@ export class SettingsService {
         subj.next(data[key]);
       }
     }
+
+    // Disabled pipeline steps
+    if (Array.isArray(data.disabledPipelineSteps)) {
+      this._disabledSteps$.next(data.disabledPipelineSteps);
+    }
+
+    // Disabled build categories
+    if (Array.isArray(data.disabledBuildCategories)) {
+      this._disabledBuildCategories$.next(data.disabledBuildCategories);
+    }
   }
 
   /** Listen for real-time changes from Firestore and update local state */
@@ -214,6 +354,8 @@ export class SettingsService {
         envs_reservation: [...this._envsReservation$.value],
         envs_cutoff: [...this._envsCutoff$.value],
         envs_deploy: [...this._envsDeploy$.value],
+        disabledPipelineSteps: [...this._disabledSteps$.value],
+        disabledBuildCategories: [...this._disabledBuildCategories$.value],
         updatedAt: new Date().toISOString(),
       }, { merge: true });
     } catch (err) {
@@ -301,9 +443,12 @@ export class SettingsService {
     return `${cfg.branchPrefix}/${releaseNumber}`;
   }
 
-  /** Get the drop_db branch, or null */
+  /** Get the drop_db branch, or null — checks stored config first, falls back to DROP_DB_BRANCHES constant.
+   *  Returns null if explicitly set to 'NA'. */
   getDropDbBranch(svc: string): string | null {
-    return this.getServiceConfig(svc).dropDbBranch ?? null;
+    const cfg = this.getServiceConfig(svc);
+    if (cfg.dropDbBranch === 'NA') return null;
+    return cfg.dropDbBranch || DROP_DB_BRANCHES[svc] || null;
   }
 
   /** Get the pipeline type */
@@ -372,12 +517,14 @@ export class SettingsService {
 
   savePatConfig(config: PatConfig): void {
     this._patConfig$.next(config);
+    try { localStorage.setItem(SettingsService.PAT_STORAGE_KEY, JSON.stringify(config)); } catch {}
     this.syncUserSettings();
   }
 
   clearPatConfig(): void {
     this._patConfig$.next(null);
     this._sprintTeam$.next('');
+    try { localStorage.removeItem(SettingsService.PAT_STORAGE_KEY); } catch {}
     this.syncUserSettings();
   }
 

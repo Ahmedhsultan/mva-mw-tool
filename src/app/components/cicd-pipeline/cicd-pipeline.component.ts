@@ -15,7 +15,7 @@ import { AzureDevOpsService } from '../../services/azure-devops.service';
 import { PipelineHistoryService } from '../../services/pipeline-history.service';
 import { AuthService } from '../../services/auth.service';
 import { RunPresenceService, RunViewer } from '../../services/run-presence.service';
-import { SettingsService } from '../../services/settings.service';
+import { SettingsService, ALL_PIPELINE_STEPS, PIPELINE_STEP_LABELS, PIPELINE_STEP_DESCRIPTIONS, PipelineStepId, ALL_BUILD_CATEGORIES, BUILD_CATEGORY_LABELS, BUILD_CATEGORY_DESCRIPTIONS, BuildCategoryId } from '../../services/settings.service';
 
 @Component({
   selector: 'app-cicd-pipeline',
@@ -61,7 +61,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
   private currentUserUid: string | null = null;
 
   // Sub-tabs in pipeline panel
-  pipelineSubTab: 'run' | 'logs' | 'history' = 'run';
+  pipelineSubTab: 'run' = 'run';
 
   // Run history (from Firebase)
   private authService = inject(AuthService);
@@ -81,6 +81,27 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
   private viewersSub?: Subscription;
 
   private routeSub?: Subscription;
+
+  // Pipeline step settings modal
+  showStepSettings = false;
+  allPipelineSteps = ALL_PIPELINE_STEPS;
+  stepLabels = PIPELINE_STEP_LABELS;
+  stepDescriptions = PIPELINE_STEP_DESCRIPTIONS;
+
+  // ── Structured Logs ──
+  logFilter: 'all' | 'info' | 'success' | 'error' | 'warning' | 'skip' = 'all';
+  logSearch = '';
+
+  // ── History Filters ──
+  historyFilter: 'all' | 'running' | 'success' | 'failed' = 'all';
+
+  // ── Run Detail Inner Tab (Steps vs Logs) ──
+  runDetailTab: 'steps' | 'logs' = 'steps';
+
+  // ── Build Category Settings ──
+  allBuildCategories = ALL_BUILD_CATEGORIES;
+  buildCategoryLabels = BUILD_CATEGORY_LABELS;
+  buildCategoryDescriptions = BUILD_CATEGORY_DESCRIPTIONS;
 
   constructor(
     private azureDevOps: AzureDevOpsService,
@@ -119,8 +140,6 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         this.pendingRunId = runId;
         // If history is already loaded, open the run immediately
         this.tryOpenPendingRun();
-      } else if (tab === 'logs' || tab === 'history' || tab === 'run') {
-        this.pipelineSubTab = tab;
       } else {
         this.pipelineSubTab = 'run';
       }
@@ -251,13 +270,17 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
 
     // For the parallel build step, we need two or three results per service
     // (release + master, plus drop db for applicable services)
+    // Respects build category toggles from settings
     const makeBuildResults = (): ServiceStepResult[] =>
       services.flatMap((s) => {
-        const rows: ServiceStepResult[] = [
-          { service: `${s} (release)`, status: 'pending' as StepStatus },
-          { service: `${s} (master)`, status: 'pending' as StepStatus },
-        ];
-        if (this.settingsService.getDropDbBranch(s)) {
+        const rows: ServiceStepResult[] = [];
+        if (this.settingsService.isBuildCategoryEnabled('release')) {
+          rows.push({ service: `${s} (release)`, status: 'pending' as StepStatus });
+        }
+        if (this.settingsService.isBuildCategoryEnabled('master')) {
+          rows.push({ service: `${s} (master)`, status: 'pending' as StepStatus });
+        }
+        if (this.settingsService.isBuildCategoryEnabled('drop-db') && this.settingsService.getDropDbBranch(s)) {
           rows.push({ service: `${s} (drop db)`, status: 'pending' as StepStatus });
         }
         return rows;
@@ -369,13 +392,17 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     const masterBuildIds: Map<string, number> = new Map();
 
     // ── Step 0: Validate PAT ──
-    await this.runStep(0, ['Azure DevOps'], async (_svc, result) => {
-      this.addLog('Validating Azure DevOps PAT...');
-      const res = await this.azureDevOps.validatePat();
-      result.status = res.success ? 'success' : 'failed';
-      result.message = res.message;
-      this.addLog(res.message);
-    });
+    if (this.isStepDisabled(0)) {
+      this.skipDisabledStep(0);
+    } else {
+      await this.runStep(0, ['Azure DevOps'], async (_svc, result) => {
+        this.addLog('Validating Azure DevOps PAT...');
+        const res = await this.azureDevOps.validatePat();
+        result.status = res.success ? 'success' : 'failed';
+        result.message = res.message;
+        this.addLog(res.message);
+      });
+    }
 
     if (this.pipelineCancelled) return;
 
@@ -386,15 +413,19 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // ── Step 1: Create branches (mvax-common uses primary/{relNum} from develop; others use release/primary/{relNum} from release/develop) ──
-    await this.runStep(1, services, async (svc, result) => {
-      const branch = this.settingsService.getReleaseBranch(svc, relNum);
-      this.addLog(`[${svc}] Creating branch ${branch}...`);
-      const res = await this.azureDevOps.createBranch(svc, relNum, branch);
-      result.status = res.success ? 'success' : 'failed';
-      result.message = res.message;
-      this.addLog(`[${svc}] ${res.message}`);
-    });
+    // ── Step 1: Create branches ──
+    if (this.isStepDisabled(1)) {
+      this.skipDisabledStep(1);
+    } else {
+      await this.runStep(1, services, async (svc, result) => {
+        const branch = this.settingsService.getReleaseBranch(svc, relNum);
+        this.addLog(`[${svc}] Creating branch ${branch}...`);
+        const res = await this.azureDevOps.createBranch(svc, relNum, branch);
+        result.status = res.success ? 'success' : 'failed';
+        result.message = res.message;
+        this.addLog(`[${svc}] ${res.message}`);
+      });
+    }
 
     if (this.pipelineCancelled) return;
 
@@ -406,20 +437,28 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     }
 
     // ── Step 2: Create PRs ──
-    await this.runStep(2, services, async (svc, result) => {
-      const branch = this.settingsService.getReleaseBranch(svc, relNum);
-      this.addLog(`[${svc}] Creating PR ${branch} → master...`);
-      const res = await this.azureDevOps.createPullRequest(svc, relNum, branch);
-      result.status = res.success ? 'success' : 'failed';
-      result.message = res.message;
-      result.prUrl = res.prUrl;
-      this.addLog(`[${svc}] ${res.message}`);
-    });
+    if (this.isStepDisabled(2)) {
+      this.skipDisabledStep(2);
+    } else {
+      await this.runStep(2, services, async (svc, result) => {
+        const branch = this.settingsService.getReleaseBranch(svc, relNum);
+        this.addLog(`[${svc}] Creating PR ${branch} → master...`);
+        const res = await this.azureDevOps.createPullRequest(svc, relNum, branch);
+        result.status = res.success ? 'success' : 'failed';
+        result.message = res.message;
+        result.prUrl = res.prUrl;
+        this.addLog(`[${svc}] ${res.message}`);
+      });
+    }
 
     if (this.pipelineCancelled) return;
 
     // ── Step 3: Build release & master in parallel ──
-    await this.runParallelBuildStep(3, services, relNum, releaseBuildIds, masterBuildIds);
+    if (this.isStepDisabled(3)) {
+      this.skipDisabledStep(3);
+    } else {
+      await this.runParallelBuildStep(3, services, relNum, releaseBuildIds, masterBuildIds);
+    }
 
     if (this.pipelineCancelled) return;
 
@@ -432,18 +471,34 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     }
 
     // ── Step 4: Deploy Drop DB Build (failure is expected and good) ──
-    const dropDbServices = services.filter((s) => !!this.settingsService.getDropDbBranch(s));
-    if (dropDbServices.length > 0) {
-      await this.runStep(4, dropDbServices, async (svc, result) => {
+    if (this.isStepDisabled(4)) {
+      this.skipDisabledStep(4);
+    } else {
+      const dropDbServices = services.filter((s) => !!this.settingsService.getDropDbBranch(s));
+      if (dropDbServices.length > 0) {
+        await this.runStep(4, dropDbServices, async (svc, result) => {
         const dropDbBuildResult = this.steps[3]?.results.find(
           (r) => r.service === `${svc} (drop db)` && r.buildId
         );
-        const buildId = dropDbBuildResult?.buildId;
+        let buildId = dropDbBuildResult?.buildId;
         if (!buildId) {
-          result.status = 'skipped';
-          result.message = 'No drop DB build ID — skipping';
-          this.addLog(`[${svc}] No drop DB build ID, skipping`);
-          return;
+          // Build step was skipped/disabled — try to find the latest successful build for this branch
+          const dropDbBranch = this.settingsService.getDropDbBranch(svc);
+          if (dropDbBranch) {
+            this.addLog(`[${svc}] No drop DB build from current run — looking for latest build on ${dropDbBranch}...`);
+            const latest = await this.azureDevOps.getLatestBuild(svc, dropDbBranch);
+            if (latest) {
+              buildId = latest.buildId;
+              result.buildUrl = latest.buildUrl;
+              this.addLog(`[${svc}] ⚡ Using latest drop DB build #${buildId} from branch ${dropDbBranch}`);
+            }
+          }
+          if (!buildId) {
+            result.status = 'skipped';
+            result.message = 'No drop DB build found';
+            this.addLog(`[${svc}] No drop DB build found, skipping`);
+            return;
+          }
         }
         this.addLog(`[${svc}] Deploying drop DB build #${buildId}...`);
         const res = await this.azureDevOps.deploy(buildId, this.releaseEnvironment, svc);
@@ -476,18 +531,22 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         } else {
           result.status = 'success';
         }
-      });
-    } else {
-      // No drop-db services among selected — mark step as skipped
-      const dropDbStep = this.steps[4];
-      dropDbStep.status = 'skipped';
-      dropDbStep.results.forEach((r) => { r.status = 'skipped'; r.message = 'No drop DB services selected'; });
+      }, true);
+      } else {
+        // No drop-db services among selected — mark step as skipped
+        const dropDbStep = this.steps[4];
+        dropDbStep.status = 'skipped';
+        dropDbStep.results.forEach((r) => { r.status = 'skipped'; r.message = 'No drop DB services selected'; });
+      }
     }
 
     if (this.pipelineCancelled) return;
 
     // ── Step 5: Deploy master build (skip library services) ──
-    await this.runStep(5, services, async (svc, result) => {
+    if (this.isStepDisabled(5)) {
+      this.skipDisabledStep(5);
+    } else {
+      await this.runStep(5, services, async (svc, result) => {
       if (this.settingsService.isLibraryService(svc)) {
         result.status = 'skipped';
         result.message = 'Library — no deployment needed';
@@ -498,11 +557,21 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       const masterBuildResult = this.steps[3]?.results.find(
         (r) => r.service === `${svc} (master)` && r.status === 'success' && r.buildId
       );
-      const buildId = masterBuildResult?.buildId ?? masterBuildIds.get(svc);
+      let buildId = masterBuildResult?.buildId ?? masterBuildIds.get(svc);
       if (!buildId) {
-        result.status = 'skipped';
-        result.message = 'No master build ID';
-        return;
+        // Build step was skipped/disabled — try to find the latest successful master build
+        this.addLog(`[${svc}] No master build from current run — looking for latest build on master...`);
+        const latest = await this.azureDevOps.getLatestBuild(svc, 'master');
+        if (latest) {
+          buildId = latest.buildId;
+          result.buildUrl = latest.buildUrl;
+          this.addLog(`[${svc}] ⚡ Using latest master build #${buildId}`);
+        }
+        if (!buildId) {
+          result.status = 'skipped';
+          result.message = 'No master build found';
+          return;
+        }
       }
       this.addLog(`[${svc}] Deploying master build #${buildId}...`);
       const res = await this.azureDevOps.deploy(buildId, this.releaseEnvironment, svc);
@@ -534,7 +603,8 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       } else {
         result.status = 'success';
       }
-    });
+    }, true);
+    }
 
     // Stop if master deploy failed
     if (this.steps[5].status === 'failed') {
@@ -546,27 +616,30 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
 
     if (this.pipelineCancelled) return;
 
-    // ── Wait for manual approval before Step 7 ──
-    this.steps[6].status = 'waiting-approval';
-    this.currentStepIndex = 6;
-    this.waitingForApproval = true;
-    this.addLog('⏸ Waiting for user approval to deploy release build...');
-    this.persistRunningState();
-    await new Promise<void>((resolve) => {
-      this.approvalResolver = resolve;
-    });
-    this.waitingForApproval = false;
+    // ── Step 6: Deploy release build (with manual approval) ──
+    if (this.isStepDisabled(6)) {
+      this.skipDisabledStep(6);
+    } else {
+      // ── Wait for manual approval before deploying release ──
+      this.steps[6].status = 'waiting-approval';
+      this.currentStepIndex = 6;
+      this.waitingForApproval = true;
+      this.addLog('⏸ Waiting for user approval to deploy release build...');
+      this.persistRunningState();
+      await new Promise<void>((resolve) => {
+        this.approvalResolver = resolve;
+      });
+      this.waitingForApproval = false;
 
-    if (this.pipelineCancelled) return;
+      if (this.pipelineCancelled) return;
 
-    this.addLog('✓ Release deploy approved by user.');
-    // Mark step as running and persist immediately — so a page refresh after approval
-    // won't find 'waiting-approval' in Firestore and re-prompt for approval.
-    this.steps[6].status = 'running';
-    await this.persistRunningState();
+      this.addLog('✓ Release deploy approved by user.');
+      // Mark step as running and persist immediately — so a page refresh after approval
+      // won't find 'waiting-approval' in Firestore and re-prompt for approval.
+      this.steps[6].status = 'running';
+      await this.persistRunningState();
 
-    // ── Step 7: Deploy release build (skip library services) ──
-    await this.runStep(6, services, async (svc, result) => {
+      await this.runStep(6, services, async (svc, result) => {
       if (this.settingsService.isLibraryService(svc)) {
         result.status = 'skipped';
         result.message = 'Library — no deployment needed';
@@ -577,11 +650,22 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       const releaseBuildResult = this.steps[3]?.results.find(
         (r) => r.service === `${svc} (release)` && r.status === 'success' && r.buildId
       );
-      const buildId = releaseBuildResult?.buildId ?? releaseBuildIds.get(svc);
+      let buildId = releaseBuildResult?.buildId ?? releaseBuildIds.get(svc);
       if (!buildId) {
-        result.status = 'skipped';
-        result.message = 'No release build ID';
-        return;
+        // Build step was skipped/disabled — try to find the latest successful release build
+        const relBranch = this.settingsService.getReleaseBranch(svc, relNum);
+        this.addLog(`[${svc}] No release build from current run — looking for latest build on ${relBranch}...`);
+        const latest = await this.azureDevOps.getLatestBuild(svc, relBranch);
+        if (latest) {
+          buildId = latest.buildId;
+          result.buildUrl = latest.buildUrl;
+          this.addLog(`[${svc}] ⚡ Using latest release build #${buildId} from branch ${relBranch}`);
+        }
+        if (!buildId) {
+          result.status = 'skipped';
+          result.message = 'No release build found';
+          return;
+        }
       }
       this.addLog(`[${svc}] Deploying release build #${buildId}...`);
       const res = await this.azureDevOps.deploy(buildId, this.releaseEnvironment, svc);
@@ -613,7 +697,8 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       } else {
         result.status = 'success';
       }
-    });
+    }, true);
+    }
 
     this.addLog('Pipeline complete.');
     await this.finalizeRunRecord('success');
@@ -624,24 +709,42 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
   private async runStep(
     stepIndex: number,
     services: string[],
-    action: (service: string, result: ServiceStepResult) => Promise<void>
+    action: (service: string, result: ServiceStepResult) => Promise<void>,
+    parallel = false
   ): Promise<void> {
     if (this.pipelineCancelled) return;
     this.currentStepIndex = stepIndex;
     const step = this.steps[stepIndex];
     step.status = 'running';
 
-    for (const svc of services) {
-      if (this.pipelineCancelled) break;
-      const result = step.results.find((r) => r.service === svc);
-      if (!result) continue;
-      result.status = 'running';
-      try {
-        await action(svc, result);
-      } catch (e: any) {
-        result.status = 'failed';
-        result.message = e.message || String(e);
-        this.addLog(`[${svc}] Error: ${result.message}`);
+    if (parallel) {
+      const tasks = services.map(async (svc) => {
+        if (this.pipelineCancelled) return;
+        const result = step.results.find((r) => r.service === svc);
+        if (!result) return;
+        result.status = 'running';
+        try {
+          await action(svc, result);
+        } catch (e: any) {
+          result.status = 'failed';
+          result.message = e.message || String(e);
+          this.addLog(`[${svc}] Error: ${result.message}`);
+        }
+      });
+      await Promise.all(tasks);
+    } else {
+      for (const svc of services) {
+        if (this.pipelineCancelled) break;
+        const result = step.results.find((r) => r.service === svc);
+        if (!result) continue;
+        result.status = 'running';
+        try {
+          await action(svc, result);
+        } catch (e: any) {
+          result.status = 'failed';
+          result.message = e.message || String(e);
+          this.addLog(`[${svc}] Error: ${result.message}`);
+        }
       }
     }
 
@@ -717,11 +820,15 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       };
 
       // Run release, master and (optionally) drop_db builds in parallel
+      // Skip disabled build categories
       const svcBranch = this.settingsService.getReleaseBranch(svc, relNum);
-      const builds: Promise<void>[] = [
-        buildBranch(svcBranch, 'release', releaseResult, releaseBuildIds),
-        buildBranch('master', 'master', masterResult, masterBuildIds),
-      ];
+      const builds: Promise<void>[] = [];
+      if (releaseResult) {
+        builds.push(buildBranch(svcBranch, 'release', releaseResult, releaseBuildIds));
+      }
+      if (masterResult) {
+        builds.push(buildBranch('master', 'master', masterResult, masterBuildIds));
+      }
       if (dropDbBranch && dropDbResult) {
         builds.push(buildBranch(dropDbBranch, 'drop db', dropDbResult, dropDbBuildIds));
       }
@@ -873,6 +980,10 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     this.isRunning = true;
     this.currentRunId = running.id;
     this.steps = JSON.parse(JSON.stringify(running.steps));
+    // Clear any stale transient flags
+    for (const step of this.steps) {
+      for (const r of step.results ?? []) { r.refreshing = false; r.rerunning = false; }
+    }
     this.logs = [...(running.logs || [])];
     this.currentStepIndex = running.currentStepIndex;
     this.releaseNumber = running.releaseNumber;
@@ -993,8 +1104,9 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       // ── Deploy Drop DB step (expected failure = success) ──
       if (step.id === 'deploy-drop-db' && (step.status === 'running' || step.status === 'pending')) {
         step.status = 'running';
-        for (const result of step.results) {
-          if (result.status === 'success' || result.status === 'skipped') continue;
+
+        const deployOne = async (result: ServiceStepResult) => {
+          if (result.status === 'success' || result.status === 'skipped') return;
           const svc = result.service;
           result.status = 'running';
           // If release was already created, just resume waiting
@@ -1010,17 +1122,29 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
               ? `✓ Expected failure confirmed — ${waitRes.message}`
               : `⚠ Unexpected success — ${waitRes.message}`;
             this.addLog(`[${svc}] ${result.message}`);
-            continue;
+            return;
           }
           // Create new deployment
           const dropDbBuildResult = this.steps[3]?.results.find(
             (r) => r.service === `${svc} (drop db)` && r.buildId
           );
-          const buildId = dropDbBuildResult?.buildId;
+          let buildId = dropDbBuildResult?.buildId;
           if (!buildId) {
-            result.status = 'skipped';
-            result.message = 'No drop DB build ID';
-            continue;
+            const dropDbBranch = this.settingsService.getDropDbBranch(svc);
+            if (dropDbBranch) {
+              this.addLog(`[${svc}] No drop DB build from current run — looking for latest build on ${dropDbBranch}...`);
+              const latest = await this.azureDevOps.getLatestBuild(svc, dropDbBranch);
+              if (latest) {
+                buildId = latest.buildId;
+                result.buildUrl = latest.buildUrl;
+                this.addLog(`[${svc}] ⚡ Using latest drop DB build #${buildId} from branch ${dropDbBranch}`);
+              }
+            }
+            if (!buildId) {
+              result.status = 'skipped';
+              result.message = 'No drop DB build found';
+              return;
+            }
           }
           result.status = 'running';
           this.addLog(`[${svc}] Deploying drop DB build #${buildId}...`);
@@ -1029,7 +1153,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
             result.status = 'skipped';
             result.message = `Could not create release: ${res.message}`;
             this.addLog(`[${svc}] ${res.message}`);
-            continue;
+            return;
           }
           result.releaseId = res.releaseId;
           result.releaseUrl = res.releaseUrl;
@@ -1052,7 +1176,10 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
           } else {
             result.status = 'success';
           }
-        }
+        };
+
+        await Promise.all(step.results.map(r => deployOne(r)));
+
         // Step always proceeds regardless of deployment outcome
         const allSkipped = step.results.every((r) => r.status === 'skipped');
         step.status = allSkipped ? 'skipped' : 'success';
@@ -1066,7 +1193,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
         const label = step.id === 'deploy-master' ? 'master' : 'release';
         step.status = 'running';
 
-        for (const result of step.results) {
+        const deployOne = async (result: ServiceStepResult) => {
           const svc = result.service;
 
           // Skip library services — they don't need deployment
@@ -1074,7 +1201,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
             result.status = 'skipped';
             result.message = 'Library — no deployment needed';
             this.addLog(`[${svc}] Skipped (library)`);
-            continue;
+            return;
           }
 
           // If deployment was already created, just resume waiting
@@ -1089,7 +1216,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
             result.status = waitRes.success ? 'success' : 'failed';
             result.message = waitRes.message;
             this.addLog(`[${svc}] ${waitRes.message}`);
-            continue;
+            return;
           }
 
           // If not yet deployed, create the deployment
@@ -1099,11 +1226,24 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
             const buildStepResult = this.steps[3]?.results.find(
               (r) => r.service === `${svc} (${buildVariant})` && r.status === 'success' && r.buildId
             );
-            const buildId = buildStepResult?.buildId ?? buildMap.get(svc);
+            let buildId = buildStepResult?.buildId ?? buildMap.get(svc);
             if (!buildId) {
-              result.status = 'skipped';
-              result.message = `No ${label} build ID`;
-              continue;
+              // Build step was skipped/disabled — try to find the latest successful build
+              const branch = label === 'master'
+                ? 'master'
+                : this.settingsService.getReleaseBranch(svc, record.releaseNumber);
+              this.addLog(`[${svc}] No ${label} build from current run — looking for latest build on ${branch}...`);
+              const latest = await this.azureDevOps.getLatestBuild(svc, branch);
+              if (latest) {
+                buildId = latest.buildId;
+                result.buildUrl = latest.buildUrl;
+                this.addLog(`[${svc}] ⚡ Using latest ${label} build #${buildId}`);
+              }
+              if (!buildId) {
+                result.status = 'skipped';
+                result.message = `No ${label} build found`;
+                return;
+              }
             }
             result.status = 'running';
             this.addLog(`[${svc}] Deploying ${label} build #${buildId}...`);
@@ -1112,7 +1252,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
               result.status = 'failed';
               result.message = res.message;
               this.addLog(`[${svc}] ${res.message}`);
-              continue;
+              return;
             }
             result.releaseId = res.releaseId;
             result.releaseUrl = res.releaseUrl;
@@ -1135,7 +1275,9 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
               result.status = 'success';
             }
           }
-        }
+        };
+
+        await Promise.all(step.results.map(r => deployOne(r)));
 
         const hasFailure = step.results.some((r) => r.status === 'failed');
         const allSkipped = step.results.every((r) => r.status === 'skipped');
@@ -1261,6 +1403,13 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     this.viewingRun = run;
     this.pipelineStarted = true;
     this.steps = JSON.parse(JSON.stringify(run.steps));
+    // Clear any stale transient flags that may have been persisted
+    for (const step of this.steps) {
+      for (const r of step.results ?? []) {
+        r.refreshing = false;
+        r.rerunning = false;
+      }
+    }
     this.logs = [...(run.logs || [])];
     this.currentStepIndex = run.currentStepIndex ?? run.steps.length - 1;
     // Update URL to reflect the viewed run (without full navigation to avoid component recreation)
@@ -1392,6 +1541,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
           result.status = res.success ? 'success' : 'failed';
           result.message = `Build #${result.buildId} ${label}`;
         } else {
+          result.status = 'running';
           result.message = `Build #${result.buildId} – ${label}`;
         }
       } else if (result.releaseId) {
@@ -1402,9 +1552,16 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
           result.status = res.success ? 'success' : 'failed';
           result.message = `Release #${result.releaseId}: deployment ${res.statusName}`;
         } else {
+          result.status = 'running';
           result.message = `Release #${result.releaseId}: deployment ${res.statusName}...`;
         }
       }
+      // Recompute step status
+      const step = this.steps[stepIndex];
+      const hasFailure = step.results.some((r) => r.status === 'failed');
+      const hasRunning = step.results.some((r) => r.status === 'running');
+      const allSkipped = step.results.every((r) => r.status === 'skipped');
+      step.status = hasFailure ? 'failed' : hasRunning ? 'running' : allSkipped ? 'skipped' : 'success';
       await this.persistStepsToHistory();
     } finally {
       result.refreshing = false;
@@ -1588,6 +1745,7 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
             result.status = res.success ? 'success' : 'failed';
             result.message = `Build #${result.buildId} ${label}`;
           } else {
+            result.status = 'running';
             result.message = `Build #${result.buildId} – ${label}`;
           }
         } else if (result.releaseId) {
@@ -1597,14 +1755,16 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
             result.status = res.success ? 'success' : 'failed';
             result.message = `Release #${result.releaseId}: deployment ${res.statusName}`;
           } else {
+            result.status = 'running';
             result.message = `Release #${result.releaseId}: deployment ${res.statusName}...`;
           }
         }
       }
       const hasFailure = step.results.some((r) => r.status === 'failed');
+      const hasRunning = step.results.some((r) => r.status === 'running');
       const allSkipped = step.results.every((r) => r.status === 'skipped');
       const prevStatus = step.status;
-      step.status = hasFailure ? 'failed' : allSkipped ? 'skipped' : 'success';
+      step.status = hasFailure ? 'failed' : hasRunning ? 'running' : allSkipped ? 'skipped' : 'success';
       await this.persistStepsToHistory();
 
       // Auto-continue: if step is now success, there are more steps, and pipeline is idle
@@ -1697,20 +1857,98 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
     const runId = this.currentRunId ?? this.viewingRun?.id;
     const record = runId ? this.runHistory.find((r) => r.id === runId) : null;
     if (!record) return;
-    record.steps = JSON.parse(JSON.stringify(this.steps));
+    // Deep-clone steps and strip transient UI-only flags so they're never persisted
+    const clonedSteps = JSON.parse(JSON.stringify(this.steps));
+    for (const step of clonedSteps) {
+      for (const r of step.results ?? []) {
+        delete r.refreshing;
+        delete r.rerunning;
+      }
+    }
+    record.steps = clonedSteps;
     record.logs = [...this.logs];
+
+    // Recompute overall run status from current step states
+    const anyFailed = this.steps.some(s => s.status === 'failed');
+    const hasRemainingWork = this.steps.some(s =>
+      ['pending', 'running', 'waiting-approval'].includes(s.status)
+    );
+    record.status = anyFailed ? 'failed' : hasRemainingWork ? 'running' : 'success';
+
     await this.historyService.saveRun(record).catch((err: any) => {
       console.error('Failed to persist steps to Firestore:', err);
     });
     if (this.viewingRun?.id === record.id) {
-      this.viewingRun = { ...this.viewingRun!, steps: record.steps, logs: record.logs };
+      this.viewingRun = { ...this.viewingRun!, steps: record.steps, logs: record.logs, status: record.status };
     }
   }
 
   /** Navigate to a pipeline sub-tab (update URL without full navigation) */
-  setSubTab(tab: 'run' | 'logs' | 'history'): void {
+  setSubTab(tab: 'run'): void {
     this.pipelineSubTab = tab;
     this.location.replaceState('/pipeline/' + tab);
+  }
+
+  // ── Pipeline Step Settings ──────────────────────────────────
+
+  openStepSettings(): void {
+    this.showStepSettings = true;
+  }
+
+  closeStepSettings(): void {
+    this.showStepSettings = false;
+  }
+
+  onStepSettingsBackdrop(event: MouseEvent): void {
+    if ((event.target as HTMLElement).classList.contains('step-settings-backdrop')) {
+      this.closeStepSettings();
+    }
+  }
+
+  isStepEnabled(stepId: PipelineStepId): boolean {
+    return this.settingsService.isStepEnabled(stepId);
+  }
+
+  toggleStep(stepId: PipelineStepId, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.settingsService.togglePipelineStep(stepId, checked);
+  }
+
+  enabledStepCount(): number {
+    return ALL_PIPELINE_STEPS.filter((id) => this.settingsService.isStepEnabled(id)).length;
+  }
+
+  // ── Build Category Settings ──────────────────────────────────
+
+  isBuildCategoryEnabled(catId: BuildCategoryId): boolean {
+    return this.settingsService.isBuildCategoryEnabled(catId);
+  }
+
+  toggleBuildCategory(catId: BuildCategoryId, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.settingsService.toggleBuildCategory(catId, checked);
+  }
+
+  enabledBuildCategoryCount(): number {
+    return ALL_BUILD_CATEGORIES.filter((id) => this.settingsService.isBuildCategoryEnabled(id)).length;
+  }
+
+  /** Check if a step (by index) is disabled in settings */
+  private isStepDisabled(stepIndex: number): boolean {
+    const stepId = this.steps[stepIndex]?.id as PipelineStepId;
+    return stepId ? !this.settingsService.isStepEnabled(stepId) : false;
+  }
+
+  /** Mark a disabled step as skipped */
+  private skipDisabledStep(stepIndex: number): void {
+    const step = this.steps[stepIndex];
+    step.status = 'skipped';
+    step.results.forEach((r) => {
+      r.status = 'skipped';
+      r.message = 'Step disabled in settings';
+    });
+    this.addLog(`⏭ Step "${step.label}" skipped (disabled in settings).`);
+    this.persistRunningState();
   }
 
   /** Try to open a run by ID from the URL (called when history loads or route changes) */
@@ -1724,11 +1962,129 @@ export class CicdPipelineComponent implements OnInit, OnDestroy {
       this.pipelineStarted = true;
       this.pipelineSubTab = 'run';
       this.steps = JSON.parse(JSON.stringify(run.steps));
+      // Clear any stale transient flags
+      for (const step of this.steps) {
+        for (const r of step.results ?? []) { r.refreshing = false; r.rerunning = false; }
+      }
       this.logs = [...(run.logs || [])];
       this.currentStepIndex = run.currentStepIndex ?? run.steps.length - 1;
       this.pendingRunId = null; // consumed
       // Track presence for concurrent viewer detection
       this.presenceService.joinRun(run.id);
     }
+  }
+
+  // ── Structured Logs ──────────────────────────────────────────
+
+  /** Parse a raw log string into a structured entry */
+  parseLogEntry(raw: string): { time: string; level: string; message: string; service: string } {
+    // Extract timestamp: [HH:MM:SS] ...
+    const tsMatch = raw.match(/^\[(\d{1,2}:\d{2}:\d{2}(?:\s?[AP]M)?)\]\s*/i);
+    const time = tsMatch ? tsMatch[1] : '';
+    const body = tsMatch ? raw.slice(tsMatch[0].length) : raw;
+
+    // Extract [service] prefix if present
+    const svcMatch = body.match(/^\[([^\]]+)\]\s*/);
+    const service = svcMatch ? svcMatch[1] : '';
+    const message = svcMatch ? body.slice(svcMatch[0].length) : body;
+
+    // Detect log level from content
+    const level = this.detectLogLevel(body);
+
+    return { time, level, message, service };
+  }
+
+  /** Detect log level from message content */
+  private detectLogLevel(msg: string): string {
+    const lower = msg.toLowerCase();
+    if (lower.includes('error') || lower.includes('failed') || lower.includes('⛔') || lower.includes('stopped'))
+      return 'error';
+    if (lower.includes('⚠') || lower.includes('warning') || lower.includes('unexpected'))
+      return 'warning';
+    if (lower.includes('✓') || lower.includes('success') || lower.includes('complete') || lower.includes('approved'))
+      return 'success';
+    if (lower.includes('skipped') || lower.includes('⏭') || lower.includes('disabled'))
+      return 'skip';
+    return 'info';
+  }
+
+  /** Get filtered logs based on active filter and search */
+  get filteredLogs(): string[] {
+    let result = this.logs;
+
+    if (this.logFilter !== 'all') {
+      result = result.filter((log) => {
+        const entry = this.parseLogEntry(log);
+        return entry.level === this.logFilter;
+      });
+    }
+
+    if (this.logSearch.trim()) {
+      const q = this.logSearch.trim().toLowerCase();
+      result = result.filter((log) => log.toLowerCase().includes(q));
+    }
+
+    return result;
+  }
+
+  /** Count logs by level */
+  logLevelCount(level: string): number {
+    return this.logs.filter((log) => this.parseLogEntry(log).level === level).length;
+  }
+
+  /** Set log filter */
+  setLogFilter(f: 'all' | 'info' | 'success' | 'error' | 'warning' | 'skip'): void {
+    this.logFilter = f;
+  }
+
+  // ── Enhanced History ─────────────────────────────────────────
+
+  /** Get filtered history runs */
+  get filteredHistory(): PipelineRunRecord[] {
+    if (this.historyFilter === 'all') return this.runHistory;
+    return this.runHistory.filter((r) => r.status === this.historyFilter);
+  }
+
+  /** Set history filter */
+  setHistoryFilter(f: 'all' | 'running' | 'success' | 'failed'): void {
+    this.historyFilter = f;
+  }
+
+  /** Count history by status */
+  historyStatusCount(status: string): number {
+    if (status === 'all') return this.runHistory.length;
+    return this.runHistory.filter((r) => r.status === status).length;
+  }
+
+  /** Calculate step progress for a run (for mini progress bar) */
+  getRunProgress(run: PipelineRunRecord): { success: number; failed: number; skipped: number; pending: number; total: number } {
+    const total = run.steps.length;
+    let success = 0, failed = 0, skipped = 0, pending = 0;
+    for (const step of run.steps) {
+      if (step.status === 'success') success++;
+      else if (step.status === 'failed') failed++;
+      else if (step.status === 'skipped') skipped++;
+      else pending++;
+    }
+    return { success, failed, skipped, pending, total };
+  }
+
+  /** Get the currently executing step label for a running pipeline */
+  getRunCurrentStep(run: PipelineRunRecord): string {
+    if (run.status !== 'running') return '';
+    const step = run.steps.find((s) => s.status === 'running' || s.status === 'waiting-approval');
+    return step ? step.label : '';
+  }
+
+  /** Get time elapsed since a running pipeline started */
+  getRunElapsed(run: PipelineRunRecord): string {
+    if (run.status !== 'running') return '';
+    const ms = Date.now() - new Date(run.startedAt).getTime();
+    const secs = Math.floor(ms / 1000);
+    if (secs < 60) return `${secs}s ago`;
+    const mins = Math.floor(secs / 60);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    return `${hrs}h ${mins % 60}m ago`;
   }
 }

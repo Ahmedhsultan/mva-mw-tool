@@ -17,8 +17,15 @@ export class ToolsComponent {
   downloadExtension(): void {
     this.createZip(
       'assets/cloudwatch-log-extractor/',
-      ['manifest.json', 'content.js', 'icon.png'],
-      'vois_aws_logs_to_curl.zip',
+      [
+        'manifest.json',
+        'curl-printer.js',
+        'content.js',
+        'popup.html',
+        'popup.js',
+        'icon.png'
+      ],
+      'mvax_log_to_curl.zip',
       'CW'
     );
   }
@@ -38,7 +45,9 @@ export class ToolsComponent {
         const response = await fetch(basePath + file);
         if (file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.ico')) {
           const blob = await response.blob();
-          zip.file(file, blob);
+          // Place icon.png inside icons/ subfolder in the zip
+          const zipPath = file === 'icon.png' ? 'icons/icon.png' : file;
+          zip.file(zipPath, blob);
         } else {
           const text = await response.text();
           zip.file(file, text);

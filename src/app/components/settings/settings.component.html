@@ -48,7 +48,7 @@
 
       <!-- === Microservices Tab === -->
       <div *ngIf="activeTab === 'services'" class="tab-panel">
-        <p class="panel-desc">Manage microservices, their type, branch prefix, and pipeline.</p>
+        <p class="panel-desc">Manage microservices, their type, branch prefix, pipeline, and drop DB branch.</p>
 
         <div class="add-row">
           <input type="text" class="add-input" placeholder="e.g. mvax-new-service"
@@ -58,26 +58,68 @@
         </div>
         <div *ngIf="serviceError" class="field-error">{{ serviceError }}</div>
 
-        <!-- Compact service table -->
-        <div class="svc-table">
-          <div class="svc-row" *ngFor="let cfg of serviceConfigs">
-            <span class="svc-name">{{ cfg.name }}</span>
-            <select class="svc-select" [ngModel]="cfg.type" (ngModelChange)="updateConfig(cfg.name, 'type', $event)">
-              <option value="service">Service</option>
-              <option value="library">Library</option>
-            </select>
-            <input class="svc-input" [ngModel]="cfg.branchPrefix"
-              (ngModelChange)="updateConfig(cfg.name, 'branchPrefix', $event)" placeholder="release/primary" />
-            <select *ngIf="cfg.type === 'service'" class="svc-select" [ngModel]="cfg.pipelineType" (ngModelChange)="updateConfig(cfg.name, 'pipelineType', $event)">
-              <option value="release">Release</option>
-              <option value="yaml">YAML</option>
-            </select>
-            <span *ngIf="cfg.type === 'library'" class="svc-select svc-na">N/A</span>
-            <button class="chip-remove" (click)="removeService(cfg.name)" title="Remove">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-              </svg>
-            </button>
+        <!-- Service cards -->
+        <div class="svc-cards">
+          <div class="svc-card" *ngFor="let cfg of serviceConfigs" [class.svc-card--expanded]="expandedService === cfg.name">
+            <!-- Card header row -->
+            <div class="svc-card-header" (click)="toggleExpand(cfg.name)">
+              <div class="svc-card-left">
+                <span class="svc-card-dot" [class.svc-card-dot--lib]="cfg.type === 'library'"></span>
+                <span class="svc-card-name">{{ cfg.name }}</span>
+                <span class="svc-card-badge" [class.svc-card-badge--lib]="cfg.type === 'library'">{{ cfg.type === 'library' ? 'LIB' : 'SVC' }}</span>
+                <span *ngIf="cfg.type === 'service' && cfg.dropDbBranch && cfg.dropDbBranch !== 'NA'" class="svc-card-badge svc-card-badge--db">DB</span>
+              </div>
+              <div class="svc-card-right">
+                <svg class="svc-card-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M4 5.5l3 3 3-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <button class="svc-card-remove" (click)="removeService(cfg.name); $event.stopPropagation()" title="Remove">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Expandable config fields -->
+            <div class="svc-card-body" *ngIf="expandedService === cfg.name">
+              <div class="svc-field">
+                <label class="svc-field-label">Type</label>
+                <select class="svc-field-input" [ngModel]="cfg.type" (ngModelChange)="updateConfig(cfg.name, 'type', $event)">
+                  <option value="service">Service</option>
+                  <option value="library">Library</option>
+                </select>
+              </div>
+              <div class="svc-field">
+                <label class="svc-field-label">Branch Prefix</label>
+                <input class="svc-field-input" [ngModel]="cfg.branchPrefix"
+                  (ngModelChange)="updateConfig(cfg.name, 'branchPrefix', $event)" placeholder="release/primary" />
+              </div>
+              <div class="svc-field" *ngIf="cfg.type === 'service'">
+                <label class="svc-field-label">Pipeline</label>
+                <select class="svc-field-input" [ngModel]="cfg.pipelineType" (ngModelChange)="updateConfig(cfg.name, 'pipelineType', $event)">
+                  <option value="release">Release</option>
+                  <option value="yaml">YAML</option>
+                </select>
+              </div>
+              <div class="svc-field svc-field--full" *ngIf="cfg.type === 'service'">
+                <label class="svc-field-label">Drop DB Branch</label>
+                <div class="svc-dropdb-row">
+                  <button class="svc-dropdb-toggle"
+                    [class.svc-dropdb-toggle--na]="!cfg.dropDbBranch || cfg.dropDbBranch === 'NA'"
+                    [class.svc-dropdb-toggle--active]="cfg.dropDbBranch && cfg.dropDbBranch !== 'NA'"
+                    (click)="toggleDropDb(cfg.name)">
+                    {{ (!cfg.dropDbBranch || cfg.dropDbBranch === 'NA') ? 'NA' : 'Custom' }}
+                  </button>
+                  <input *ngIf="cfg.dropDbBranch && cfg.dropDbBranch !== 'NA'"
+                    class="svc-field-input svc-dropdb-input"
+                    [ngModel]="cfg.dropDbBranch"
+                    (ngModelChange)="updateConfig(cfg.name, 'dropDbBranch', $event)"
+                    placeholder="e.g. release/dahab/drop_db" />
+                  <span *ngIf="!cfg.dropDbBranch || cfg.dropDbBranch === 'NA'" class="svc-dropdb-na-text">No drop DB for this service</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

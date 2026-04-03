@@ -9,6 +9,7 @@ import {
   PipelineType,
   EnvCategory,
 } from '../../services/settings.service';
+import { DROP_DB_BRANCHES } from '../../models/release-pipeline.model';
 import { AzureDevOpsService } from '../../services/azure-devops.service';
 
 @Component({
@@ -33,9 +34,11 @@ export class SettingsComponent implements OnInit {
   newServiceType: ServiceType = 'service';
   newBranchPrefix = 'release/primary';
   newPipelineType: PipelineType = 'release';
-  newDropDbBranch = '';
+  newDropDbBranch = 'NA';
   serviceError = '';
   expandedService: string | null = null;
+
+
 
   // ── Environments (per-tab) ──────────────────────────────────
   envCategories: { key: EnvCategory; label: string }[] = [
@@ -56,7 +59,11 @@ export class SettingsComponent implements OnInit {
   patValidationResult: { success: boolean; message: string } | null = null;
 
   ngOnInit(): void {
-    this.serviceConfigs = this.settings.serviceConfigs.map((c) => ({ ...c }));
+    this.serviceConfigs = this.settings.serviceConfigs.map((c) => ({
+      ...c,
+      // Migrate legacy configs: if no dropDbBranch set, resolve from DROP_DB_BRANCHES or default to 'NA'
+      dropDbBranch: c.dropDbBranch || DROP_DB_BRANCHES[c.name] || 'NA',
+    }));
     this.envsMap = {
       reservation: [...this.settings.envsReservation],
       cutoff: [...this.settings.envsCutoff],
@@ -86,7 +93,7 @@ export class SettingsComponent implements OnInit {
       type: this.newServiceType,
       branchPrefix: this.newBranchPrefix.trim() || (this.newServiceType === 'library' ? 'primary' : 'release/primary'),
       pipelineType: this.newPipelineType,
-      dropDbBranch: this.newDropDbBranch.trim() || undefined,
+      dropDbBranch: this.newDropDbBranch || 'NA',
     };
     this.serviceConfigs.push(config);
     this.settings.addServiceWithConfig(config);
@@ -95,7 +102,7 @@ export class SettingsComponent implements OnInit {
     this.newServiceType = 'service';
     this.newBranchPrefix = 'release/primary';
     this.newPipelineType = 'release';
-    this.newDropDbBranch = '';
+    this.newDropDbBranch = 'NA';
   }
 
   removeService(svc: string): void {
@@ -112,6 +119,22 @@ export class SettingsComponent implements OnInit {
 
   toggleExpand(name: string): void {
     this.expandedService = this.expandedService === name ? null : name;
+  }
+
+  /** Toggle drop DB between NA and custom (with placeholder branch) */
+  toggleDropDb(name: string): void {
+    const cfg = this.serviceConfigs.find((c) => c.name === name);
+    if (!cfg) return;
+    if (!cfg.dropDbBranch || cfg.dropDbBranch === 'NA') {
+      // Switch to custom — use a sensible default
+      const fallback = DROP_DB_BRANCHES[name] || 'release/drop_db';
+      cfg.dropDbBranch = fallback;
+      this.settings.updateServiceConfig(name, { dropDbBranch: fallback });
+    } else {
+      // Switch to NA
+      cfg.dropDbBranch = 'NA';
+      this.settings.updateServiceConfig(name, { dropDbBranch: 'NA' });
+    }
   }
 
   updateConfig(name: string, field: keyof ServiceConfig, value: any): void {
