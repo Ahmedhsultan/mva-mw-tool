@@ -4,8 +4,11 @@ com/mva/mwtool/devops/auth/AuthService.class
 com/mva/mwtool/devops/repo/RepoService.class
 com/mva/mwtool/devops/deploy/AzureDeployService.class
 com/mva/mwtool/controller/AuthController.class
+com/mva/mwtool/dto/ConfigEnvironmentsRequest.class
 com/mva/mwtool/MvaMwToolApplication.class
 com/mva/mwtool/dto/CreateDeployRequest.class
+com/mva/mwtool/dto/ConfigEnvironmentsDto.class
+com/mva/mwtool/controller/ConfigController.class
 com/mva/mwtool/controller/DeployController.class
 com/mva/mwtool/devops/deploy/DeployService.class
 com/mva/mwtool/dto/AuthRequest.class
@@ -20,6 +23,7 @@ com/mva/mwtool/dto/CreateBuildRequest.class
 com/mva/mwtool/devops/DevOpsServiceFactory.class
 com/mva/mwtool/devops/build/GitHubBuildService.class
 com/mva/mwtool/config/WebConfig.class
+com/mva/mwtool/service/ConfigDataService.class
 com/mva/mwtool/devops/deploy/GitHubDeployService.class
 com/mva/mwtool/dto/RepoFileDto.class
 com/mva/mwtool/devops/build/BuildService.class

@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap, catchError, of } from 'rxjs';
@@ -51,7 +51,8 @@ export class AuthService {
     sessionStorage.removeItem('mva_organization');
     sessionStorage.removeItem('mva_project');
     sessionStorage.removeItem('mva_displayName');
-    sessionStorage.removeItem('mva_environments');
+    sessionStorage.removeItem('mva_dbRepoId');
+    sessionStorage.removeItem('mva_dbBranch');
     this._isAuthenticated.set(false);
     this._displayName.set('');
     this._organization.set('');
@@ -65,7 +66,9 @@ export class AuthService {
       githubPat: sessionStorage.getItem('mva_githubPat') || '',
       organization: sessionStorage.getItem('mva_organization') || '',
       project: sessionStorage.getItem('mva_project') || '',
-      environments: JSON.parse(sessionStorage.getItem('mva_environments') || '["dev","staging","prod"]')
+      environments: [],
+      dbRepoId: sessionStorage.getItem('mva_dbRepoId') || '',
+      dbBranch: sessionStorage.getItem('mva_dbBranch') || 'main'
     };
   }
 
@@ -85,12 +88,12 @@ export class AuthService {
     sessionStorage.setItem('mva_project', project);
   }
 
-  getEnvironments(): string[] {
-    return JSON.parse(sessionStorage.getItem('mva_environments') || '["dev","staging","prod"]');
+  updateDbRepoId(repoId: string): void {
+    sessionStorage.setItem('mva_dbRepoId', repoId);
   }
 
-  setEnvironments(envs: string[]): void {
-    sessionStorage.setItem('mva_environments', JSON.stringify(envs));
+  updateDbBranch(branch: string): void {
+    sessionStorage.setItem('mva_dbBranch', branch);
   }
 
   private hasStoredSession(): boolean {

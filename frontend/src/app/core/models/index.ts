@@ -57,10 +57,22 @@ export interface PushFileRequest {
   commitMessage: string;
 }
 
+export interface ConfigEnvironmentsFile {
+  environments: string[];
+}
+
+export interface ConfigEnvironmentsRequest {
+  repoId: string;
+  branch: string;
+  environments: string[];
+}
+
 export interface DevOpsConfig {
   azurePat: string;
   githubPat: string;
   organization: string;
   project: string;
   environments: string[];
+  dbRepoId: string;
+  dbBranch: string;
 }

@@ -88,6 +88,26 @@
 
       <div class="tab-body">
         <section class="environment-panel">
+          <div class="env-source-row">
+            <mat-form-field appearance="outline" class="env-source-input">
+              <mat-label>Repo</mat-label>
+              <input matInput [(ngModel)]="dbRepoId"
+                     placeholder="repo name or id" autocomplete="off">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="env-branch-input">
+              <mat-label>Branch</mat-label>
+              <input matInput [(ngModel)]="dbBranch"
+                     placeholder="main" autocomplete="off">
+            </mat-form-field>
+
+            <button mat-stroked-button type="button" class="env-source-button"
+                    (click)="saveDatabaseSource()">
+              <mat-icon>sync</mat-icon>
+              Load
+            </button>
+          </div>
+
           <div class="env-add-row">
             <mat-form-field appearance="outline" class="env-input">
               <mat-label>New Environment</mat-label>
@@ -107,7 +127,7 @@
               <div class="env-chip">
                 <mat-icon class="env-chip-icon">dns</mat-icon>
                 <span class="env-chip-label">{{ env }}</span>
-                <button mat-icon-button class="env-remove-btn"
+                <button type="button" class="env-remove-btn"
                         (click)="removeEnvironment(env)"
                         matTooltip="Remove environment">
                   <mat-icon>close</mat-icon>

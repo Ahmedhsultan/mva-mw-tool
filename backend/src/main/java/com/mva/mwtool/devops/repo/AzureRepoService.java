@@ -47,8 +47,10 @@ public class AzureRepoService implements RepoService {
     public void pushFile(String pat, String organization, String project,
                          String repoId, String filePath, String branch,
                          String content, String commitMessage) {
-        // First get the current commit SHA for the branch
         String currentCommitId = getCurrentCommitId(pat, organization, project, repoId, branch);
+        String changeType = fileExists(pat, organization, project, repoId, filePath, branch)
+            ? "edit"
+            : "add";
 
         String url = String.format("%s/%s/%s/_apis/git/repositories/%s/pushes?api-version=%s",
                 BASE_URL, organization, project, repoId, API_VERSION);
@@ -63,7 +65,7 @@ public class AzureRepoService implements RepoService {
         requestBody.put("refUpdates", List.of(refUpdate));
 
         Map<String, Object> change = new HashMap<>();
-        change.put("changeType", "edit");
+    change.put("changeType", changeType);
         Map<String, String> item = new HashMap<>();
         item.put("path", filePath);
         change.put("item", item);
@@ -81,6 +83,16 @@ public class AzureRepoService implements RepoService {
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
         restTemplate.exchange(url, HttpMethod.POST, entity, JsonNode.class);
+    }
+
+    private boolean fileExists(String pat, String organization, String project,
+                               String repoId, String filePath, String branch) {
+        try {
+            pullFile(pat, organization, project, repoId, filePath, branch);
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     private String getCurrentCommitId(String pat, String organization, String project,

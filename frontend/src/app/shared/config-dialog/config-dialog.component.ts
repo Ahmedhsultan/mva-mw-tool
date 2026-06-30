@@ -9,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
+import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
@@ -37,8 +38,11 @@ export class ConfigDialogComponent implements OnInit {
 
   environments: string[] = [];
   newEnvName = '';
+  dbRepoId = '';
+  dbBranch = 'main';
 
   constructor(
+    private apiService: ApiService,
     private authService: AuthService,
     private dialogRef: MatDialogRef<ConfigDialogComponent>,
     private snackBar: MatSnackBar
@@ -49,6 +53,12 @@ export class ConfigDialogComponent implements OnInit {
     this.azurePat = config.azurePat;
     this.githubPat = config.githubPat;
     this.environments = [...config.environments];
+    this.dbRepoId = config.dbRepoId;
+    this.dbBranch = config.dbBranch;
+
+    if (this.hasDatabaseSource()) {
+      this.loadEnvironmentsFromRepo();
+    }
   }
 
   saveAzurePat(): void {
@@ -77,25 +87,96 @@ export class ConfigDialogComponent implements OnInit {
       });
       return;
     }
-    this.environments.push(name);
-    this.authService.setEnvironments(this.environments);
+    const previousEnvironments = [...this.environments];
+    this.environments = [...this.environments, name];
     this.newEnvName = '';
-    this.snackBar.open(`Environment "${name}" added`, 'Close', {
-      duration: 2000,
-      panelClass: 'success-snackbar'
-    });
+    this.persistEnvironments(previousEnvironments, `Environment "${name}" added`);
   }
 
   removeEnvironment(env: string): void {
-    this.environments = this.environments.filter(e => e !== env);
-    this.authService.setEnvironments(this.environments);
-    this.snackBar.open(`Environment "${env}" removed`, 'Close', {
-      duration: 2000,
-      panelClass: 'success-snackbar'
-    });
+    const previousEnvironments = [...this.environments];
+    this.environments = this.environments.filter(existingEnvironment => existingEnvironment !== env);
+    this.persistEnvironments(previousEnvironments, `Environment "${env}" removed`);
+  }
+
+  saveDatabaseSource(): void {
+    const repoId = this.dbRepoId.trim();
+    const branch = this.dbBranch.trim() || 'main';
+
+    if (!repoId) {
+      this.snackBar.open('Enter the Azure repo name or id', 'Close', {
+        duration: 2500,
+        panelClass: 'error-snackbar'
+      });
+      return;
+    }
+
+    this.dbRepoId = repoId;
+    this.dbBranch = branch;
+    this.authService.updateDbRepoId(repoId);
+    this.authService.updateDbBranch(branch);
+    this.loadEnvironmentsFromRepo(true, true);
   }
 
   close(): void {
     this.dialogRef.close();
+  }
+
+  private hasDatabaseSource(): boolean {
+    return this.dbRepoId.trim().length > 0 && this.dbBranch.trim().length > 0;
+  }
+
+  private loadEnvironmentsFromRepo(showSuccess = false, showError = false): void {
+    this.apiService.getConfigEnvironments(this.dbRepoId, this.dbBranch).subscribe({
+      next: (response) => {
+        this.environments = [...response.environments];
+
+        if (showSuccess) {
+          this.snackBar.open('Loaded environments from repo', 'Close', {
+            duration: 2000,
+            panelClass: 'success-snackbar'
+          });
+        }
+      },
+      error: () => {
+        if (showError) {
+          this.snackBar.open('Could not load db/config/environments.json from repo', 'Close', {
+            duration: 3000,
+            panelClass: 'error-snackbar'
+          });
+        }
+      }
+    });
+  }
+
+  private persistEnvironments(previousEnvironments: string[], successMessage: string): void {
+    if (!this.hasDatabaseSource()) {
+      this.environments = [...previousEnvironments];
+      this.snackBar.open('Set repo and branch first', 'Close', {
+        duration: 2500,
+        panelClass: 'error-snackbar'
+      });
+      return;
+    }
+
+    this.apiService.saveConfigEnvironments({
+      repoId: this.dbRepoId,
+      branch: this.dbBranch,
+      environments: this.environments
+    }).subscribe({
+      next: () => {
+        this.snackBar.open(successMessage, 'Close', {
+          duration: 2000,
+          panelClass: 'success-snackbar'
+        });
+      },
+      error: () => {
+        this.environments = [...previousEnvironments];
+        this.snackBar.open('Could not sync environments to repo', 'Close', {
+          duration: 3000,
+          panelClass: 'error-snackbar'
+        });
+      }
+    });
   }
 }
