@@ -186,6 +186,50 @@
   margin-top: 10px;
 }
 
+.repo-section {
+  margin-top: 16px;
+}
+
+.repo-title {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mva-text-soft);
+}
+
+.repo-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.repo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(125, 149, 185, 0.18);
+  border-radius: 999px;
+  padding: 6px 14px;
+  box-shadow: var(--mva-shadow-soft);
+}
+
+.repo-chip-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--mva-accent-strong);
+}
+
+.repo-chip-label {
+  font-size: 13px;
+  color: var(--mva-text);
+  letter-spacing: 0.02em;
+  font-weight: 700;
+}
+
 .env-chip {
   display: inline-flex;
   align-items: center;

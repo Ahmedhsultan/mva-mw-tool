@@ -4,8 +4,8 @@ import { Observable } from 'rxjs';
 import { AuthService } from './auth.service';
 import {
   BuildDto,
-  ConfigEnvironmentsFile,
-  ConfigEnvironmentsRequest,
+  ConfigDataFile,
+  ConfigDataRequest,
   DeployDto,
   RepoFileDto,
   CreateBuildRequest,
@@ -62,17 +62,17 @@ export class ApiService {
 
   // ---- Config ----
 
-  getConfigEnvironments(repoId: string, branch: string): Observable<ConfigEnvironmentsFile> {
+  getConfigData(repoId: string, branch: string): Observable<ConfigDataFile> {
     let params = this.baseParams('azure');
     params = params.set('repoId', repoId).set('branch', branch);
-    return this.http.get<ConfigEnvironmentsFile>('/api/config/environments', {
+    return this.http.get<ConfigDataFile>('/api/config', {
       headers: this.authHeaders('azure'),
       params
     });
   }
 
-  saveConfigEnvironments(request: ConfigEnvironmentsRequest): Observable<void> {
-    return this.http.put<void>('/api/config/environments', request, {
+  saveConfigData(request: ConfigDataRequest): Observable<void> {
+    return this.http.put<void>('/api/config', request, {
       headers: this.authHeaders('azure'),
       params: this.baseParams('azure')
     });

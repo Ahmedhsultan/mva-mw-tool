@@ -37,9 +37,11 @@ export class ConfigDialogComponent implements OnInit {
   hideGithubPat = signal(true);
 
   environments: string[] = [];
+  repositories: string[] = [];
   newEnvName = '';
   dbRepoId = '';
   dbBranch = 'main';
+  configLoaded = false;
 
   constructor(
     private apiService: ApiService,
@@ -52,12 +54,11 @@ export class ConfigDialogComponent implements OnInit {
     const config = this.authService.getConfig();
     this.azurePat = config.azurePat;
     this.githubPat = config.githubPat;
-    this.environments = [...config.environments];
     this.dbRepoId = config.dbRepoId;
     this.dbBranch = config.dbBranch;
 
     if (this.hasDatabaseSource()) {
-      this.loadEnvironmentsFromRepo();
+      this.loadConfigFromRepo();
     }
   }
 
@@ -113,9 +114,10 @@ export class ConfigDialogComponent implements OnInit {
 
     this.dbRepoId = repoId;
     this.dbBranch = branch;
+    this.configLoaded = false;
     this.authService.updateDbRepoId(repoId);
     this.authService.updateDbBranch(branch);
-    this.loadEnvironmentsFromRepo(true, true);
+    this.loadConfigFromRepo(true, true);
   }
 
   close(): void {
@@ -126,21 +128,24 @@ export class ConfigDialogComponent implements OnInit {
     return this.dbRepoId.trim().length > 0 && this.dbBranch.trim().length > 0;
   }
 
-  private loadEnvironmentsFromRepo(showSuccess = false, showError = false): void {
-    this.apiService.getConfigEnvironments(this.dbRepoId, this.dbBranch).subscribe({
+  private loadConfigFromRepo(showSuccess = false, showError = false): void {
+    this.apiService.getConfigData(this.dbRepoId, this.dbBranch).subscribe({
       next: (response) => {
         this.environments = [...response.environments];
+        this.repositories = [...response.repositories];
+        this.configLoaded = true;
 
         if (showSuccess) {
-          this.snackBar.open('Loaded environments from repo', 'Close', {
+          this.snackBar.open('Loaded config from repo', 'Close', {
             duration: 2000,
             panelClass: 'success-snackbar'
           });
         }
       },
       error: () => {
+        this.configLoaded = false;
         if (showError) {
-          this.snackBar.open('Could not load db/config/environments.json from repo', 'Close', {
+          this.snackBar.open('Could not load db/config/config.json from repo', 'Close', {
             duration: 3000,
             panelClass: 'error-snackbar'
           });
@@ -150,19 +155,20 @@ export class ConfigDialogComponent implements OnInit {
   }
 
   private persistEnvironments(previousEnvironments: string[], successMessage: string): void {
-    if (!this.hasDatabaseSource()) {
+    if (!this.hasDatabaseSource() || !this.configLoaded) {
       this.environments = [...previousEnvironments];
-      this.snackBar.open('Set repo and branch first', 'Close', {
+      this.snackBar.open('Load config first', 'Close', {
         duration: 2500,
         panelClass: 'error-snackbar'
       });
       return;
     }
 
-    this.apiService.saveConfigEnvironments({
+    this.apiService.saveConfigData({
       repoId: this.dbRepoId,
       branch: this.dbBranch,
-      environments: this.environments
+      environments: this.environments,
+      repositories: this.repositories
     }).subscribe({
       next: () => {
         this.snackBar.open(successMessage, 'Close', {

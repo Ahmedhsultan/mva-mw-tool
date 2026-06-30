@@ -142,6 +142,20 @@
               </div>
             }
           </div>
+
+          @if (repositories.length > 0) {
+            <div class="repo-section">
+              <p class="repo-title">Repositories</p>
+              <div class="repo-list">
+                @for (repository of repositories; track repository) {
+                  <div class="repo-chip">
+                    <mat-icon class="repo-chip-icon">folder_open</mat-icon>
+                    <span class="repo-chip-label">{{ repository }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
         </section>
       </div>
     </mat-tab>

@@ -22,8 +22,8 @@
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/AuthRequest.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/AuthResponse.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/BuildDto.java
-/Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/ConfigEnvironmentsDto.java
-/Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/ConfigEnvironmentsRequest.java
+/Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/ConfigDataDto.java
+/Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/ConfigDataRequest.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/CreateBuildRequest.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/CreateDeployRequest.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/DeployDto.java

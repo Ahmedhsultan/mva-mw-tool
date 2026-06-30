@@ -4,8 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mva.mwtool.devops.DevOpsServiceFactory;
-import com.mva.mwtool.dto.ConfigEnvironmentsDto;
-import com.mva.mwtool.dto.ConfigEnvironmentsRequest;
+import com.mva.mwtool.dto.ConfigDataDto;
+import com.mva.mwtool.dto.ConfigDataRequest;
 import com.mva.mwtool.dto.RepoFileDto;
 import org.springframework.stereotype.Service;
 
@@ -18,8 +18,9 @@ import java.util.Set;
 public class ConfigDataService {
 
     private static final String PROVIDER = "azure";
-    private static final String ENVIRONMENTS_FILE_PATH = "db/config/environments.json";
-    private static final String ENVIRONMENTS_COMMIT_MESSAGE = "Update configuration environments";
+    private static final String CONFIG_FILE_PATH = "db/config/config.json";
+    private static final String LEGACY_CONFIG_FILE_PATH = "db/config/environments.json";
+    private static final String CONFIG_COMMIT_MESSAGE = "Update configuration data";
 
     private final DevOpsServiceFactory factory;
     private final ObjectMapper objectMapper;
@@ -29,17 +30,17 @@ public class ConfigDataService {
         this.objectMapper = objectMapper;
     }
 
-    public ConfigEnvironmentsDto getEnvironments(String pat, String organization, String project,
-                                                 String repoId, String branch) {
-        RepoFileDto file = factory.getRepoService(PROVIDER)
-                .pullFile(pat, organization, project, repoId, ENVIRONMENTS_FILE_PATH, branch);
-        return parseEnvironments(file.getContent());
+    public ConfigDataDto getConfigData(String pat, String organization, String project,
+                                       String repoId, String branch) {
+        RepoFileDto file = pullConfigFile(pat, organization, project, repoId, branch);
+        return parseConfigData(file.getContent());
     }
 
-    public void saveEnvironments(String pat, String organization, String project,
-                                 ConfigEnvironmentsRequest request) {
-        ConfigEnvironmentsDto payload = new ConfigEnvironmentsDto(
-                normalizeEnvironments(request.getEnvironments())
+    public void saveConfigData(String pat, String organization, String project,
+                               ConfigDataRequest request) {
+        ConfigDataDto payload = new ConfigDataDto(
+                normalizeEnvironments(request.getEnvironments()),
+                normalizeRepositories(request.getRepositories())
         );
 
         factory.getRepoService(PROVIDER).pushFile(
@@ -47,56 +48,81 @@ public class ConfigDataService {
                 organization,
                 project,
                 request.getRepoId(),
-                ENVIRONMENTS_FILE_PATH,
+                CONFIG_FILE_PATH,
                 request.getBranch(),
-                serializeEnvironments(payload),
-                ENVIRONMENTS_COMMIT_MESSAGE
+                serializeConfigData(payload),
+                CONFIG_COMMIT_MESSAGE
         );
     }
 
-    private ConfigEnvironmentsDto parseEnvironments(String content) {
+    private RepoFileDto pullConfigFile(String pat, String organization, String project,
+                                       String repoId, String branch) {
         try {
-            JsonNode parsed = objectMapper.readTree(content);
-            if (parsed.isArray()) {
-                return new ConfigEnvironmentsDto(readStringArray(parsed));
-            }
-
-            JsonNode environments = parsed.path("environments");
-            if (environments.isArray()) {
-                return new ConfigEnvironmentsDto(readStringArray(environments));
-            }
-
-            throw new IllegalArgumentException("Invalid environments file format");
-        } catch (JsonProcessingException exception) {
-            throw new IllegalArgumentException("Invalid environments file format", exception);
+            return factory.getRepoService(PROVIDER)
+                    .pullFile(pat, organization, project, repoId, CONFIG_FILE_PATH, branch);
+        } catch (Exception ignored) {
+            return factory.getRepoService(PROVIDER)
+                    .pullFile(pat, organization, project, repoId, LEGACY_CONFIG_FILE_PATH, branch);
         }
     }
 
-    private String serializeEnvironments(ConfigEnvironmentsDto payload) {
+    private ConfigDataDto parseConfigData(String content) {
+        try {
+            JsonNode parsed = objectMapper.readTree(content);
+            if (parsed.isArray()) {
+                return new ConfigDataDto(readStringArray(parsed, true), List.of());
+            }
+
+            JsonNode environments = parsed.path("environments");
+            JsonNode repositories = parsed.path("repositories");
+
+            return new ConfigDataDto(
+                    environments.isArray() ? readStringArray(environments, true) : List.of(),
+                    repositories.isArray() ? readStringArray(repositories, false) : List.of()
+            );
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("Invalid config file format", exception);
+        }
+    }
+
+    private String serializeConfigData(ConfigDataDto payload) {
         try {
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload)
                     + System.lineSeparator();
         } catch (JsonProcessingException exception) {
-            throw new IllegalArgumentException("Could not serialize environments", exception);
+            throw new IllegalArgumentException("Could not serialize config data", exception);
         }
     }
 
-    private List<String> readStringArray(JsonNode node) {
+    private List<String> readStringArray(JsonNode node, boolean lowercase) {
         List<String> values = new ArrayList<>();
         node.forEach(item -> values.add(item.asText("")));
-        return normalizeEnvironments(values);
+        return normalizeNames(values, lowercase);
     }
 
     private List<String> normalizeEnvironments(List<String> environments) {
+        return normalizeNames(environments, true);
+    }
+
+    private List<String> normalizeRepositories(List<String> repositories) {
+        return normalizeNames(repositories, false);
+    }
+
+    private List<String> normalizeNames(List<String> values, boolean lowercase) {
         Set<String> normalized = new LinkedHashSet<>();
 
-        if (environments != null) {
-            environments.stream()
-                    .map(environment -> environment == null ? "" : environment.trim().toLowerCase())
-                    .filter(environment -> !environment.isBlank())
+        if (values != null) {
+            values.stream()
+                    .map(value -> normalizeValue(value, lowercase))
+                    .filter(value -> !value.isBlank())
                     .forEach(normalized::add);
         }
 
         return new ArrayList<>(normalized);
+    }
+
+    private String normalizeValue(String value, boolean lowercase) {
+        String normalized = value == null ? "" : value.trim();
+        return lowercase ? normalized.toLowerCase() : normalized;
     }
 }

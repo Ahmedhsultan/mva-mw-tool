@@ -1,13 +1,12 @@
+com/mva/mwtool/dto/ConfigDataDto.class
 com/mva/mwtool/exception/GlobalExceptionHandler.class
 com/mva/mwtool/dto/PushFileRequest.class
 com/mva/mwtool/devops/auth/AuthService.class
 com/mva/mwtool/devops/repo/RepoService.class
 com/mva/mwtool/devops/deploy/AzureDeployService.class
 com/mva/mwtool/controller/AuthController.class
-com/mva/mwtool/dto/ConfigEnvironmentsRequest.class
 com/mva/mwtool/MvaMwToolApplication.class
 com/mva/mwtool/dto/CreateDeployRequest.class
-com/mva/mwtool/dto/ConfigEnvironmentsDto.class
 com/mva/mwtool/controller/ConfigController.class
 com/mva/mwtool/controller/DeployController.class
 com/mva/mwtool/devops/deploy/DeployService.class
@@ -26,6 +25,7 @@ com/mva/mwtool/config/WebConfig.class
 com/mva/mwtool/service/ConfigDataService.class
 com/mva/mwtool/devops/deploy/GitHubDeployService.class
 com/mva/mwtool/dto/RepoFileDto.class
+com/mva/mwtool/dto/ConfigDataRequest.class
 com/mva/mwtool/devops/build/BuildService.class
 com/mva/mwtool/devops/build/AzureBuildService.class
 com/mva/mwtool/devops/repo/AzureRepoService.class

@@ -1,7 +1,7 @@
 package com.mva.mwtool.controller;
 
-import com.mva.mwtool.dto.ConfigEnvironmentsDto;
-import com.mva.mwtool.dto.ConfigEnvironmentsRequest;
+import com.mva.mwtool.dto.ConfigDataDto;
+import com.mva.mwtool.dto.ConfigDataRequest;
 import com.mva.mwtool.service.ConfigDataService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -17,25 +17,25 @@ public class ConfigController {
         this.configDataService = configDataService;
     }
 
-    @GetMapping("/environments")
-    public ResponseEntity<ConfigEnvironmentsDto> getEnvironments(
+        @GetMapping
+        public ResponseEntity<ConfigDataDto> getConfig(
             @RequestHeader("X-PAT") String pat,
             @RequestParam String organization,
             @RequestParam String project,
             @RequestParam String repoId,
             @RequestParam String branch) {
-        ConfigEnvironmentsDto response = configDataService.getEnvironments(
+        ConfigDataDto response = configDataService.getConfigData(
                 pat, organization, project, repoId, branch);
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/environments")
-    public ResponseEntity<Void> saveEnvironments(
+        @PutMapping
+        public ResponseEntity<Void> saveConfig(
             @RequestHeader("X-PAT") String pat,
             @RequestParam String organization,
             @RequestParam String project,
-            @Valid @RequestBody ConfigEnvironmentsRequest request) {
-        configDataService.saveEnvironments(pat, organization, project, request);
+            @Valid @RequestBody ConfigDataRequest request) {
+        configDataService.saveConfigData(pat, organization, project, request);
         return ResponseEntity.ok().build();
     }
 }

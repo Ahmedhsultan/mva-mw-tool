@@ -57,14 +57,16 @@ export interface PushFileRequest {
   commitMessage: string;
 }
 
-export interface ConfigEnvironmentsFile {
+export interface ConfigDataFile {
   environments: string[];
+  repositories: string[];
 }
 
-export interface ConfigEnvironmentsRequest {
+export interface ConfigDataRequest {
   repoId: string;
   branch: string;
   environments: string[];
+  repositories: string[];
 }
 
 export interface DevOpsConfig {
