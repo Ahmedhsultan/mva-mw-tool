@@ -83,6 +83,12 @@
   }
 }
 
+.provider-chip {
+  background: rgba(36, 119, 255, 0.1);
+  border-color: rgba(36, 119, 255, 0.18);
+  color: var(--mva-accent-strong);
+}
+
 .nav-right {
   display: flex;
   align-items: center;

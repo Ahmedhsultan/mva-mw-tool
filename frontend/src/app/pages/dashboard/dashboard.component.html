@@ -11,13 +11,17 @@
     </div>
 
     <div class="nav-center">
+      <div class="context-chip provider-chip">
+        <mat-icon>{{ providerIcon(activeProvider()) }}</mat-icon>
+        <span>{{ providerLabel(activeProvider()) }}</span>
+      </div>
       <div class="context-chip">
         <mat-icon>business</mat-icon>
-        <span>{{ authService.organization() }}</span>
+        <span>{{ activeOrganization() }}</span>
       </div>
       <div class="context-chip">
         <mat-icon>folder_open</mat-icon>
-        <span>{{ authService.project() }}</span>
+        <span>{{ activeProject() }}</span>
       </div>
     </div>
 
@@ -42,7 +46,7 @@
   </header>
 
   <main class="main-content">
-    <mat-tab-group animationDuration="200ms" class="dashboard-tabs">
+    <mat-tab-group animationDuration="200ms" class="dashboard-tabs" (selectedIndexChange)="setSelectedTab($event)">
       <mat-tab>
         <ng-template mat-tab-label>
           <mat-icon class="tab-icon">dashboard</mat-icon>
@@ -82,16 +86,20 @@
 
               <div class="detail-list">
                 <div class="detail-row">
+                  <span>Provider</span>
+                  <strong>{{ providerLabel(authService.getTabProvider('overview')) }}</strong>
+                </div>
+                <div class="detail-row">
                   <span>User</span>
                   <strong>{{ authService.displayName() }}</strong>
                 </div>
                 <div class="detail-row">
                   <span>Organization</span>
-                  <strong>{{ authService.organization() }}</strong>
+                  <strong>{{ tabOrganization('overview') }}</strong>
                 </div>
                 <div class="detail-row">
                   <span>Project</span>
-                  <strong>{{ authService.project() }}</strong>
+                  <strong>{{ tabProject('overview') }}</strong>
                 </div>
               </div>
             </section>
@@ -119,7 +127,7 @@
               <h3>Builds</h3>
 
               <div class="step-list">
-                <div class="step-item"><span>1</span><p>Select provider and repository context</p></div>
+                <div class="step-item"><span>1</span><p>Use {{ providerLabel(authService.getTabProvider('builds')) }} for this tab</p></div>
                 <div class="step-item"><span>2</span><p>Trigger new builds or inspect recent runs</p></div>
                 <div class="step-item"><span>3</span><p>Surface results and logs inside focused cards</p></div>
               </div>
@@ -143,7 +151,7 @@
               <h3>Deployments</h3>
 
               <div class="step-list">
-                <div class="step-item"><span>1</span><p>Choose target environment from saved shortcuts</p></div>
+                <div class="step-item"><span>1</span><p>Use {{ providerLabel(authService.getTabProvider('deployments')) }} for this tab</p></div>
                 <div class="step-item"><span>2</span><p>Trigger deployments with clear contextual metadata</p></div>
                 <div class="step-item"><span>3</span><p>Display history, health, and rollback paths cleanly</p></div>
               </div>

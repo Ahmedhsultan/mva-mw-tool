@@ -1,4 +1,4 @@
-import { Component, signal, OnInit } from '@angular/core';
+import { Component, computed, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -9,8 +9,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
+import { finalize } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { AppTabKey, AppTabProviders, DevOpsProvider, ProviderSettings } from '../../core/models';
 
 @Component({
   selector: 'app-config-dialog',
@@ -31,10 +33,24 @@ import { AuthService } from '../../core/services/auth.service';
   styleUrl: './config-dialog.component.scss'
 })
 export class ConfigDialogComponent implements OnInit {
-  azurePat = '';
-  githubPat = '';
-  hideAzurePat = signal(true);
-  hideGithubPat = signal(true);
+  private readonly defaultGitHubConfigRepoId = 'mva-mw-tool';
+
+  provider: DevOpsProvider = 'azure';
+  configProvider: DevOpsProvider = 'azure';
+  appTabs: AppTabKey[] = ['overview', 'builds', 'deployments', 'config'];
+  tabProviders: AppTabProviders = {
+    overview: 'azure',
+    builds: 'azure',
+    deployments: 'azure',
+    config: 'azure'
+  };
+  organization = '';
+  project = '';
+  token = '';
+  hideToken = signal(true);
+  isLoadingConfig = signal(false);
+  isSavingConfig = signal(false);
+  isConfigBusy = computed(() => this.isLoadingConfig() || this.isSavingConfig());
 
   environments: string[] = [];
   repositories: string[] = [];
@@ -43,6 +59,7 @@ export class ConfigDialogComponent implements OnInit {
   dbRepoId = '';
   dbBranch = 'main';
   configLoaded = false;
+  loadError = '';
 
   constructor(
     private apiService: ApiService,
@@ -53,31 +70,120 @@ export class ConfigDialogComponent implements OnInit {
 
   ngOnInit(): void {
     const config = this.authService.getConfig();
-    this.azurePat = config.azurePat;
-    this.githubPat = config.githubPat;
-    this.dbRepoId = config.dbRepoId;
-    this.dbBranch = config.dbBranch;
+    this.tabProviders = config.tabProviders;
+    this.configProvider = this.tabProviders.config;
+    this.provider = this.configProvider;
+    this.applyProviderSettings(this.authService.getProviderSettings(this.provider));
+    this.dbRepoId = this.resolveDbRepoId(config.dbRepoId);
+    this.dbBranch = config.dbBranch.trim() || 'main';
 
     this.loadConfig();
   }
 
-  saveAzurePat(): void {
-    this.authService.updateAzurePat(this.azurePat);
-    this.snackBar.open('Azure PAT updated', 'Close', {
+  saveProviderSettings(): void {
+    this.authService.updateProviderSettings(this.provider, {
+      pat: this.token,
+      organization: this.organization.trim(),
+      project: this.project.trim()
+    });
+
+    this.snackBar.open(`${this.providerLabel()} settings updated`, 'Close', {
       duration: 2000,
       panelClass: 'success-snackbar'
     });
+
+    if (this.dbRepoId.trim()) {
+      this.loadConfig();
+    }
   }
 
-  saveGithubPat(): void {
-    this.authService.updateGithubPat(this.githubPat);
-    this.snackBar.open('GitHub PAT updated', 'Close', {
-      duration: 2000,
-      panelClass: 'success-snackbar'
-    });
+  setAppTabProvider(tab: AppTabKey, provider: DevOpsProvider): void {
+    this.tabProviders = {
+      ...this.tabProviders,
+      [tab]: provider
+    };
+
+    this.authService.updateTabProvider(tab, provider);
+
+    if (tab === 'config') {
+      this.configProvider = provider;
+      this.provider = provider;
+      this.applyProviderSettings(this.authService.getProviderSettings(provider));
+      this.dbRepoId = this.resolveDbRepoId(this.dbRepoId);
+
+      this.loadConfig();
+    }
+  }
+
+  isAppTabProviderSelected(tab: AppTabKey, provider: DevOpsProvider): boolean {
+    return this.tabProviders[tab] === provider;
+  }
+
+  tabLabel(tab: AppTabKey): string {
+    switch (tab) {
+      case 'overview':
+        return 'Overview';
+      case 'builds':
+        return 'Builds';
+      case 'deployments':
+        return 'Deployments';
+      default:
+        return 'Config';
+    }
+  }
+
+  setProvider(provider: DevOpsProvider): void {
+    this.provider = provider;
+    this.applyProviderSettings(this.authService.getProviderSettings(provider));
+  }
+
+  isProviderSelected(provider: DevOpsProvider): boolean {
+    return this.provider === provider;
+  }
+
+  providerLabel(): string {
+    return this.provider === 'github' ? 'GitHub' : 'Azure DevOps';
+  }
+
+  providerName(provider: DevOpsProvider): string {
+    return provider === 'github' ? 'GitHub' : 'Azure DevOps';
+  }
+
+  organizationLabel(): string {
+    return this.provider === 'github' ? 'Owner / Organization' : 'Organization';
+  }
+
+  organizationPlaceholder(): string {
+    return this.provider === 'github' ? 'my-org-or-user' : 'my-org';
+  }
+
+  projectLabel(): string {
+    return this.provider === 'github' ? 'Project / Workspace' : 'Project';
+  }
+
+  projectPlaceholder(): string {
+    return this.provider === 'github' ? 'optional-workspace' : 'my-project';
+  }
+
+  tokenLabel(): string {
+    return this.provider === 'github' ? 'GitHub Token' : 'Personal Access Token';
+  }
+
+  tokenPlaceholder(): string {
+    return this.provider === 'github' ? 'Enter GitHub token' : 'Enter Azure DevOps PAT';
+  }
+
+  configStatusMessage(): string {
+    if (this.isSavingConfig()) {
+      return 'Saving changes...';
+    }
+
+    return 'Loading configuration...';
   }
 
   addEnvironment(): void {
+    if (this.isConfigBusy()) return;
+
     const name = this.newEnvName.trim().toLowerCase();
     if (!name) return;
     if (this.environments.includes(name)) {
@@ -94,12 +200,16 @@ export class ConfigDialogComponent implements OnInit {
   }
 
   removeEnvironment(env: string): void {
+    if (this.isConfigBusy()) return;
+
     const previousState = this.snapshotConfig();
     this.environments = this.environments.filter(existingEnvironment => existingEnvironment !== env);
     this.persistConfig(previousState, `Environment "${env}" removed`);
   }
 
   addRepository(): void {
+    if (this.isConfigBusy()) return;
+
     const name = this.newRepositoryName.trim();
     if (!name) return;
     if (this.repositories.some(repository => repository.toLowerCase() === name.toLowerCase())) {
@@ -117,6 +227,8 @@ export class ConfigDialogComponent implements OnInit {
   }
 
   removeRepository(repository: string): void {
+    if (this.isConfigBusy()) return;
+
     const previousState = this.snapshotConfig();
     this.repositories = this.repositories.filter(existingRepository => existingRepository !== repository);
     this.persistConfig(previousState, `Repository "${repository}" removed`);
@@ -127,14 +239,32 @@ export class ConfigDialogComponent implements OnInit {
   }
 
   private loadConfig(): void {
-    this.apiService.getConfigData(this.dbRepoId, this.dbBranch).subscribe({
+    const repoId = this.resolveDbRepoId(this.dbRepoId);
+    const branch = this.dbBranch.trim() || 'main';
+
+    if (!repoId) {
+      this.configLoaded = false;
+      this.loadError = 'Config repo is missing for the selected provider.';
+      return;
+    }
+
+    this.dbRepoId = repoId;
+    this.dbBranch = branch;
+    this.loadError = '';
+    this.isLoadingConfig.set(true);
+
+    this.apiService.getConfigData(this.configProvider, repoId, branch)
+      .pipe(finalize(() => this.isLoadingConfig.set(false)))
+      .subscribe({
       next: (response) => {
         this.environments = [...response.environments];
         this.repositories = [...response.repositories];
         this.configLoaded = true;
+        this.loadError = '';
       },
       error: () => {
         this.configLoaded = false;
+        this.loadError = `Could not load config from ${this.providerName(this.configProvider)}. Check token, organization, repo access, and config provider.`;
       }
     });
   }
@@ -145,19 +275,33 @@ export class ConfigDialogComponent implements OnInit {
   ): void {
     if (!this.configLoaded) {
       this.restoreConfig(previousState);
-      this.snackBar.open('Could not load configuration', 'Close', {
+      this.snackBar.open(this.loadError || 'Could not load configuration', 'Close', {
         duration: 2500,
         panelClass: 'error-snackbar'
       });
       return;
     }
 
-    this.apiService.saveConfigData({
-      repoId: this.dbRepoId,
-      branch: this.dbBranch.trim() || 'main',
+    const repoId = this.resolveDbRepoId(this.dbRepoId);
+    const branch = this.dbBranch.trim() || 'main';
+
+    if (!repoId) {
+      this.restoreConfig(previousState);
+      this.snackBar.open('Config repo is missing for the selected provider.', 'Close', {
+        duration: 3000,
+        panelClass: 'error-snackbar'
+      });
+      return;
+    }
+
+    this.isSavingConfig.set(true);
+
+    this.apiService.saveConfigData(this.configProvider, {
+      repoId,
+      branch,
       environments: this.environments,
       repositories: this.repositories
-    }).subscribe({
+    }).pipe(finalize(() => this.isSavingConfig.set(false))).subscribe({
       next: () => {
         this.snackBar.open(successMessage, 'Close', {
           duration: 2000,
@@ -184,5 +328,25 @@ export class ConfigDialogComponent implements OnInit {
   private restoreConfig(state: { environments: string[]; repositories: string[] }): void {
     this.environments = [...state.environments];
     this.repositories = [...state.repositories];
+  }
+
+  private applyProviderSettings(settings: ProviderSettings): void {
+    this.organization = settings.organization;
+    this.project = settings.project;
+    this.token = settings.pat;
+  }
+
+  private resolveDbRepoId(repoId: string): string {
+    const trimmedRepoId = repoId.trim();
+
+    if (trimmedRepoId) {
+      return trimmedRepoId;
+    }
+
+    if (this.configProvider === 'github') {
+      return this.defaultGitHubConfigRepoId;
+    }
+
+    return '';
   }
 }

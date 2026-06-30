@@ -43,30 +43,48 @@
 
       <div class="card-header">
         <h2>Sign in</h2>
-        <p>Enter your organization, project, and PAT.</p>
+        <p>Choose Azure DevOps or GitHub, then enter your access details.</p>
       </div>
 
       <form (ngSubmit)="login()" class="login-form">
+        <div class="provider-switch">
+          <button mat-stroked-button type="button"
+                  class="provider-option"
+                  [class.active]="isProviderSelected('azure')"
+                  (click)="selectProvider('azure')">
+            <mat-icon>cloud</mat-icon>
+            Azure DevOps
+          </button>
+
+          <button mat-stroked-button type="button"
+                  class="provider-option"
+                  [class.active]="isProviderSelected('github')"
+                  (click)="selectProvider('github')">
+            <mat-icon>code</mat-icon>
+            GitHub
+          </button>
+        </div>
+
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Organization</mat-label>
+          <mat-label>{{ organizationLabel() }}</mat-label>
           <mat-icon matPrefix>business</mat-icon>
           <input matInput [(ngModel)]="organization" name="organization"
-                 placeholder="my-org" required autocomplete="organization">
+                 [placeholder]="organizationPlaceholder()" required autocomplete="organization">
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Project</mat-label>
+          <mat-label>{{ projectLabel() }}</mat-label>
           <mat-icon matPrefix>folder_open</mat-icon>
           <input matInput [(ngModel)]="project" name="project"
-                 placeholder="my-project" required autocomplete="off">
+                 [placeholder]="projectPlaceholder()" [required]="provider === 'azure'" autocomplete="off">
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Personal Access Token</mat-label>
+          <mat-label>{{ tokenLabel() }}</mat-label>
           <mat-icon matPrefix>key</mat-icon>
           <input matInput [(ngModel)]="pat" name="pat"
                  [type]="hidePassword() ? 'password' : 'text'"
-                 placeholder="Paste your PAT here" required autocomplete="off">
+                 [placeholder]="tokenPlaceholder()" required autocomplete="off">
           <button mat-icon-button matSuffix type="button"
                   (click)="togglePasswordVisibility()">
             <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
@@ -86,9 +104,8 @@
       </div>
 
       <p class="footer-text">
-        Need a PAT? Create one in
-        <a href="https://dev.azure.com" target="_blank" rel="noopener">Azure DevOps</a>
-        from User Settings → Personal Access Tokens.
+        {{ providerHelpText() }}
+        <a [href]="providerHelpUrl()" target="_blank" rel="noopener">Open provider settings</a>
       </p>
     </mat-card>
   </section>

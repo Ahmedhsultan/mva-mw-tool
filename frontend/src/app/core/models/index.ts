@@ -1,6 +1,23 @@
+export type DevOpsProvider = 'azure' | 'github';
+
+export interface ProviderSettings {
+  pat: string;
+  organization: string;
+  project: string;
+}
+
+export type AppTabKey = 'overview' | 'builds' | 'deployments' | 'config';
+
+export interface AppTabProviders {
+  overview: DevOpsProvider;
+  builds: DevOpsProvider;
+  deployments: DevOpsProvider;
+  config: DevOpsProvider;
+}
+
 export interface AuthRequest {
   pat: string;
-  provider: 'azure' | 'github';
+  provider: DevOpsProvider;
   organization: string;
   project: string;
 }
@@ -70,11 +87,17 @@ export interface ConfigDataRequest {
 }
 
 export interface DevOpsConfig {
+  provider: DevOpsProvider;
   azurePat: string;
   githubPat: string;
+  azureOrganization: string;
+  azureProject: string;
+  githubOrganization: string;
+  githubProject: string;
   organization: string;
   project: string;
   environments: string[];
   dbRepoId: string;
   dbBranch: string;
+  tabProviders: AppTabProviders;
 }

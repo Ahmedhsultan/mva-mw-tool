@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class ConfigRepository {
 
-    private static final String PROVIDER = "azure";
     private static final String CONFIG_FILE_PATH = "db/config/config.json";
     private static final String CONFIG_COMMIT_MESSAGE = "Update configuration data";
 
@@ -21,10 +20,10 @@ public class ConfigRepository {
         this.objectMapper = objectMapper;
     }
 
-    public ConfigEntity readConfig(String pat, String organization, String project,
+    public ConfigEntity readConfig(String pat, String provider, String organization, String project,
                                    String repoId, String branch) {
         try {
-            String content = factory.getRepoService(PROVIDER)
+            String content = factory.getRepoService(provider)
                 .pullFile(pat, organization, project, repoId, CONFIG_FILE_PATH, branch)
                 .getContent();
 
@@ -32,14 +31,14 @@ public class ConfigRepository {
         } catch (JsonProcessingException exception) {
             throw new IllegalArgumentException("Invalid config file format", exception);
         } catch (Exception exception) {
-            throw new IllegalArgumentException("Could not load config from Azure DevOps repo", exception);
+            throw new IllegalArgumentException("Could not load config from provider repo", exception);
         }
     }
 
-    public void updateConfig(String pat, String organization, String project,
+    public void updateConfig(String pat, String provider, String organization, String project,
                              String repoId, String branch, ConfigEntity configEntity) {
         try {
-            factory.getRepoService(PROVIDER).pushFile(
+            factory.getRepoService(provider).pushFile(
                 pat,
                 organization,
                 project,

@@ -20,10 +20,11 @@ public class ConfigDataService {
         this.configRepository = configRepository;
     }
 
-    public ConfigDataDto getConfigData(String pat, String organization, String project,
+    public ConfigDataDto getConfigData(String pat, String provider, String organization, String project,
                                        String repoId, String branch) {
         ConfigEntity configEntity = configRepository.readConfig(
             pat,
+            provider,
             organization,
             project,
             repoId,
@@ -36,7 +37,7 @@ public class ConfigDataService {
         );
     }
 
-    public void saveConfigData(String pat, String organization, String project,
+    public void saveConfigData(String pat, String provider, String organization, String project,
                                ConfigDataRequest request) {
         String resolvedRepoId = request.getRepoId();
         String resolvedBranch = resolveBranch(request.getBranch());
@@ -47,6 +48,7 @@ public class ConfigDataService {
 
         configRepository.updateConfig(
             pat,
+            provider,
             organization,
             project,
             resolvedRepoId,

@@ -62,8 +62,8 @@ export class ApiService {
 
   // ---- Config ----
 
-  getConfigData(repoId?: string, branch?: string): Observable<ConfigDataFile> {
-    let params = this.baseParams('azure');
+  getConfigData(provider: string, repoId?: string, branch?: string): Observable<ConfigDataFile> {
+    let params = this.baseParams(provider);
 
     if (repoId?.trim()) {
       params = params.set('repoId', repoId.trim());
@@ -74,15 +74,15 @@ export class ApiService {
     }
 
     return this.http.get<ConfigDataFile>('/api/config', {
-      headers: this.authHeaders('azure'),
+      headers: this.authHeaders(provider),
       params
     });
   }
 
-  saveConfigData(request: ConfigDataRequest): Observable<void> {
+  saveConfigData(provider: string, request: ConfigDataRequest): Observable<void> {
     return this.http.put<void>('/api/config', request, {
-      headers: this.authHeaders('azure'),
-      params: this.baseParams('azure')
+      headers: this.authHeaders(provider),
+      params: this.baseParams(provider)
     });
   }
 
@@ -107,16 +107,16 @@ export class ApiService {
   // ---- Helpers ----
 
   private authHeaders(provider: string): HttpHeaders {
-    const config = this.authService.getConfig();
-    const pat = provider === 'github' ? config.githubPat : config.azurePat;
+    const settings = this.authService.getProviderSettings(provider as 'azure' | 'github');
+    const pat = settings.pat;
     return new HttpHeaders({ 'X-PAT': pat });
   }
 
   private baseParams(provider: string): HttpParams {
-    const config = this.authService.getConfig();
+    const settings = this.authService.getProviderSettings(provider as 'azure' | 'github');
     return new HttpParams()
       .set('provider', provider)
-      .set('organization', config.organization)
-      .set('project', config.project);
+      .set('organization', settings.organization)
+      .set('project', settings.project);
   }
 }
