@@ -7,6 +7,7 @@ com/mva/mwtool/devops/deploy/AzureDeployService.class
 com/mva/mwtool/controller/AuthController.class
 com/mva/mwtool/MvaMwToolApplication.class
 com/mva/mwtool/dto/CreateDeployRequest.class
+com/mva/mwtool/repository/ConfigRepository.class
 com/mva/mwtool/controller/ConfigController.class
 com/mva/mwtool/controller/DeployController.class
 com/mva/mwtool/devops/deploy/DeployService.class
@@ -15,6 +16,7 @@ com/mva/mwtool/dto/BuildDto.class
 com/mva/mwtool/dto/AuthResponse.class
 com/mva/mwtool/dto/DeployDto.class
 com/mva/mwtool/devops/auth/GitHubAuthService.class
+com/mva/mwtool/entity/ConfigEntity.class
 com/mva/mwtool/devops/auth/AzureAuthService.class
 com/mva/mwtool/devops/repo/GitHubRepoService.class
 com/mva/mwtool/controller/RepoController.class

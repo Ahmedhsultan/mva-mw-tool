@@ -29,5 +29,7 @@
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/DeployDto.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/PushFileRequest.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/RepoFileDto.java
+/Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/entity/ConfigEntity.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/exception/GlobalExceptionHandler.java
+/Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/repository/ConfigRepository.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/service/ConfigDataService.java
