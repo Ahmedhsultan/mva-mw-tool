@@ -1,0 +1,95 @@
+<div class="login-page">
+  <section class="login-shell mva-card">
+    <div class="login-intro">
+      <div class="brand-lockup">
+        <div class="brand-icon">
+          <mat-icon>dashboard_customize</mat-icon>
+        </div>
+
+        <div class="brand-copy">
+          <h1>MVA-MW-Tool</h1>
+          <p>Middleware operations for Azure DevOps and GitHub.</p>
+        </div>
+      </div>
+
+      <div class="intro-grid">
+        <article class="intro-tile">
+          <mat-icon>hub</mat-icon>
+          <div>
+            <h3>One workspace</h3>
+          </div>
+        </article>
+
+        <article class="intro-tile">
+          <mat-icon>verified_user</mat-icon>
+          <div>
+            <h3>Session access</h3>
+          </div>
+        </article>
+
+        <article class="intro-tile">
+          <mat-icon>auto_awesome</mat-icon>
+          <div>
+            <h3>Clean UI</h3>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <mat-card class="login-card mva-card">
+      @if (loading()) {
+        <mat-progress-bar mode="indeterminate" class="login-progress"></mat-progress-bar>
+      }
+
+      <div class="card-header">
+        <h2>Sign in</h2>
+        <p>Enter your organization, project, and PAT.</p>
+      </div>
+
+      <form (ngSubmit)="login()" class="login-form">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Organization</mat-label>
+          <mat-icon matPrefix>apartment</mat-icon>
+          <input matInput [(ngModel)]="organization" name="organization"
+                 placeholder="my-org" required autocomplete="organization">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Project</mat-label>
+          <mat-icon matPrefix>folder_open</mat-icon>
+          <input matInput [(ngModel)]="project" name="project"
+                 placeholder="my-project" required autocomplete="off">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Personal Access Token</mat-label>
+          <mat-icon matPrefix>vpn_key</mat-icon>
+          <input matInput [(ngModel)]="pat" name="pat"
+                 [type]="hidePassword() ? 'password' : 'text'"
+                 placeholder="Paste your PAT here" required autocomplete="off">
+          <button mat-icon-button matSuffix type="button"
+                  (click)="togglePasswordVisibility()">
+            <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" type="submit"
+                class="login-button" [disabled]="loading()">
+          <mat-icon>arrow_forward</mat-icon>
+          Continue to workspace
+        </button>
+      </form>
+
+      <div class="security-note">
+        <mat-icon>lock</mat-icon>
+        <span>Stored in the current session only.</span>
+      </div>
+
+      <p class="footer-text">
+        Need a PAT? Create one in
+        <a href="https://dev.azure.com" target="_blank" rel="noopener">Azure DevOps</a>
+        from User Settings → Personal Access Tokens.
+      </p>
+    </mat-card>
+  </section>
+</div>

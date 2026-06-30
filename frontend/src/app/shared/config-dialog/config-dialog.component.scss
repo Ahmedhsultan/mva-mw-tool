@@ -1,0 +1,265 @@
+.config-dialog {
+  padding: 0;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 24px 12px;
+
+  h2 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    color: var(--mva-text);
+  }
+
+  .close-btn {
+    margin-top: 4px;
+  }
+
+  .close-btn mat-icon {
+    color: var(--mva-text-soft);
+  }
+}
+
+.tab-icon {
+  margin-right: 6px;
+  font-size: 20px;
+}
+
+.tab-body {
+  padding: 24px;
+}
+
+.tab-intro {
+  margin-bottom: 18px;
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 24px;
+    line-height: 1.08;
+    letter-spacing: -0.04em;
+    color: var(--mva-text);
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--mva-text-muted);
+  }
+}
+
+.token-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.pat-section {
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(126, 149, 185, 0.18);
+  box-shadow: var(--mva-shadow-soft);
+}
+
+.panel-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 10px;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--mva-text);
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--mva-text-muted);
+  }
+}
+
+.panel-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(126, 149, 185, 0.18);
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  &.azure-icon {
+    background: rgba(0, 120, 212, 0.1);
+    color: #0078d4;
+  }
+
+  &.github-icon {
+    background: rgba(36, 41, 47, 0.08);
+    color: #24292f;
+  }
+}
+
+.panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.save-btn {
+  border-radius: 16px;
+  font-weight: 800;
+  font-size: 13px;
+
+  mat-icon {
+    margin-right: 4px;
+    font-size: 18px;
+  }
+}
+
+.environment-panel {
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(126, 149, 185, 0.18);
+  box-shadow: var(--mva-shadow-soft);
+}
+
+.env-add-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+
+  .env-input {
+    flex: 1;
+  }
+
+  button {
+    margin-top: 4px;
+    height: 50px;
+    border-radius: 16px;
+    font-weight: 800;
+  }
+}
+
+.env-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.env-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(125, 149, 185, 0.18);
+  border-radius: 999px;
+  padding: 6px 8px 6px 14px;
+  transition: background 0.15s ease, transform 0.15s ease;
+  box-shadow: var(--mva-shadow-soft);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.78);
+    transform: translateY(-1px);
+  }
+
+  .env-chip-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--mva-accent-strong);
+  }
+
+  .env-chip-label {
+    font-size: 13px;
+    color: var(--mva-text);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 800;
+  }
+
+  .env-remove-btn {
+    width: 26px;
+    height: 26px;
+    line-height: 26px;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: var(--mva-text-soft);
+    }
+
+    &:hover mat-icon {
+      color: #ef4444;
+    }
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 36px 24px;
+  width: 100%;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px dashed rgba(126, 149, 185, 0.26);
+
+  mat-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    color: var(--mva-text-soft);
+    margin-bottom: 10px;
+  }
+
+  p {
+    margin: 0;
+    color: var(--mva-text-muted);
+    font-size: 13px;
+  }
+}
+
+::ng-deep .config-dialog-panel {
+  .mat-mdc-dialog-container {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(126, 149, 185, 0.18);
+    border-radius: 28px;
+    box-shadow: var(--mva-shadow);
+    backdrop-filter: blur(26px) saturate(1.35);
+    -webkit-backdrop-filter: blur(26px) saturate(1.35);
+  }
+}
+
+@media (max-width: 680px) {
+  .dialog-header,
+  .tab-body {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .panel-footer,
+  .env-add-row {
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+}

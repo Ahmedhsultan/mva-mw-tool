@@ -1,0 +1,185 @@
+@use '@angular/material' as mat;
+
+html {
+  height: 100%;
+  @include mat.theme(
+    (
+      color: (
+        theme-type: light,
+        primary: mat.$azure-palette,
+        tertiary: mat.$blue-palette,
+      ),
+      typography: Manrope,
+      density: 0,
+    )
+  );
+}
+
+:root {
+  --mva-bg: #eef3fb;
+  --mva-surface: rgba(255, 255, 255, 0.72);
+  --mva-surface-strong: rgba(255, 255, 255, 0.9);
+  --mva-surface-soft: rgba(248, 251, 255, 0.82);
+  --mva-border: rgba(144, 163, 191, 0.28);
+  --mva-border-strong: rgba(113, 138, 173, 0.38);
+  --mva-shadow: 0 24px 70px rgba(50, 84, 128, 0.14);
+  --mva-shadow-soft: 0 10px 30px rgba(62, 96, 138, 0.08);
+  --mva-text: #172033;
+  --mva-text-muted: #62708a;
+  --mva-text-soft: #8390a8;
+  --mva-accent: #2477ff;
+  --mva-accent-strong: #1453e0;
+  --mva-accent-soft: rgba(36, 119, 255, 0.12);
+  --mva-success-soft: rgba(34, 197, 94, 0.12);
+  --mva-danger-soft: rgba(239, 68, 68, 0.12);
+}
+
+body {
+  color-scheme: light;
+  background:
+    radial-gradient(circle at top left, rgba(147, 197, 253, 0.45), transparent 28%),
+    radial-gradient(circle at 85% 12%, rgba(251, 207, 232, 0.34), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(191, 219, 254, 0.36), transparent 22%),
+    linear-gradient(180deg, #f9fbff 0%, var(--mva-bg) 52%, #edf2f9 100%);
+  color: var(--mva-text);
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  margin: 0;
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: auto;
+  width: 28rem;
+  height: 28rem;
+  border-radius: 50%;
+  filter: blur(24px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+body::before {
+  top: -9rem;
+  left: -7rem;
+  background: rgba(186, 230, 253, 0.45);
+}
+
+body::after {
+  right: -8rem;
+  bottom: -9rem;
+  background: rgba(221, 214, 254, 0.42);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+app-root {
+  display: block;
+  min-height: 100%;
+}
+
+a {
+  color: var(--mva-accent);
+}
+
+// ---------- Light Glass Design System ----------
+
+.mva-card {
+  background: var(--mva-surface) !important;
+  border: 1px solid var(--mva-border) !important;
+  border-radius: 28px !important;
+  box-shadow: var(--mva-shadow) !important;
+  backdrop-filter: blur(24px) saturate(1.35) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.35) !important;
+}
+
+.mva-toolbar {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border-bottom: 1px solid var(--mva-border) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(26px) saturate(1.35) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(1.35) !important;
+}
+
+.mat-mdc-tab-group .mat-mdc-tab-header {
+  border-bottom: 1px solid rgba(118, 139, 173, 0.18);
+}
+
+.mat-mdc-tab-group .mdc-tab {
+  min-width: 0;
+}
+
+.mat-mdc-tab-group .mdc-tab__text-label {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.mat-mdc-form-field {
+  width: 100%;
+}
+
+.mat-mdc-text-field-wrapper {
+  border-radius: 18px !important;
+  background: rgba(255, 255, 255, 0.68) !important;
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+}
+
+.mat-mdc-form-field.mat-focused .mat-mdc-text-field-wrapper {
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+.mat-mdc-unelevated-button:not([disabled]) {
+  box-shadow: 0 14px 28px rgba(36, 119, 255, 0.18) !important;
+}
+
+.mat-mdc-icon-button {
+  color: var(--mva-text-muted);
+}
+
+.mat-mdc-menu-panel,
+.mat-mdc-select-panel,
+.mat-mdc-autocomplete-panel {
+  border: 1px solid var(--mva-border) !important;
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.86) !important;
+  box-shadow: var(--mva-shadow-soft) !important;
+  backdrop-filter: blur(22px) saturate(1.35) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.35) !important;
+}
+
+.mat-mdc-dialog-surface {
+  background: transparent !important;
+}
+
+.error-snackbar {
+  --mdc-snackbar-container-color: #ef4444;
+  --mdc-snackbar-supporting-text-color: #fff;
+}
+
+.success-snackbar {
+  --mdc-snackbar-container-color: #10b981;
+  --mdc-snackbar-supporting-text-color: #fff;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}

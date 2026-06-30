@@ -1,0 +1,129 @@
+<div class="config-dialog">
+  <div class="dialog-header">
+    <div>
+      <h2>Configuration</h2>
+    </div>
+    <button mat-icon-button (click)="close()" class="close-btn">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-tab-group animationDuration="200ms" class="config-tabs">
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">vpn_key</mat-icon>
+        PAT Tokens
+      </ng-template>
+
+      <div class="tab-body">
+        <div class="token-stack">
+          <section class="pat-section">
+            <div class="panel-heading">
+              <div class="panel-icon azure-icon">
+                <mat-icon>cloud</mat-icon>
+              </div>
+
+              <div>
+                <h3>Azure DevOps</h3>
+              </div>
+            </div>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Azure DevOps PAT</mat-label>
+              <input matInput [(ngModel)]="azurePat"
+                     [type]="hideAzurePat() ? 'password' : 'text'"
+                     placeholder="Enter Azure DevOps PAT" autocomplete="off">
+              <button mat-icon-button matSuffix type="button"
+                      (click)="hideAzurePat.set(!hideAzurePat())">
+                <mat-icon>{{ hideAzurePat() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </mat-form-field>
+
+            <div class="panel-footer">
+              <button mat-flat-button color="primary" (click)="saveAzurePat()" class="save-btn">
+                <mat-icon>save</mat-icon>
+                Save Azure PAT
+              </button>
+            </div>
+          </section>
+
+          <section class="pat-section">
+            <div class="panel-heading">
+              <div class="panel-icon github-icon">
+                <mat-icon>code</mat-icon>
+              </div>
+
+              <div>
+                <h3>GitHub</h3>
+              </div>
+            </div>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>GitHub PAT</mat-label>
+              <input matInput [(ngModel)]="githubPat"
+                     [type]="hideGithubPat() ? 'password' : 'text'"
+                     placeholder="Enter GitHub PAT" autocomplete="off">
+              <button mat-icon-button matSuffix type="button"
+                      (click)="hideGithubPat.set(!hideGithubPat())">
+                <mat-icon>{{ hideGithubPat() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </mat-form-field>
+
+            <div class="panel-footer">
+              <button mat-flat-button color="primary" (click)="saveGithubPat()" class="save-btn">
+                <mat-icon>save</mat-icon>
+                Save GitHub PAT
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </mat-tab>
+
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">dns</mat-icon>
+        Environments
+      </ng-template>
+
+      <div class="tab-body">
+        <section class="environment-panel">
+          <div class="env-add-row">
+            <mat-form-field appearance="outline" class="env-input">
+              <mat-label>New Environment</mat-label>
+              <input matInput [(ngModel)]="newEnvName"
+                     placeholder="e.g. qa, uat" autocomplete="off"
+                     (keyup.enter)="addEnvironment()">
+            </mat-form-field>
+            <button mat-flat-button color="primary" (click)="addEnvironment()"
+                    [disabled]="!newEnvName.trim()">
+              <mat-icon>add</mat-icon>
+              Add
+            </button>
+          </div>
+
+          <div class="env-list">
+            @for (env of environments; track env) {
+              <div class="env-chip">
+                <mat-icon class="env-chip-icon">dns</mat-icon>
+                <span class="env-chip-label">{{ env }}</span>
+                <button mat-icon-button class="env-remove-btn"
+                        (click)="removeEnvironment(env)"
+                        matTooltip="Remove environment">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            }
+
+            @if (environments.length === 0) {
+              <div class="empty-state">
+                <mat-icon>info_outline</mat-icon>
+                <p>No environments configured.</p>
+              </div>
+            }
+          </div>
+        </section>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>

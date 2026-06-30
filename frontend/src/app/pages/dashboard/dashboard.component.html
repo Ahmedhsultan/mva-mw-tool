@@ -1,0 +1,160 @@
+<div class="dashboard-shell">
+  <header class="top-nav mva-toolbar">
+    <div class="nav-brand">
+      <div class="brand-mark">
+        <mat-icon>dashboard_customize</mat-icon>
+      </div>
+
+      <div class="brand-copy">
+        <span class="brand-title">MVA-MW-Tool</span>
+      </div>
+    </div>
+
+    <div class="nav-center">
+      <div class="context-chip">
+        <mat-icon>apartment</mat-icon>
+        <span>{{ authService.organization() }}</span>
+      </div>
+      <div class="context-chip">
+        <mat-icon>folder_open</mat-icon>
+        <span>{{ authService.project() }}</span>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <button mat-stroked-button class="config-button" (click)="openConfig()">
+        <mat-icon>tune</mat-icon>
+        Workspace settings
+      </button>
+
+      <div class="user-pill" [matMenuTriggerFor]="userMenu">
+        <div class="user-avatar">{{ authService.displayName()?.charAt(0)?.toUpperCase() }}</div>
+        <span class="user-name">{{ authService.displayName() }}</span>
+        <mat-icon class="chevron">expand_more</mat-icon>
+      </div>
+      <mat-menu #userMenu="matMenu">
+        <button mat-menu-item (click)="logout()">
+          <mat-icon>logout</mat-icon>
+          <span>Sign Out</span>
+        </button>
+      </mat-menu>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <mat-tab-group animationDuration="200ms" class="dashboard-tabs">
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">dashboard</mat-icon>
+          Overview
+        </ng-template>
+        <div class="tab-content">
+          <div class="overview-grid">
+            <section class="workspace-card mva-card wide-card">
+              <h3>Overview</h3>
+
+              <div class="capability-list">
+                <div class="capability-item">
+                  <mat-icon>build_circle</mat-icon>
+                  <div>
+                    <strong>Build orchestration</strong>
+                  </div>
+                </div>
+
+                <div class="capability-item">
+                  <mat-icon>rocket_launch</mat-icon>
+                  <div>
+                    <strong>Deployment coordination</strong>
+                  </div>
+                </div>
+
+                <div class="capability-item">
+                  <mat-icon>code</mat-icon>
+                  <div>
+                    <strong>Repository utilities</strong>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="workspace-card mva-card">
+              <h3>Current access</h3>
+
+              <div class="detail-list">
+                <div class="detail-row">
+                  <span>User</span>
+                  <strong>{{ authService.displayName() }}</strong>
+                </div>
+                <div class="detail-row">
+                  <span>Organization</span>
+                  <strong>{{ authService.organization() }}</strong>
+                </div>
+                <div class="detail-row">
+                  <span>Project</span>
+                  <strong>{{ authService.project() }}</strong>
+                </div>
+              </div>
+            </section>
+
+            <section class="workspace-card mva-card">
+              <h3>Configuration</h3>
+
+              <button mat-stroked-button class="secondary-action" (click)="openConfig()">
+                <mat-icon>tune</mat-icon>
+                Open configuration
+              </button>
+            </section>
+          </div>
+        </div>
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">build</mat-icon>
+          Builds
+        </ng-template>
+        <div class="tab-content">
+          <div class="workspace-grid">
+            <section class="workspace-card mva-card wide-card">
+              <h3>Builds</h3>
+
+              <div class="step-list">
+                <div class="step-item"><span>1</span><p>Select provider and repository context</p></div>
+                <div class="step-item"><span>2</span><p>Trigger new builds or inspect recent runs</p></div>
+                <div class="step-item"><span>3</span><p>Surface results and logs inside focused cards</p></div>
+              </div>
+            </section>
+
+            <section class="workspace-card mva-card compact-card">
+              <h3>Ready for build tools</h3>
+            </section>
+          </div>
+        </div>
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">rocket_launch</mat-icon>
+          Deployments
+        </ng-template>
+        <div class="tab-content">
+          <div class="workspace-grid">
+            <section class="workspace-card mva-card wide-card">
+              <h3>Deployments</h3>
+
+              <div class="step-list">
+                <div class="step-item"><span>1</span><p>Choose target environment from saved shortcuts</p></div>
+                <div class="step-item"><span>2</span><p>Trigger deployments with clear contextual metadata</p></div>
+                <div class="step-item"><span>3</span><p>Display history, health, and rollback paths cleanly</p></div>
+              </div>
+            </section>
+
+            <section class="workspace-card mva-card compact-card">
+              <h3>Ready for deployment tools</h3>
+            </section>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </main>
+</div>
