@@ -32,6 +32,10 @@ html {
   --mva-accent-soft: rgba(36, 119, 255, 0.12);
   --mva-success-soft: rgba(34, 197, 94, 0.12);
   --mva-danger-soft: rgba(239, 68, 68, 0.12);
+  --mva-field-bg: rgba(255, 255, 255, 0.78);
+  --mva-field-bg-focus: rgba(255, 255, 255, 0.96);
+  --mva-field-border: rgba(120, 146, 185, 0.22);
+  --mva-field-border-focus: rgba(36, 119, 255, 0.34);
 }
 
 body {
@@ -127,14 +131,66 @@ a {
 }
 
 .mat-mdc-text-field-wrapper {
-  border-radius: 18px !important;
-  background: rgba(255, 255, 255, 0.68) !important;
+  border-radius: 24px !important;
+  border: 1px solid var(--mva-field-border);
+  background: var(--mva-field-bg) !important;
+  box-shadow: 0 12px 28px rgba(73, 103, 144, 0.08);
   backdrop-filter: blur(16px) saturate(1.2);
   -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease,
+    transform 0.16s ease;
 }
 
 .mat-mdc-form-field.mat-focused .mat-mdc-text-field-wrapper {
-  background: rgba(255, 255, 255, 0.9) !important;
+  background: var(--mva-field-bg-focus) !important;
+  border-color: var(--mva-field-border-focus);
+  box-shadow: 0 18px 36px rgba(36, 119, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.mat-mdc-form-field .mdc-notched-outline__leading,
+.mat-mdc-form-field .mdc-notched-outline__notch,
+.mat-mdc-form-field .mdc-notched-outline__trailing {
+  border-color: transparent !important;
+}
+
+.mat-mdc-form-field-icon-prefix,
+.mat-mdc-form-field-icon-suffix {
+  align-self: center;
+}
+
+.mat-mdc-form-field-icon-prefix > .mat-icon,
+.mat-mdc-form-field-icon-suffix .mat-icon {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: var(--mva-text-soft);
+  font-size: 18px;
+}
+
+.mat-mdc-form-field-icon-suffix .mat-icon {
+  color: var(--mva-text-soft);
+}
+
+.mat-mdc-form-field.mat-focused .mat-mdc-form-field-icon-prefix > .mat-icon,
+.mat-mdc-form-field.mat-focused .mat-mdc-form-field-icon-suffix .mat-icon {
+  color: var(--mva-accent-strong);
+}
+
+.mat-mdc-form-field-infix {
+  min-height: 56px;
+}
+
+.mat-mdc-input-element,
+.mat-mdc-select-value-text {
+  color: var(--mva-text) !important;
+  font-size: 14px !important;
+  letter-spacing: -0.01em;
 }
 
 .mat-mdc-unelevated-button:not([disabled]) {

@@ -39,6 +39,7 @@ export class ConfigDialogComponent implements OnInit {
   environments: string[] = [];
   repositories: string[] = [];
   newEnvName = '';
+  newRepositoryName = '';
   dbRepoId = '';
   dbBranch = 'main';
   configLoaded = false;
@@ -57,9 +58,7 @@ export class ConfigDialogComponent implements OnInit {
     this.dbRepoId = config.dbRepoId;
     this.dbBranch = config.dbBranch;
 
-    if (this.hasDatabaseSource()) {
-      this.loadConfigFromRepo();
-    }
+    this.loadConfig();
   }
 
   saveAzurePat(): void {
@@ -88,76 +87,65 @@ export class ConfigDialogComponent implements OnInit {
       });
       return;
     }
-    const previousEnvironments = [...this.environments];
+    const previousState = this.snapshotConfig();
     this.environments = [...this.environments, name];
     this.newEnvName = '';
-    this.persistEnvironments(previousEnvironments, `Environment "${name}" added`);
+    this.persistConfig(previousState, `Environment "${name}" added`);
   }
 
   removeEnvironment(env: string): void {
-    const previousEnvironments = [...this.environments];
+    const previousState = this.snapshotConfig();
     this.environments = this.environments.filter(existingEnvironment => existingEnvironment !== env);
-    this.persistEnvironments(previousEnvironments, `Environment "${env}" removed`);
+    this.persistConfig(previousState, `Environment "${env}" removed`);
   }
 
-  saveDatabaseSource(): void {
-    const repoId = this.dbRepoId.trim();
-    const branch = this.dbBranch.trim() || 'main';
-
-    if (!repoId) {
-      this.snackBar.open('Enter the Azure repo name or id', 'Close', {
+  addRepository(): void {
+    const name = this.newRepositoryName.trim();
+    if (!name) return;
+    if (this.repositories.some(repository => repository.toLowerCase() === name.toLowerCase())) {
+      this.snackBar.open('Repository already exists', 'Close', {
         duration: 2500,
         panelClass: 'error-snackbar'
       });
       return;
     }
 
-    this.dbRepoId = repoId;
-    this.dbBranch = branch;
-    this.configLoaded = false;
-    this.authService.updateDbRepoId(repoId);
-    this.authService.updateDbBranch(branch);
-    this.loadConfigFromRepo(true, true);
+    const previousState = this.snapshotConfig();
+    this.repositories = [...this.repositories, name];
+    this.newRepositoryName = '';
+    this.persistConfig(previousState, `Repository "${name}" added`);
+  }
+
+  removeRepository(repository: string): void {
+    const previousState = this.snapshotConfig();
+    this.repositories = this.repositories.filter(existingRepository => existingRepository !== repository);
+    this.persistConfig(previousState, `Repository "${repository}" removed`);
   }
 
   close(): void {
     this.dialogRef.close();
   }
 
-  private hasDatabaseSource(): boolean {
-    return this.dbRepoId.trim().length > 0 && this.dbBranch.trim().length > 0;
-  }
-
-  private loadConfigFromRepo(showSuccess = false, showError = false): void {
+  private loadConfig(): void {
     this.apiService.getConfigData(this.dbRepoId, this.dbBranch).subscribe({
       next: (response) => {
         this.environments = [...response.environments];
         this.repositories = [...response.repositories];
         this.configLoaded = true;
-
-        if (showSuccess) {
-          this.snackBar.open('Loaded config from repo', 'Close', {
-            duration: 2000,
-            panelClass: 'success-snackbar'
-          });
-        }
       },
       error: () => {
         this.configLoaded = false;
-        if (showError) {
-          this.snackBar.open('Could not load db/config/config.json from repo', 'Close', {
-            duration: 3000,
-            panelClass: 'error-snackbar'
-          });
-        }
       }
     });
   }
 
-  private persistEnvironments(previousEnvironments: string[], successMessage: string): void {
-    if (!this.hasDatabaseSource() || !this.configLoaded) {
-      this.environments = [...previousEnvironments];
-      this.snackBar.open('Load config first', 'Close', {
+  private persistConfig(
+    previousState: { environments: string[]; repositories: string[] },
+    successMessage: string
+  ): void {
+    if (!this.configLoaded) {
+      this.restoreConfig(previousState);
+      this.snackBar.open('Could not load configuration', 'Close', {
         duration: 2500,
         panelClass: 'error-snackbar'
       });
@@ -166,7 +154,7 @@ export class ConfigDialogComponent implements OnInit {
 
     this.apiService.saveConfigData({
       repoId: this.dbRepoId,
-      branch: this.dbBranch,
+      branch: this.dbBranch.trim() || 'main',
       environments: this.environments,
       repositories: this.repositories
     }).subscribe({
@@ -177,12 +165,24 @@ export class ConfigDialogComponent implements OnInit {
         });
       },
       error: () => {
-        this.environments = [...previousEnvironments];
-        this.snackBar.open('Could not sync environments to repo', 'Close', {
+        this.restoreConfig(previousState);
+        this.snackBar.open('Could not save configuration', 'Close', {
           duration: 3000,
           panelClass: 'error-snackbar'
         });
       }
     });
+  }
+
+  private snapshotConfig(): { environments: string[]; repositories: string[] } {
+    return {
+      environments: [...this.environments],
+      repositories: [...this.repositories]
+    };
+  }
+
+  private restoreConfig(state: { environments: string[]; repositories: string[] }): void {
+    this.environments = [...state.environments];
+    this.repositories = [...state.repositories];
   }
 }

@@ -3,7 +3,7 @@
     <div class="login-intro">
       <div class="brand-lockup">
         <div class="brand-icon">
-          <mat-icon>dashboard_customize</mat-icon>
+            <mat-icon>dashboard</mat-icon>
         </div>
 
         <div class="brand-copy">
@@ -14,7 +14,7 @@
 
       <div class="intro-grid">
         <article class="intro-tile">
-          <mat-icon>hub</mat-icon>
+          <mat-icon>dashboard</mat-icon>
           <div>
             <h3>One workspace</h3>
           </div>
@@ -49,7 +49,7 @@
       <form (ngSubmit)="login()" class="login-form">
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Organization</mat-label>
-          <mat-icon matPrefix>apartment</mat-icon>
+          <mat-icon matPrefix>business</mat-icon>
           <input matInput [(ngModel)]="organization" name="organization"
                  placeholder="my-org" required autocomplete="organization">
         </mat-form-field>
@@ -63,7 +63,7 @@
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Personal Access Token</mat-label>
-          <mat-icon matPrefix>vpn_key</mat-icon>
+          <mat-icon matPrefix>key</mat-icon>
           <input matInput [(ngModel)]="pat" name="pat"
                  [type]="hidePassword() ? 'password' : 'text'"
                  placeholder="Paste your PAT here" required autocomplete="off">

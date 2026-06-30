@@ -11,7 +11,7 @@
   <mat-tab-group animationDuration="200ms" class="config-tabs">
     <mat-tab>
       <ng-template mat-tab-label>
-        <mat-icon class="tab-icon">vpn_key</mat-icon>
+        <mat-icon class="tab-icon">key</mat-icon>
         PAT Tokens
       </ng-template>
 
@@ -20,7 +20,7 @@
           <section class="pat-section">
             <div class="panel-heading">
               <div class="panel-icon azure-icon">
-                <mat-icon>cloud</mat-icon>
+                <mat-icon>cloud_queue</mat-icon>
               </div>
 
               <div>
@@ -50,7 +50,7 @@
           <section class="pat-section">
             <div class="panel-heading">
               <div class="panel-icon github-icon">
-                <mat-icon>code</mat-icon>
+                <mat-icon>terminal</mat-icon>
               </div>
 
               <div>
@@ -82,80 +82,97 @@
 
     <mat-tab>
       <ng-template mat-tab-label>
-        <mat-icon class="tab-icon">dns</mat-icon>
-        Environments
+        <mat-icon class="tab-icon">settings</mat-icon>
+        Repos &amp; Environments
       </ng-template>
 
       <div class="tab-body">
         <section class="environment-panel">
-          <div class="env-source-row">
-            <mat-form-field appearance="outline" class="env-source-input">
-              <mat-label>Repo</mat-label>
-              <input matInput [(ngModel)]="dbRepoId"
-                     placeholder="repo name or id" autocomplete="off">
-            </mat-form-field>
+          <div class="config-grid">
+            <section class="config-section">
+              <div class="section-header">
+                <h3>Repositories</h3>
+              </div>
 
-            <mat-form-field appearance="outline" class="env-branch-input">
-              <mat-label>Branch</mat-label>
-              <input matInput [(ngModel)]="dbBranch"
-                     placeholder="main" autocomplete="off">
-            </mat-form-field>
+              <div class="add-row">
+                <mat-form-field appearance="outline" class="pill-input">
+                  <mat-icon matPrefix>folder_open</mat-icon>
+                  <input matInput [(ngModel)]="newRepositoryName"
+                         placeholder="Add repository" autocomplete="off"
+                         (keyup.enter)="addRepository()">
+                </mat-form-field>
 
-            <button mat-stroked-button type="button" class="env-source-button"
-                    (click)="saveDatabaseSource()">
-              <mat-icon>sync</mat-icon>
-              Load
-            </button>
-          </div>
-
-          <div class="env-add-row">
-            <mat-form-field appearance="outline" class="env-input">
-              <mat-label>New Environment</mat-label>
-              <input matInput [(ngModel)]="newEnvName"
-                     placeholder="e.g. qa, uat" autocomplete="off"
-                     (keyup.enter)="addEnvironment()">
-            </mat-form-field>
-            <button mat-flat-button color="primary" (click)="addEnvironment()"
-                    [disabled]="!newEnvName.trim()">
-              <mat-icon>add</mat-icon>
-              Add
-            </button>
-          </div>
-
-          <div class="env-list">
-            @for (env of environments; track env) {
-              <div class="env-chip">
-                <mat-icon class="env-chip-icon">dns</mat-icon>
-                <span class="env-chip-label">{{ env }}</span>
-                <button type="button" class="env-remove-btn"
-                        (click)="removeEnvironment(env)"
-                        matTooltip="Remove environment">
-                  <mat-icon>close</mat-icon>
+                <button mat-flat-button color="primary" class="add-btn"
+                        (click)="addRepository()"
+                        [disabled]="!newRepositoryName.trim()">
+                  <mat-icon>add</mat-icon>
+                  Add
                 </button>
               </div>
-            }
 
-            @if (environments.length === 0) {
-              <div class="empty-state">
-                <mat-icon>info_outline</mat-icon>
-                <p>No environments configured.</p>
-              </div>
-            }
-          </div>
-
-          @if (repositories.length > 0) {
-            <div class="repo-section">
-              <p class="repo-title">Repositories</p>
-              <div class="repo-list">
+              <div class="chip-list">
                 @for (repository of repositories; track repository) {
-                  <div class="repo-chip">
-                    <mat-icon class="repo-chip-icon">folder_open</mat-icon>
-                    <span class="repo-chip-label">{{ repository }}</span>
+                  <div class="item-chip repo-chip">
+                    <mat-icon class="chip-icon">folder_open</mat-icon>
+                    <span class="chip-label">{{ repository }}</span>
+                    <button type="button" class="chip-remove-btn"
+                            (click)="removeRepository(repository)">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </div>
+                }
+
+                @if (repositories.length === 0) {
+                  <div class="empty-state">
+                    <mat-icon>info_outline</mat-icon>
+                    <p>No repositories yet.</p>
                   </div>
                 }
               </div>
-            </div>
-          }
+            </section>
+
+            <section class="config-section">
+              <div class="section-header">
+                <h3>Environments</h3>
+              </div>
+
+              <div class="add-row">
+                <mat-form-field appearance="outline" class="pill-input">
+                  <mat-icon matPrefix>dns</mat-icon>
+                  <input matInput [(ngModel)]="newEnvName"
+                         placeholder="Add environment" autocomplete="off"
+                         (keyup.enter)="addEnvironment()">
+                </mat-form-field>
+
+                <button mat-flat-button color="primary" class="add-btn"
+                        (click)="addEnvironment()"
+                        [disabled]="!newEnvName.trim()">
+                  <mat-icon>add</mat-icon>
+                  Add
+                </button>
+              </div>
+
+              <div class="chip-list">
+                @for (env of environments; track env) {
+                  <div class="item-chip env-chip">
+                    <mat-icon class="chip-icon">dns</mat-icon>
+                    <span class="chip-label">{{ env }}</span>
+                    <button type="button" class="chip-remove-btn"
+                            (click)="removeEnvironment(env)">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </div>
+                }
+
+                @if (environments.length === 0) {
+                  <div class="empty-state">
+                    <mat-icon>info_outline</mat-icon>
+                    <p>No environments yet.</p>
+                  </div>
+                }
+              </div>
+            </section>
+          </div>
         </section>
       </div>
     </mat-tab>

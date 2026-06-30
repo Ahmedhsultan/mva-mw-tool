@@ -62,9 +62,17 @@ export class ApiService {
 
   // ---- Config ----
 
-  getConfigData(repoId: string, branch: string): Observable<ConfigDataFile> {
+  getConfigData(repoId?: string, branch?: string): Observable<ConfigDataFile> {
     let params = this.baseParams('azure');
-    params = params.set('repoId', repoId).set('branch', branch);
+
+    if (repoId?.trim()) {
+      params = params.set('repoId', repoId.trim());
+    }
+
+    if (branch?.trim()) {
+      params = params.set('branch', branch.trim());
+    }
+
     return this.http.get<ConfigDataFile>('/api/config', {
       headers: this.authHeaders('azure'),
       params

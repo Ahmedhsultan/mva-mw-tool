@@ -35,8 +35,8 @@ export class DashboardComponent {
 
   openConfig(): void {
     this.dialog.open(ConfigDialogComponent, {
-      width: '720px',
-      maxWidth: '92vw',
+      width: '960px',
+      maxWidth: '96vw',
       maxHeight: '80vh',
       panelClass: 'config-dialog-panel'
     });

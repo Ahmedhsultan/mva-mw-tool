@@ -22,8 +22,8 @@ public class ConfigController {
             @RequestHeader("X-PAT") String pat,
             @RequestParam String organization,
             @RequestParam String project,
-            @RequestParam String repoId,
-            @RequestParam String branch) {
+                @RequestParam(required = false) String repoId,
+                @RequestParam(required = false) String branch) {
         ConfigDataDto response = configDataService.getConfigData(
                 pat, organization, project, repoId, branch);
         return ResponseEntity.ok(response);
