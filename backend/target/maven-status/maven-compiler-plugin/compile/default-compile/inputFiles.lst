@@ -22,6 +22,7 @@
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/AuthRequest.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/AuthResponse.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/BuildDto.java
+/Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/Condition.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/ConfigDataDto.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/ConfigDataRequest.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/dto/CreateBuildRequest.java
@@ -33,3 +34,11 @@
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/exception/GlobalExceptionHandler.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/repository/ConfigRepository.java
 /Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/service/ConfigDataService.java
+/Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/service/pipeline/PipelineBuilder.java
+/Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/service/pipeline/tasks/ApprovalTask.java
+/Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/service/pipeline/tasks/BuildTask.java
+/Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/service/pipeline/tasks/DeploymentTask.java
+/Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/service/pipeline/tasks/GitTask.java
+/Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/service/pipeline/tasks/PrTask.java
+/Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/service/pipeline/tasks/Task.java
+/Users/ahmed.sultan1/Desktop/My Project/mva-mw-tool/backend/src/main/java/com/mva/mwtool/service/pipeline/tasks/TaskDeserializer.java
