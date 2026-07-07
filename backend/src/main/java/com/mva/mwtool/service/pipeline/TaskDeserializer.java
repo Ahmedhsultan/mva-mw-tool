@@ -43,7 +43,7 @@ public class TaskDeserializer extends StdDeserializer<Task> {
         cleanMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         Task task = cleanMapper.treeToValue(node, taskClass);
 
-        // Inject DevOpsServiceFactory
+        // Inject DevOpsServiceFactory using the provider value from JSON
         task.setDevOpsServiceFactory(devOpsServiceFactory);
 
         // Recursively parse nextTasks using the original mapper (with this deserializer)

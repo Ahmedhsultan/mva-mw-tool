@@ -12,6 +12,7 @@ import java.util.List;
 public class BuildTask extends Task {
     private String branch;
     private String repoName;
+    private String buildLink;
 
     public BuildTask() {}
 

@@ -12,9 +12,9 @@ import java.util.List;
 public class DeploymentTask extends Task {
     private String buildId;
     private String repoName;
+    private String deploymentLink;
 
     public DeploymentTask() {}
-
 
     @Override
     public void execute() {

@@ -18,6 +18,8 @@ public abstract class Task {
     private List<Condition> conditions;
     private List<Task> previousTasks;
     private List<Task> nextTasks;
+    private String devOpsProvider;
+
     protected transient DevOpsServiceFactory devOpsServiceFactory;
 
     public Task() {}

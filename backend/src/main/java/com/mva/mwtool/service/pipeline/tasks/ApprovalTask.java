@@ -7,7 +7,7 @@ public class ApprovalTask extends Task {
 
     @Override
     public void execute() {
-
+        approved = true;
     }
 
     @Override

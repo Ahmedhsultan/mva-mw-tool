@@ -13,9 +13,9 @@ public class PrTask extends Task {
     private String fromBranch;
     private String targetBranch;
     private String repoName;
+    private String prLink;
 
     public PrTask() {}
-
 
     @Override
     public void execute() {
