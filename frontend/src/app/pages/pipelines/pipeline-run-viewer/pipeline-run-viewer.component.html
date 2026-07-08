@@ -1,0 +1,77 @@
+<div class="run-viewer-shell">
+  <div class="run-viewer-backdrop" (click)="close()"></div>
+
+  <section class="run-viewer-window mva-card">
+    <header class="run-viewer-header">
+      <div class="header-left">
+        <strong>Pipeline Run</strong>
+        <span class="run-name">{{ run?.pipelineRunName }}</span>
+      </div>
+
+      <div class="header-right">
+        <span class="status-chip" [class]="statusTone(overallStatus())">
+          <mat-icon class="chip-icon">{{ statusIcon(overallStatus()) }}</mat-icon>
+          {{ overallStatus() | lowercase }}
+        </span>
+
+        <button mat-stroked-button type="button" (click)="copyAllLinks()" matTooltip="Copy all task links to clipboard">
+          <mat-icon>content_copy</mat-icon>
+          Copy all links
+        </button>
+
+        <button mat-icon-button type="button" (click)="close()" matTooltip="Close">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </header>
+
+    <div class="run-viewer-canvas" tabindex="0">
+      <div class="canvas-scroll" [style.width.px]="canvasWidth" [style.height.px]="canvasHeight">
+        <svg class="edge-layer" [attr.width]="canvasWidth" [attr.height]="canvasHeight">
+          @for (edge of edges; track edge.key) {
+            <path [attr.d]="edge.path" class="edge-path" />
+          }
+        </svg>
+
+        @for (node of nodes; track node.task.id) {
+          <article
+            class="run-node"
+            [class]="statusTone(node.task.status)"
+            [style.left.px]="node.x"
+            [style.top.px]="node.y">
+
+            <div class="node-header">
+              <mat-icon class="node-type-icon">{{ statusIcon(node.task.status) }}</mat-icon>
+              <span class="node-type">{{ readableType(node.task.taskType) }}</span>
+              <span class="node-id">{{ node.task.id }}</span>
+            </div>
+
+            <div class="node-body">
+              @if (node.task.repoName) {
+                <span class="node-detail"><mat-icon class="detail-icon">inventory_2</mat-icon>{{ node.task.repoName }}</span>
+              }
+              @if (node.task.branch) {
+                <span class="node-detail"><mat-icon class="detail-icon">account_tree</mat-icon>{{ node.task.branch }}</span>
+              }
+              @if (node.task.environment) {
+                <span class="node-detail"><mat-icon class="detail-icon">dns</mat-icon>{{ node.task.environment }}</span>
+              }
+            </div>
+
+            <div class="node-footer">
+              <span class="node-status" [class]="statusTone(node.task.status)">
+                {{ (node.task.status || 'PENDING') | lowercase }}
+              </span>
+
+              @if (taskLink(node.task); as link) {
+                <button mat-icon-button class="link-btn" (click)="openLink(link)" matTooltip="Open in DevOps portal">
+                  <mat-icon>open_in_new</mat-icon>
+                </button>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    </div>
+  </section>
+</div>

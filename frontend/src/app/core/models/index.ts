@@ -159,17 +159,18 @@ export interface PipelineRunTask {
   buildLink?: string;
   deploymentLink?: string;
   prLink?: string;
-}
-
-export interface PipelineRunGraph {
-  taskMap?: Record<string, PipelineRunTask>;
-  rootTasks?: PipelineRunTask[];
+  branch?: string;
+  repoName?: string;
+  definitionId?: string;
+  environment?: string;
+  description?: string;
 }
 
 export interface PipelineRunDto {
-  graph?: PipelineRunGraph;
+  taskMap?: Record<string, PipelineRunTask>;
+  rootTasks?: PipelineRunTask[];
   pipelineRunName: string;
-  pipeline: PipelinePayload;
+  pipelineStructure: PipelinePayload;
 }
 
 export interface DevOpsConfig {

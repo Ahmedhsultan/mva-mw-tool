@@ -120,10 +120,17 @@
                     }
                   </div>
 
-                  <button mat-stroked-button type="button" (click)="loadRunAsReference(run)">
-                    <mat-icon>account_tree</mat-icon>
-                    Load in builder
-                  </button>
+                  <div class="run-item-actions">
+                    <button mat-flat-button color="primary" type="button" (click)="openRunViewer(run)">
+                      <mat-icon>visibility</mat-icon>
+                      View run
+                    </button>
+
+                    <button mat-stroked-button type="button" (click)="loadRunAsReference(run)">
+                      <mat-icon>account_tree</mat-icon>
+                      Load in builder
+                    </button>
+                  </div>
                 </article>
               }
 
@@ -364,4 +371,8 @@
       </section>
     </div>
   </ng-template>
+
+  @if (viewingRun) {
+    <app-pipeline-run-viewer [run]="viewingRun" (closed)="closeRunViewer()"></app-pipeline-run-viewer>
+  }
 </div>

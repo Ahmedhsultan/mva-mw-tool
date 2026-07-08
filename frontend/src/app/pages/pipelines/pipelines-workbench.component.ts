@@ -27,6 +27,7 @@ import {
 } from '../../core/models';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { PipelineRunViewerComponent } from './pipeline-run-viewer/pipeline-run-viewer.component';
 
 interface Point {
   x: number;
@@ -139,7 +140,8 @@ const TASK_PREFIX: Record<PipelineTaskType, string> = {
     MatSelectModule,
     MatSnackBarModule,
     MatTabsModule,
-    MatTooltipModule
+    MatTooltipModule,
+    PipelineRunViewerComponent
   ],
   templateUrl: './pipelines-workbench.component.html',
   styleUrl: './pipelines-workbench.component.scss'
@@ -160,6 +162,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
   workbenchTabIndex = 0;
   isBuilderWindowOpen = false;
+  viewingRun: PipelineRunDto | null = null;
   draftPipelineName = '';
   selectedPipelineName = '';
   readonly selectedTask = signal<EditorPipelineTaskNode | null>(null);
@@ -276,13 +279,21 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   loadRunAsReference(run: PipelineRunDto): void {
-    const resolvedName = this.resolvePipelineName(run.pipeline);
+    const resolvedName = this.resolvePipelineName(run.pipelineStructure);
     this.selectedPipelineName = resolvedName;
     this.draftPipelineName = resolvedName || this.generatePipelineName();
     this.pendingConnectionSourceEditorId = null;
-    this.editorNodes = this.layoutTasks(run.pipeline?.tasks || []);
+    this.editorNodes = this.layoutTasks(run.pipelineStructure?.tasks || []);
     this.openTaskConfig(this.editorNodes[0] || null);
     this.openBuilderWindow();
+  }
+
+  openRunViewer(run: PipelineRunDto): void {
+    this.viewingRun = run;
+  }
+
+  closeRunViewer(): void {
+    this.viewingRun = null;
   }
 
   openBuilderWindow(): void {
@@ -452,9 +463,14 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.showMessage(`Pipeline "${pipelineName}" started.`, 'success-snackbar');
-          this.loadPipelineRuns();
           this.closeBuilderWindow();
           this.workbenchTabIndex = 1;
+          this.apiService.getPipelineRuns().subscribe(runs => {
+            this.pipelineRuns = [...runs].reverse();
+            if (this.pipelineRuns.length) {
+              this.openRunViewer(this.pipelineRuns[0]);
+            }
+          });
         },
         error: (err) => {
           console.error('Pipeline run failed:', err);
@@ -746,12 +762,12 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   pipelineNameForRun(run: PipelineRunDto): string {
-    return this.resolvePipelineName(run.pipeline) || 'Historical run';
+    return this.resolvePipelineName(run.pipelineStructure) || 'Historical run';
   }
 
   runStatusCounts(run: PipelineRunDto): StatusCount[] {
     const counts = new Map<PipelineTaskStatus, number>();
-    const tasks = Object.values(run.graph?.taskMap || {});
+    const tasks = Object.values(run.taskMap || {});
 
     for (const task of tasks) {
       if (!task.status) {
@@ -767,7 +783,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   overallRunStatus(run: PipelineRunDto): PipelineTaskStatus {
-    const tasks = Object.values(run.graph?.taskMap || {});
+    const tasks = Object.values(run.taskMap || {});
     if (!tasks.length) {
       return 'PENDING';
     }
