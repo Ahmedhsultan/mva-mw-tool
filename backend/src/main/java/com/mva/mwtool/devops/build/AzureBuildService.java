@@ -85,6 +85,20 @@ public class AzureBuildService implements BuildService {
         return mapToBuildDto(response.getBody());
     }
 
+    @Override
+    public void cancelBuild(String buildId) {
+        String url = String.format("%s/%s/%s/_apis/build/builds/%s?api-version=%s",
+                BASE_URL, organization, project, buildId, API_VERSION);
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("status", "cancelling");
+
+        HttpHeaders headers = AzureAuthService.createHeaders(pat);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        restTemplate.exchange(url, HttpMethod.PATCH, entity, JsonNode.class);
+    }
+
     private BuildDto mapToBuildDto(JsonNode node) {
         if (node == null) return null;
         BuildDto dto = new BuildDto();

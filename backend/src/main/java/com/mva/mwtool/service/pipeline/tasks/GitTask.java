@@ -1,7 +1,7 @@
 package com.mva.mwtool.service.pipeline.tasks;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.mva.mwtool.dto.RepoFileDto;
+import com.mva.mwtool.enums.TaskStatus;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -14,7 +14,7 @@ public class GitTask extends Task {
     private String filePath;
     private String content;
     private String commitMessage;
-    private transient Object gitResult;
+    private boolean executed;
 
     public GitTask() {}
 
@@ -22,27 +22,24 @@ public class GitTask extends Task {
     protected void execute() {
         devOpsContext.getRepoService()
                 .pushFile(repoName, filePath, branch, content, commitMessage);
-        this.succeeded = true;
-    }
-
-    @Override
-    public Object getOutput() {
-        return gitResult;
+        this.executed = true;
     }
 
     @Override
     public boolean stop() {
+        // Git push is atomic — can't be stopped
         return false;
     }
 
     @Override
     public void reTryRun() {
-        this.succeeded = false;
+        this.executed = false;
         execute();
     }
 
     @Override
-    public String getStatus() {
-        return succeeded ? "succeeded" : "pending";
+    public TaskStatus getStatus() {
+        // Git push is synchronous — if executed, it succeeded
+        return executed ? TaskStatus.SUCCEEDED : TaskStatus.PENDING;
     }
 }

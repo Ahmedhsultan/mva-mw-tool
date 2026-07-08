@@ -67,6 +67,7 @@ public class AzureDeployService implements DeployService {
         dto.setId(node.path("id").asText());
         dto.setName(node.path("name").asText());
         dto.setStatus(node.path("status").asText());
+        dto.setUrl(node.path("_links").path("web").path("href").asText());
 
         List<String> artifacts = new ArrayList<>();
         if (node.has("artifacts")) {

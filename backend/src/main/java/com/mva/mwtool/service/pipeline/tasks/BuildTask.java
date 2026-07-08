@@ -2,6 +2,7 @@ package com.mva.mwtool.service.pipeline.tasks;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.mva.mwtool.dto.BuildDto;
+import com.mva.mwtool.enums.TaskStatus;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -19,31 +20,44 @@ public class BuildTask extends Task {
 
     @Override
     protected void execute() {
-        BuildDto build = devOpsContext.getBuildService()
-                .createBuild(branch, repoName, definitionId);
+        BuildDto build = devOpsContext.getBuildService().createBuild(branch, repoName, definitionId);
         this.buildResult = build;
         this.buildLink = build.getUrl();
-        this.succeeded = "succeeded".equalsIgnoreCase(build.getResult());
-    }
-
-    @Override
-    public Object getOutput() {
-        return buildResult;
     }
 
     @Override
     public boolean stop() {
+        if (buildResult != null && buildResult.getId() != null) {
+            devOpsContext.getBuildService().cancelBuild(buildResult.getId());
+            return true;
+        }
         return false;
     }
 
     @Override
     public void reTryRun() {
-        this.succeeded = false;
         execute();
     }
 
     @Override
-    public String getStatus() {
-        return succeeded ? "succeeded" : "pending";
+    public TaskStatus getStatus() {
+        if (buildResult == null || buildResult.getId() == null) {
+            return TaskStatus.PENDING;
+        }
+        // Query the platform for current status
+        BuildDto current = devOpsContext.getBuildService().getBuildById(buildResult.getId());
+        this.buildResult = current;
+
+        String status = current.getStatus();
+        String result = current.getResult();
+
+        if ("completed".equalsIgnoreCase(status)) {
+            return "succeeded".equalsIgnoreCase(result) ? TaskStatus.SUCCEEDED : TaskStatus.FAILED;
+        } else if ("cancelling".equalsIgnoreCase(status) || "cancelled".equalsIgnoreCase(status)) {
+            return TaskStatus.CANCELLED;
+        } else if ("inProgress".equalsIgnoreCase(status) || "queued".equalsIgnoreCase(status)) {
+            return TaskStatus.RUNNING;
+        }
+        return TaskStatus.PENDING;
     }
 }

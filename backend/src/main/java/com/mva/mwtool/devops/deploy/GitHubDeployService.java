@@ -61,6 +61,7 @@ public class GitHubDeployService implements DeployService {
         dto.setEnvironment(node.path("environment").asText());
         dto.setStatus(node.path("task").asText());
         dto.setName(node.path("description").asText());
+        dto.setUrl(node.path("url").asText());
         dto.setArtifacts(List.of(node.path("ref").asText()));
         return dto;
     }

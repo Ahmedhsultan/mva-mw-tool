@@ -11,4 +11,6 @@ public interface BuildService {
     List<BuildDto> getBuildsByBranchAndRepo(String branch, String repoId);
 
     BuildDto createBuild(String branch, String repoId, String definitionId);
+
+    void cancelBuild(String buildId);
 }

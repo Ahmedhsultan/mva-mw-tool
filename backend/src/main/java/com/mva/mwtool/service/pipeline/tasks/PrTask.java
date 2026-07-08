@@ -2,6 +2,7 @@ package com.mva.mwtool.service.pipeline.tasks;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.mva.mwtool.dto.RepoFileDto;
+import com.mva.mwtool.enums.TaskStatus;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -13,22 +14,18 @@ public class PrTask extends Task {
     private String targetBranch;
     private String repoName;
     private String prLink;
+    private boolean executed;
     private transient Object prResult;
 
     public PrTask() {}
 
     @Override
     protected void execute() {
-        // PR creation uses the repo service to push changes from fromBranch to targetBranch
+        // PR creation uses the repo service
         RepoFileDto result = devOpsContext.getRepoService()
                 .pullFile(repoName, "", fromBranch);
         this.prResult = result;
-        this.succeeded = result != null;
-    }
-
-    @Override
-    public Object getOutput() {
-        return prResult;
+        this.executed = result != null;
     }
 
     @Override
@@ -38,12 +35,12 @@ public class PrTask extends Task {
 
     @Override
     public void reTryRun() {
-        this.succeeded = false;
+        this.executed = false;
         execute();
     }
 
     @Override
-    public String getStatus() {
-        return succeeded ? "succeeded" : "pending";
+    public TaskStatus getStatus() {
+        return executed ? TaskStatus.SUCCEEDED : TaskStatus.PENDING;
     }
 }

@@ -77,6 +77,17 @@ public class GitHubBuildService implements BuildService {
         return dto;
     }
 
+    @Override
+    public void cancelBuild(String buildId) {
+        String url = String.format("%s/repos/%s/%s/actions/runs/%s/cancel",
+                BASE_URL, organization, project, buildId);
+
+        HttpHeaders headers = GitHubAuthService.createHeaders(pat);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        restTemplate.exchange(url, HttpMethod.POST, entity, JsonNode.class);
+    }
+
     private BuildDto mapToBuildDto(JsonNode node) {
         if (node == null) return null;
         BuildDto dto = new BuildDto();

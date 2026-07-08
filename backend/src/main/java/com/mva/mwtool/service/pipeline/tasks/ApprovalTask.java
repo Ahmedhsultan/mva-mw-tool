@@ -1,6 +1,7 @@
 package com.mva.mwtool.service.pipeline.tasks;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.mva.mwtool.enums.TaskStatus;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -15,12 +16,7 @@ public class ApprovalTask extends Task {
     @Override
     protected void execute() {
         // Approval is a manual gate — mark as succeeded when approved
-        this.succeeded = approved;
-    }
-
-    @Override
-    public Object getOutput() {
-        return approved;
+        this.approved = true;
     }
 
     @Override
@@ -30,12 +26,12 @@ public class ApprovalTask extends Task {
 
     @Override
     public void reTryRun() {
-        this.succeeded = false;
+        this.approved = false;
         execute();
     }
 
     @Override
-    public String getStatus() {
-        return succeeded ? "succeeded" : "pending";
+    public TaskStatus getStatus() {
+        return approved ? TaskStatus.SUCCEEDED : TaskStatus.WAITING_APPROVAL;
     }
 }

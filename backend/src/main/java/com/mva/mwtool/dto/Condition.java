@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Condition {
     private String taskId;
-    private boolean isSucceed;
+    private String status;
 }
 

@@ -13,5 +13,6 @@ public class DeployDto {
     private String name;
     private String status;
     private String environment;
+    private String url;
     private List<String> artifacts;
 }
