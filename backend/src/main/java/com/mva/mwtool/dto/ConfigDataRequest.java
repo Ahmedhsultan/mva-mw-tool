@@ -18,4 +18,6 @@ public class ConfigDataRequest {
     private List<String> environments;
 
     private List<String> repositories;
+
+    private List<RepositoryProfileDto> repoProfiles;
 }

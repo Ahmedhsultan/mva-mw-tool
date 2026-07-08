@@ -155,7 +155,7 @@
 
 .main-content {
   flex: 1;
-  max-width: 1280px;
+  max-width: 1540px;
   width: 100%;
   margin: 0 auto;
   padding: 24px 28px 40px;
@@ -270,6 +270,10 @@
 
 .tab-content {
   padding: 26px 0 6px;
+}
+
+.pipelines-tab-panel {
+  padding-top: 20px;
 }
 
 .overview-grid,

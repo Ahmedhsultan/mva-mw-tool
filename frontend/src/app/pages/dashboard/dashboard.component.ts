@@ -10,6 +10,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '../../core/services/auth.service';
 import { DevOpsProvider } from '../../core/models';
 import { ConfigDialogComponent } from '../../shared/config-dialog/config-dialog.component';
+import { PipelinesWorkbenchComponent } from '../pipelines/pipelines-workbench.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -22,7 +23,8 @@ import { ConfigDialogComponent } from '../../shared/config-dialog/config-dialog.
     MatCardModule,
     MatDialogModule,
     MatTooltipModule,
-    MatMenuModule
+    MatMenuModule,
+    PipelinesWorkbenchComponent
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
@@ -60,11 +62,11 @@ export class DashboardComponent {
     return provider === 'github' ? 'code' : 'cloud';
   }
 
-  tabOrganization(tab: 'overview' | 'builds' | 'deployments'): string {
+  tabOrganization(tab: 'overview' | 'pipelines'): string {
     return this.authService.getProviderSettings(this.authService.getTabProvider(tab)).organization || 'No organization';
   }
 
-  tabProject(tab: 'overview' | 'builds' | 'deployments'): string {
+  tabProject(tab: 'overview' | 'pipelines'): string {
     const provider = this.authService.getTabProvider(tab);
     const fallback = provider === 'github' ? 'No workspace' : 'No project';
     return this.authService.getProviderSettings(provider).project || fallback;
@@ -82,13 +84,9 @@ export class DashboardComponent {
     this.authService.logout();
   }
 
-  private activeTabKey(): 'overview' | 'builds' | 'deployments' {
+  private activeTabKey(): 'overview' | 'pipelines' {
     if (this.selectedTabIndex === 1) {
-      return 'builds';
-    }
-
-    if (this.selectedTabIndex === 2) {
-      return 'deployments';
+      return 'pipelines';
     }
 
     return 'overview';

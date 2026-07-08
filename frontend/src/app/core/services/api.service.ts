@@ -10,6 +10,10 @@ import {
   RepoFileDto,
   CreateBuildRequest,
   CreateDeployRequest,
+  PipelineDto,
+  PipelinePayload,
+  PipelineRunCredentials,
+  PipelineRunDto,
   PushFileRequest
 } from '../models';
 
@@ -102,6 +106,35 @@ export class ApiService {
       headers: this.authHeaders(provider),
       params: this.baseParams(provider)
     });
+  }
+
+  // ---- Pipelines ----
+
+  getPipelines(): Observable<PipelineDto[]> {
+    return this.http.get<PipelineDto[]>('/api/pipelines');
+  }
+
+  createPipeline(pipelineName: string, payload: PipelinePayload): Observable<boolean> {
+    const params = new HttpParams().set('pipelineName', pipelineName);
+    return this.http.post<boolean>('/api/pipelines', payload, { params });
+  }
+
+  getPipelineRuns(): Observable<PipelineRunDto[]> {
+    return this.http.get<PipelineRunDto[]>('/api/pipelines/runs');
+  }
+
+  runPipeline(pipelineName: string, credentials: PipelineRunCredentials): Observable<boolean> {
+    return this.http.post<boolean>(`/api/pipelines/${encodeURIComponent(pipelineName)}/run`, credentials);
+  }
+
+  getPipelineTaskStatus(pipelineRunName: string, taskId: string): Observable<string> {
+    return this.http.get(`/api/pipelines/runs/${encodeURIComponent(pipelineRunName)}/tasks/${encodeURIComponent(taskId)}/status`, {
+      responseType: 'text'
+    });
+  }
+
+  stopPipelineRun(pipelineRunName: string): Observable<void> {
+    return this.http.post<void>(`/api/pipelines/runs/${encodeURIComponent(pipelineRunName)}/stop`, {});
   }
 
   // ---- Helpers ----

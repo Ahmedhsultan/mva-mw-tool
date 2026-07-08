@@ -6,12 +6,11 @@ export interface ProviderSettings {
   project: string;
 }
 
-export type AppTabKey = 'overview' | 'builds' | 'deployments' | 'config';
+export type AppTabKey = 'overview' | 'pipelines' | 'config';
 
 export interface AppTabProviders {
   overview: DevOpsProvider;
-  builds: DevOpsProvider;
-  deployments: DevOpsProvider;
+  pipelines: DevOpsProvider;
   config: DevOpsProvider;
 }
 
@@ -74,9 +73,23 @@ export interface PushFileRequest {
   commitMessage: string;
 }
 
+export type RepoProfileType = 'service' | 'library';
+
+export interface RepoProfile {
+  name: string;
+  repoId: string;
+  type: RepoProfileType;
+  branch: string;
+  buildDefinitionId: string;
+  deploymentDefinitionId: string;
+  environment: string;
+  description: string;
+}
+
 export interface ConfigDataFile {
   environments: string[];
   repositories: string[];
+  repoProfiles: RepoProfile[];
 }
 
 export interface ConfigDataRequest {
@@ -84,6 +97,85 @@ export interface ConfigDataRequest {
   branch: string;
   environments: string[];
   repositories: string[];
+  repoProfiles: RepoProfile[];
+}
+
+export type PipelineTaskType = 'BuildTask' | 'DeploymentTask' | 'ApprovalTask' | 'GitTask' | 'PrTask';
+
+export type PipelineTaskStatus =
+  | 'PENDING'
+  | 'RUNNING'
+  | 'SUCCEEDED'
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'WAITING_APPROVAL'
+  | 'SKIPPED'
+  | 'RETRYING';
+
+export interface PipelineCondition {
+  taskId: string;
+  status: PipelineTaskStatus;
+}
+
+export interface PipelineTaskNode {
+  id: string;
+  taskType: PipelineTaskType;
+  devOpsServiceFactory: DevOpsProvider;
+  conditions: PipelineCondition[];
+  nextTaskIds: string[];
+  branch?: string;
+  repoName?: string;
+  definitionId?: string;
+  buildTaskId?: string;
+  environment?: string;
+  description?: string;
+  approved?: boolean;
+  fromBranch?: string;
+  targetBranch?: string;
+  filePath?: string;
+  content?: string;
+  commitMessage?: string;
+}
+
+export interface PipelinePayload {
+  tasks: PipelineTaskNode[];
+}
+
+export interface PipelineDto {
+  pipelineName: string;
+  pipelineStructure: PipelinePayload;
+}
+
+export interface ProviderCredentials {
+  pat: string;
+  organization: string;
+  project: string;
+}
+
+export interface PipelineRunCredentials {
+  azure?: ProviderCredentials;
+  github?: ProviderCredentials;
+}
+
+export interface PipelineRunTask {
+  id: string;
+  taskType: PipelineTaskType;
+  nextTaskIds: string[];
+  status?: PipelineTaskStatus;
+  buildLink?: string;
+  deploymentLink?: string;
+  prLink?: string;
+}
+
+export interface PipelineRunGraph {
+  taskMap?: Record<string, PipelineRunTask>;
+  rootTasks?: PipelineRunTask[];
+}
+
+export interface PipelineRunDto {
+  graph?: PipelineRunGraph;
+  pipelineRunName: string;
+  pipeline: PipelinePayload;
 }
 
 export interface DevOpsConfig {

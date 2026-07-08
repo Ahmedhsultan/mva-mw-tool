@@ -1,0 +1,347 @@
+<div class="pipeline-workbench">
+  <section class="pipeline-hero mva-card">
+    <div class="hero-copy">
+      <span class="section-kicker">Pipelines</span>
+      <h2>Visual graph editor for backend pipeline flows</h2>
+      <p>Open saved pipelines, inspect run history, and build new task graphs that export the backend's flat <strong>tasks + nextTaskIds</strong> payload.</p>
+    </div>
+
+    <div class="hero-actions">
+      <button mat-stroked-button type="button" (click)="startNewPipeline()">
+        <mat-icon>auto_awesome</mat-icon>
+        New pipeline
+      </button>
+
+      @if (editorNodes.length) {
+        <button mat-flat-button color="primary" type="button" (click)="openBuilderWindow()">
+          <mat-icon>open_in_full</mat-icon>
+          Open builder window
+        </button>
+      }
+
+      <button mat-icon-button type="button" class="refresh-action" (click)="refreshWorkspace()" matTooltip="Refresh pipelines and runs">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </section>
+
+  <section class="workbench-tabs-shell mva-card">
+    <mat-tab-group class="workbench-tabs" [(selectedIndex)]="workbenchTabIndex" animationDuration="200ms">
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">folder_open</mat-icon>
+          Library
+        </ng-template>
+
+        <div class="subtab-content">
+          <section class="summary-card mva-card library-card">
+            <div class="card-heading">
+              <div>
+                <h3>Saved Pipelines</h3>
+                <p>Open an existing pipeline into the full-screen builder or run it directly with the provider settings saved in Workspace settings.</p>
+              </div>
+              <span class="count-pill">{{ pipelines.length }}</span>
+            </div>
+
+            <div class="draft-strip">
+              <div class="draft-strip-copy">
+                <strong>{{ draftPipelineName || 'Untitled pipeline' }}</strong>
+                <span>{{ editorNodes.length }} tasks • {{ edgeCount }} connections • {{ rootCount }} roots</span>
+              </div>
+
+              @if (editorNodes.length) {
+                <button mat-stroked-button type="button" (click)="openBuilderWindow()">
+                  <mat-icon>open_in_full</mat-icon>
+                  Resume draft
+                </button>
+              }
+            </div>
+
+            @if (pipelinesError) {
+              <div class="message-strip danger">{{ pipelinesError }}</div>
+            }
+
+            <div class="saved-pipeline-list">
+              @for (pipeline of pipelines; track pipeline.pipelineName) {
+                <article class="saved-pipeline-item" [class.active]="selectedPipelineName === pipeline.pipelineName">
+                  <button type="button" class="saved-pipeline-main" (click)="openPipeline(pipeline)">
+                    <strong>{{ pipeline.pipelineName }}</strong>
+                    <span>{{ pipeline.pipelineStructure.tasks.length }} tasks</span>
+                    <small>{{ pipelineProvidersLabel(pipeline) }}</small>
+                  </button>
+
+                  <button mat-icon-button type="button" class="inline-icon-btn" matTooltip="Run saved pipeline" (click)="runSavedPipeline(pipeline.pipelineName)">
+                    <mat-icon>play_arrow</mat-icon>
+                  </button>
+                </article>
+              }
+
+              @if (!pipelines.length && !isLoadingPipelines) {
+                <div class="empty-card">
+                  <mat-icon>lan</mat-icon>
+                  <p>No pipelines saved yet. Start with a blank graph and save the draft.</p>
+                </div>
+              }
+
+              @if (isLoadingPipelines) {
+                <div class="empty-card loading-card">
+                  <mat-icon>hourglass_top</mat-icon>
+                  <p>Loading pipelines...</p>
+                </div>
+              }
+            </div>
+          </section>
+        </div>
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">history</mat-icon>
+          Runs
+        </ng-template>
+
+        <div class="subtab-content">
+          <section class="summary-card mva-card history-card">
+            <div class="card-heading">
+              <div>
+                <h3>Run History</h3>
+                <p>Surface running and historical pipeline executions from the backend.</p>
+              </div>
+              <span class="count-pill">{{ pipelineRuns.length }}</span>
+            </div>
+
+            @if (runsError) {
+              <div class="message-strip danger">{{ runsError }}</div>
+            }
+
+            <div class="run-list">
+              @for (run of pipelineRuns; track run.pipelineRunName) {
+                <article class="run-item">
+                  <div class="run-item-top">
+                    <div>
+                      <strong>{{ pipelineNameForRun(run) }}</strong>
+                      <span>{{ run.pipelineRunName }}</span>
+                    </div>
+                    <span class="status-chip" [class]="statusTone(overallRunStatus(run))">{{ readableStatus(overallRunStatus(run)) }}</span>
+                  </div>
+
+                  <div class="run-stats">
+                    @for (stat of runStatusCounts(run); track stat.status) {
+                      <span class="mini-stat">
+                        <strong>{{ stat.count }}</strong>
+                        {{ readableStatus(stat.status) }}
+                      </span>
+                    }
+                  </div>
+
+                  <button mat-stroked-button type="button" (click)="loadRunAsReference(run)">
+                    <mat-icon>account_tree</mat-icon>
+                    Load in builder
+                  </button>
+                </article>
+              }
+
+              @if (!pipelineRuns.length && !isLoadingRuns) {
+                <div class="empty-card">
+                  <mat-icon>history</mat-icon>
+                  <p>No pipeline runs have been recorded yet.</p>
+                </div>
+              }
+
+              @if (isLoadingRuns) {
+                <div class="empty-card loading-card">
+                  <mat-icon>hourglass_top</mat-icon>
+                  <p>Loading pipeline runs...</p>
+                </div>
+              }
+            </div>
+          </section>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </section>
+
+  <ng-template #builderTpl>
+    <div class="builder-window-shell" aria-modal="true" role="dialog">
+      <div class="builder-window-backdrop" (click)="closeBuilderWindow()"></div>
+
+      <section class="builder-window mva-card" (click)="$event.stopPropagation()">
+        <header class="builder-window-header">
+          <div>
+            <strong>{{ draftPipelineName || 'Untitled pipeline' }}</strong>
+            <span class="header-stats">{{ editorNodes.length }} tasks · {{ edgeCount }} edges</span>
+          </div>
+          <div class="builder-window-actions">
+            <div class="zoom-controls">
+              <button mat-icon-button (click)="zoomOut()" matTooltip="Zoom out"><mat-icon>remove</mat-icon></button>
+              <span class="zoom-label">{{ zoomPercent }}%</span>
+              <button mat-icon-button (click)="zoomIn()" matTooltip="Zoom in"><mat-icon>add</mat-icon></button>
+              <button mat-icon-button (click)="resetZoom()" matTooltip="Reset"><mat-icon>fit_screen</mat-icon></button>
+            </div>
+            <button mat-stroked-button type="button" (click)="closeBuilderWindow()"><mat-icon>close</mat-icon> Close</button>
+            <button mat-flat-button color="primary" type="button" (click)="promptSave()" [disabled]="isSavingPipeline"><mat-icon>save</mat-icon> {{ isSavingPipeline ? 'Saving...' : 'Save' }}</button>
+            <button mat-flat-button color="primary" type="button" (click)="runActivePipeline()" [disabled]="!selectedPipelineName || isRunningPipeline"><mat-icon>play_arrow</mat-icon> {{ isRunningPipeline ? 'Running...' : 'Run' }}</button>
+          </div>
+        </header>
+
+        <div class="builder-body">
+          <aside class="toolbox-rail">
+            @for (tool of toolboxTasks; track tool.type) {
+              <button type="button" class="toolbox-chip" draggable="true" (dragstart)="onToolboxDragStart($event, tool.type)" (click)="addTaskFromToolbox(tool.type)" matTooltip="{{ tool.description }}" matTooltipPosition="right">
+                <mat-icon>{{ tool.icon }}</mat-icon>
+                <span>{{ tool.label }}</span>
+              </button>
+            }
+          </aside>
+
+          <div class="builder-quick-actions">
+            <button mat-flat-button color="primary" type="button" (click)="promptSave()" [disabled]="isSavingPipeline">
+              <mat-icon>save</mat-icon>
+              {{ isSavingPipeline ? 'Saving...' : 'Save pipeline' }}
+            </button>
+
+            @if (taskCatalogError) {
+              <span class="catalog-hint is-warning">{{ taskCatalogError }}</span>
+            } @else if (repoProfiles.length) {
+              <span class="catalog-hint">{{ repoProfiles.length }} repository presets ready</span>
+            }
+          </div>
+
+          <div class="canvas-stage" #canvasBoard [style.cursor]="panCursor" (pointerdown)="onCanvasPointerDown($event)" (pointermove)="onCanvasPointerMove($event)" (pointerup)="onCanvasPointerUp($event)" (dragover)="onCanvasDragOver($event)" (drop)="onCanvasDrop($event)" (wheel)="onCanvasWheel($event)">
+            @if (pendingConnectionSource; as source) {
+              <div class="connect-banner"><mat-icon>north_east</mat-icon> Connecting from <strong>{{ source.id }}</strong> <button mat-button (click)="clearPendingConnection()">Cancel</button></div>
+            }
+
+            <div class="canvas-zoom-layer" [style.width.px]="canvasWidth" [style.height.px]="canvasHeight" [style.transform]="'scale(' + canvasZoom + ')'">
+              <svg class="canvas-edges" [attr.viewBox]="'0 0 ' + canvasWidth + ' ' + canvasHeight">
+                <defs><marker id="edge-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,1 L7,4 L0,7 z"/></marker></defs>
+                @for (edge of smartEdges; track edge.key) {
+                  <path [attr.d]="edge.path" class="edge-path" [class.edge-active]="pendingConnectionSourceEditorId === edge.sourceEditorId"/>
+                }
+              </svg>
+
+              @for (task of editorNodes; track task.editorId) {
+                <article class="pipeline-node" [class.selected]="selectedTaskEditorId === task.editorId" [class.connect-source]="pendingConnectionSourceEditorId === task.editorId" cdkDrag [cdkDragBoundary]="'.canvas-zoom-layer'" [cdkDragFreeDragPosition]="task.position" (cdkDragEnded)="onNodeDragEnded(task, $event)" (click)="selectTask(task.editorId, $event)">
+                  <button type="button" class="port port-top" (click)="onPortClick(task.editorId, $event)"></button>
+                  <button type="button" class="port port-right" (click)="onPortClick(task.editorId, $event)"></button>
+                  <button type="button" class="port port-bottom" (click)="onPortClick(task.editorId, $event)"></button>
+                  <button type="button" class="port port-left" (click)="onPortClick(task.editorId, $event)"></button>
+                  <header class="node-header" cdkDragHandle>
+                    <div class="node-type-pill"><mat-icon>{{ taskIcon(task.taskType) }}</mat-icon> {{ taskLabel(task.taskType) }}</div>
+                    <button mat-icon-button class="inline-icon-btn" (click)="deleteTask(task.editorId, $event)" matTooltip="Delete"><mat-icon>delete_outline</mat-icon></button>
+                  </header>
+                  <div class="node-body">
+                    <strong>{{ task.id }}</strong>
+                    <div class="node-provider"><mat-icon>{{ providerIcon(task.devOpsServiceFactory) }}</mat-icon> {{ providerLabel(task.devOpsServiceFactory) }}</div>
+                    <p>{{ nodeSummary(task) }}</p>
+                  </div>
+                </article>
+              }
+
+              @if (!editorNodes.length) {
+                <div class="canvas-empty-state"><mat-icon>dashboard_customize</mat-icon><h4>Drag tasks onto the canvas</h4><p>Connect task nodes to build your pipeline graph.</p></div>
+              }
+            </div>
+          </div>
+
+          @if (selectedTask; as task) {
+            <aside class="task-config-window mva-card" (click)="$event.stopPropagation()">
+              <header class="drawer-header">
+                <div class="node-type-pill"><mat-icon>{{ taskIcon(task.taskType) }}</mat-icon> {{ taskLabel(task.taskType) }}</div>
+                <button mat-icon-button (click)="clearSelection()"><mat-icon>close</mat-icon></button>
+              </header>
+              <div class="drawer-scroll">
+                @if (repoProfiles.length) {
+                  <mat-form-field appearance="outline">
+                    <mat-label>Repository preset</mat-label>
+                    <mat-icon matPrefix>folder_managed</mat-icon>
+                    <mat-select [ngModel]="selectedRepoProfileKey(task)" (ngModelChange)="applyRepoProfileSelection(task, $event)">
+                      @for (repoProfile of availableRepoProfiles(task); track repoProfile.repoId || repoProfile.name) {
+                        <mat-option [value]="repoProfile.repoId.toLowerCase() || repoProfile.name.toLowerCase()">{{ repoProfileLabel(repoProfile) }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                }
+
+                <mat-form-field appearance="outline"><mat-label>Task id</mat-label><input matInput [ngModel]="task.id" (ngModelChange)="updateTaskId(task.editorId, $event)"></mat-form-field>
+                <mat-form-field appearance="outline"><mat-label>Provider</mat-label>
+                  <mat-select [(ngModel)]="task.devOpsServiceFactory">
+                    @for (provider of providerOptions; track provider) { <mat-option [value]="provider">{{ providerLabel(provider) }}</mat-option> }
+                  </mat-select>
+                </mat-form-field>
+                @switch (task.taskType) {
+                  @case ('BuildTask') {
+                    <mat-form-field appearance="outline"><mat-label>Branch</mat-label><input matInput [(ngModel)]="task.branch"></mat-form-field>
+                    <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
+                    <mat-form-field appearance="outline"><mat-label>Definition id</mat-label><input matInput [(ngModel)]="task.definitionId"></mat-form-field>
+                  }
+                  @case ('DeploymentTask') {
+                    <mat-form-field appearance="outline"><mat-label>Build ref</mat-label>
+                      <mat-select [(ngModel)]="task.buildTaskId">
+                        @for (bt of buildTaskOptions(task); track bt.editorId) { <mat-option [value]="bt.id">{{ bt.id }}</mat-option> }
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
+                    <mat-form-field appearance="outline"><mat-label>Definition id</mat-label><input matInput [(ngModel)]="task.definitionId"></mat-form-field>
+                    <mat-form-field appearance="outline"><mat-label>Environment</mat-label>
+                      <mat-select [(ngModel)]="task.environment">
+                        @for (environment of environmentOptions(task); track environment) { <mat-option [value]="environment">{{ environment }}</mat-option> }
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline"><mat-label>Description</mat-label><input matInput [(ngModel)]="task.description"></mat-form-field>
+                  }
+                  @case ('ApprovalTask') {
+                    <div class="toggle-row"><span>Approved</span>
+                      <button mat-stroked-button [class.active-toggle]="task.approved" (click)="task.approved = !task.approved"><mat-icon>{{ task.approved ? 'task_alt' : 'pending_actions' }}</mat-icon> {{ task.approved ? 'Yes' : 'No' }}</button>
+                    </div>
+                  }
+                  @case ('GitTask') {
+                    <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
+                    <mat-form-field appearance="outline"><mat-label>Branch</mat-label><input matInput [(ngModel)]="task.branch"></mat-form-field>
+                    <mat-form-field appearance="outline"><mat-label>File path</mat-label><input matInput [(ngModel)]="task.filePath"></mat-form-field>
+                    <mat-form-field appearance="outline"><mat-label>Commit msg</mat-label><input matInput [(ngModel)]="task.commitMessage"></mat-form-field>
+                    <mat-form-field appearance="outline"><mat-label>Content</mat-label><textarea matInput [(ngModel)]="task.content" rows="4"></textarea></mat-form-field>
+                  }
+                  @case ('PrTask') {
+                    <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
+                    <mat-form-field appearance="outline"><mat-label>Source branch</mat-label><input matInput [(ngModel)]="task.fromBranch"></mat-form-field>
+                    <mat-form-field appearance="outline"><mat-label>Target branch</mat-label><input matInput [(ngModel)]="task.targetBranch"></mat-form-field>
+                  }
+                }
+                <div class="drawer-section">
+                  <h5>Outgoing</h5>
+                  <div class="chip-stack">
+                    @for (nextId of task.nextTaskIds; track nextId) {
+                      <button type="button" class="soft-chip removable-chip" (click)="removeConnection(task.editorId, nextId)">{{ nextId }} <mat-icon>close</mat-icon></button>
+                    }
+                    @if (!task.nextTaskIds.length) { <span class="muted-copy">None</span> }
+                  </div>
+                </div>
+                <div class="drawer-section">
+                  <div class="section-title-row"><h5>Conditions</h5>
+                    <button mat-stroked-button (click)="addCondition(task)"><mat-icon>add</mat-icon> Add</button>
+                  </div>
+                  @for (condition of task.conditions; track $index) {
+                    <div class="condition-row">
+                      <mat-form-field appearance="outline"><mat-label>Depends on</mat-label>
+                        <mat-select [(ngModel)]="condition.taskId">
+                          @for (opt of conditionTaskOptions(task); track opt.editorId) { <mat-option [value]="opt.id">{{ opt.id }}</mat-option> }
+                        </mat-select>
+                      </mat-form-field>
+                      <mat-form-field appearance="outline"><mat-label>Status</mat-label>
+                        <mat-select [(ngModel)]="condition.status">
+                          @for (s of taskStatuses; track s) { <mat-option [value]="s">{{ readableStatus(s) }}</mat-option> }
+                        </mat-select>
+                      </mat-form-field>
+                      <button mat-icon-button (click)="removeCondition(task, $index)"><mat-icon>delete_outline</mat-icon></button>
+                    </div>
+                  }
+                </div>
+              </div>
+            </aside>
+          }
+        </div>
+      </section>
+    </div>
+  </ng-template>
+</div>

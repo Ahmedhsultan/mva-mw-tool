@@ -4,6 +4,7 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
@@ -12,7 +13,12 @@ import { MatDividerModule } from '@angular/material/divider';
 import { finalize } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-import { AppTabKey, AppTabProviders, DevOpsProvider, ProviderSettings } from '../../core/models';
+import { AppTabKey, AppTabProviders, DevOpsProvider, ProviderSettings, RepoProfile, RepoProfileType } from '../../core/models';
+
+interface ConfigCatalogState {
+  environments: string[];
+  repoProfiles: RepoProfile[];
+}
 
 @Component({
   selector: 'app-config-dialog',
@@ -23,6 +29,7 @@ import { AppTabKey, AppTabProviders, DevOpsProvider, ProviderSettings } from '..
     MatTabsModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MatButtonModule,
     MatIconModule,
     MatChipsModule,
@@ -37,11 +44,10 @@ export class ConfigDialogComponent implements OnInit {
 
   provider: DevOpsProvider = 'azure';
   configProvider: DevOpsProvider = 'azure';
-  appTabs: AppTabKey[] = ['overview', 'builds', 'deployments', 'config'];
+  appTabs: AppTabKey[] = ['overview', 'pipelines', 'config'];
   tabProviders: AppTabProviders = {
     overview: 'azure',
-    builds: 'azure',
-    deployments: 'azure',
+    pipelines: 'azure',
     config: 'azure'
   };
   organization = '';
@@ -53,13 +59,19 @@ export class ConfigDialogComponent implements OnInit {
   isConfigBusy = computed(() => this.isLoadingConfig() || this.isSavingConfig());
 
   environments: string[] = [];
-  repositories: string[] = [];
+  repoProfiles: RepoProfile[] = [];
   newEnvName = '';
   newRepositoryName = '';
+  newRepositoryType: RepoProfileType = 'service';
   dbRepoId = '';
   dbBranch = 'main';
   configLoaded = false;
   loadError = '';
+  repoProfilesDirty = false;
+  private lastSavedState: ConfigCatalogState = {
+    environments: [],
+    repoProfiles: []
+  };
 
   constructor(
     private apiService: ApiService,
@@ -76,8 +88,22 @@ export class ConfigDialogComponent implements OnInit {
     this.applyProviderSettings(this.authService.getProviderSettings(this.provider));
     this.dbRepoId = this.resolveDbRepoId(config.dbRepoId);
     this.dbBranch = config.dbBranch.trim() || 'main';
+    this.persistConfigSource(this.dbRepoId, this.dbBranch);
 
     this.loadConfig();
+  }
+
+  get repositories(): string[] {
+    const values = new Set<string>();
+
+    for (const repoProfile of this.repoProfiles) {
+      const value = (repoProfile.repoId || repoProfile.name).trim();
+      if (value) {
+        values.add(value);
+      }
+    }
+
+    return [...values];
   }
 
   saveProviderSettings(): void {
@@ -97,6 +123,17 @@ export class ConfigDialogComponent implements OnInit {
     }
   }
 
+  repoTypeLabel(type: RepoProfileType): string {
+    return type === 'library' ? 'Library' : 'Service';
+  }
+
+  reloadConfigSource(): void {
+    const repoId = this.resolveDbRepoId(this.dbRepoId);
+    const branch = this.dbBranch.trim() || 'main';
+    this.persistConfigSource(repoId, branch);
+    this.loadConfig();
+  }
+
   setAppTabProvider(tab: AppTabKey, provider: DevOpsProvider): void {
     this.tabProviders = {
       ...this.tabProviders,
@@ -110,7 +147,7 @@ export class ConfigDialogComponent implements OnInit {
       this.provider = provider;
       this.applyProviderSettings(this.authService.getProviderSettings(provider));
       this.dbRepoId = this.resolveDbRepoId(this.dbRepoId);
-
+      this.persistConfigSource(this.dbRepoId, this.dbBranch);
       this.loadConfig();
     }
   }
@@ -123,10 +160,8 @@ export class ConfigDialogComponent implements OnInit {
     switch (tab) {
       case 'overview':
         return 'Overview';
-      case 'builds':
-        return 'Builds';
-      case 'deployments':
-        return 'Deployments';
+      case 'pipelines':
+        return 'Pipelines';
       default:
         return 'Config';
     }
@@ -193,6 +228,7 @@ export class ConfigDialogComponent implements OnInit {
       });
       return;
     }
+
     const previousState = this.snapshotConfig();
     this.environments = [...this.environments, name];
     this.newEnvName = '';
@@ -207,31 +243,77 @@ export class ConfigDialogComponent implements OnInit {
     this.persistConfig(previousState, `Environment "${env}" removed`);
   }
 
-  addRepository(): void {
+  addRepositoryProfile(): void {
     if (this.isConfigBusy()) return;
 
-    const name = this.newRepositoryName.trim();
-    if (!name) return;
-    if (this.repositories.some(repository => repository.toLowerCase() === name.toLowerCase())) {
-      this.snackBar.open('Repository already exists', 'Close', {
+    const repoId = this.newRepositoryName.trim();
+    if (!repoId) return;
+    if (this.repoProfiles.some(profile => this.repoProfileKey(profile) === repoId.toLowerCase())) {
+      this.snackBar.open('Repository profile already exists', 'Close', {
         duration: 2500,
         panelClass: 'error-snackbar'
       });
       return;
     }
 
-    const previousState = this.snapshotConfig();
-    this.repositories = [...this.repositories, name];
+    this.repoProfiles = [
+      ...this.repoProfiles,
+      {
+        name: repoId,
+        repoId,
+        type: this.newRepositoryType,
+        branch: '',
+        buildDefinitionId: '',
+        deploymentDefinitionId: '',
+        environment: '',
+        description: ''
+      }
+    ];
     this.newRepositoryName = '';
-    this.persistConfig(previousState, `Repository "${name}" added`);
+    this.newRepositoryType = 'service';
+    this.repoProfilesDirty = true;
   }
 
-  removeRepository(repository: string): void {
+  updateRepoProfile(index: number, field: keyof RepoProfile, value: string): void {
+    const nextProfiles = [...this.repoProfiles];
+    const current = nextProfiles[index];
+    if (!current) {
+      return;
+    }
+
+    nextProfiles[index] = {
+      ...current,
+      [field]: value
+    };
+
+    if (field === 'type' && value === 'library') {
+      nextProfiles[index].deploymentDefinitionId = '';
+    }
+
+    this.repoProfiles = nextProfiles;
+    this.repoProfilesDirty = true;
+  }
+
+  removeRepositoryProfile(index: number): void {
     if (this.isConfigBusy()) return;
 
-    const previousState = this.snapshotConfig();
-    this.repositories = this.repositories.filter(existingRepository => existingRepository !== repository);
-    this.persistConfig(previousState, `Repository "${repository}" removed`);
+    this.repoProfiles = this.repoProfiles.filter((_, profileIndex) => profileIndex !== index);
+    this.repoProfilesDirty = true;
+  }
+
+  saveRepositoryProfiles(): void {
+    if (this.isConfigBusy()) return;
+
+    const validationMessage = this.validateRepoProfiles();
+    if (validationMessage) {
+      this.snackBar.open(validationMessage, 'Close', {
+        duration: 3000,
+        panelClass: 'error-snackbar'
+      });
+      return;
+    }
+
+    this.persistConfig(this.cloneState(this.lastSavedState), 'Repository catalog saved');
   }
 
   close(): void {
@@ -248,6 +330,7 @@ export class ConfigDialogComponent implements OnInit {
       return;
     }
 
+    this.persistConfigSource(repoId, branch);
     this.dbRepoId = repoId;
     this.dbBranch = branch;
     this.loadError = '';
@@ -256,23 +339,22 @@ export class ConfigDialogComponent implements OnInit {
     this.apiService.getConfigData(this.configProvider, repoId, branch)
       .pipe(finalize(() => this.isLoadingConfig.set(false)))
       .subscribe({
-      next: (response) => {
-        this.environments = [...response.environments];
-        this.repositories = [...response.repositories];
-        this.configLoaded = true;
-        this.loadError = '';
-      },
-      error: () => {
-        this.configLoaded = false;
-        this.loadError = `Could not load config from ${this.providerName(this.configProvider)}. Check token, organization, repo access, and config provider.`;
-      }
-    });
+        next: response => {
+          this.environments = [...response.environments];
+          this.repoProfiles = this.normalizeRepoProfiles(response.repoProfiles, response.repositories);
+          this.configLoaded = true;
+          this.loadError = '';
+          this.repoProfilesDirty = false;
+          this.lastSavedState = this.snapshotConfig();
+        },
+        error: () => {
+          this.configLoaded = false;
+          this.loadError = `Could not load config from ${this.providerName(this.configProvider)}. Check token, organization, repo access, and config provider.`;
+        }
+      });
   }
 
-  private persistConfig(
-    previousState: { environments: string[]; repositories: string[] },
-    successMessage: string
-  ): void {
+  private persistConfig(previousState: ConfigCatalogState, successMessage: string): void {
     if (!this.configLoaded) {
       this.restoreConfig(previousState);
       this.snackBar.open(this.loadError || 'Could not load configuration', 'Close', {
@@ -294,15 +376,20 @@ export class ConfigDialogComponent implements OnInit {
       return;
     }
 
+    this.persistConfigSource(repoId, branch);
     this.isSavingConfig.set(true);
 
     this.apiService.saveConfigData(this.configProvider, {
       repoId,
       branch,
       environments: this.environments,
-      repositories: this.repositories
+      repositories: this.repositories,
+      repoProfiles: this.serializeRepoProfiles()
     }).pipe(finalize(() => this.isSavingConfig.set(false))).subscribe({
       next: () => {
+        this.repoProfiles = this.serializeRepoProfiles();
+        this.lastSavedState = this.snapshotConfig();
+        this.repoProfilesDirty = false;
         this.snackBar.open(successMessage, 'Close', {
           duration: 2000,
           panelClass: 'success-snackbar'
@@ -318,22 +405,35 @@ export class ConfigDialogComponent implements OnInit {
     });
   }
 
-  private snapshotConfig(): { environments: string[]; repositories: string[] } {
+  private snapshotConfig(): ConfigCatalogState {
     return {
       environments: [...this.environments],
-      repositories: [...this.repositories]
+      repoProfiles: this.repoProfiles.map(profile => ({ ...profile }))
     };
   }
 
-  private restoreConfig(state: { environments: string[]; repositories: string[] }): void {
+  private cloneState(state: ConfigCatalogState): ConfigCatalogState {
+    return {
+      environments: [...state.environments],
+      repoProfiles: state.repoProfiles.map(profile => ({ ...profile }))
+    };
+  }
+
+  private restoreConfig(state: ConfigCatalogState): void {
     this.environments = [...state.environments];
-    this.repositories = [...state.repositories];
+    this.repoProfiles = state.repoProfiles.map(profile => ({ ...profile }));
+    this.repoProfilesDirty = false;
   }
 
   private applyProviderSettings(settings: ProviderSettings): void {
     this.organization = settings.organization;
     this.project = settings.project;
     this.token = settings.pat;
+  }
+
+  private persistConfigSource(repoId: string, branch: string): void {
+    this.authService.updateDbRepoId(repoId.trim());
+    this.authService.updateDbBranch(branch.trim() || 'main');
   }
 
   private resolveDbRepoId(repoId: string): string {
@@ -348,5 +448,97 @@ export class ConfigDialogComponent implements OnInit {
     }
 
     return '';
+  }
+
+  private normalizeRepoProfiles(repoProfiles: RepoProfile[] | undefined, repositories: string[] | undefined): RepoProfile[] {
+    const normalized = new Map<string, RepoProfile>();
+
+    for (const repoProfile of repoProfiles || []) {
+      const profile = this.normalizeRepoProfile(repoProfile);
+      const key = this.repoProfileKey(profile);
+      if (key) {
+        normalized.set(key, profile);
+      }
+    }
+
+    for (const repository of repositories || []) {
+      const repoId = repository.trim();
+      if (!repoId) {
+        continue;
+      }
+
+      const fallback = this.normalizeRepoProfile({
+        name: repoId,
+        repoId,
+        type: 'service',
+        branch: 'main',
+        buildDefinitionId: '',
+        deploymentDefinitionId: '',
+        environment: '',
+        description: ''
+      });
+
+      const key = this.repoProfileKey(fallback);
+      if (!normalized.has(key)) {
+        normalized.set(key, fallback);
+      }
+    }
+
+    return [...normalized.values()];
+  }
+
+  private serializeRepoProfiles(): RepoProfile[] {
+    const normalized = new Map<string, RepoProfile>();
+
+    for (const repoProfile of this.repoProfiles) {
+      const profile = this.normalizeRepoProfile(repoProfile);
+      const key = this.repoProfileKey(profile);
+      if (key) {
+        normalized.set(key, profile);
+      }
+    }
+
+    return [...normalized.values()];
+  }
+
+  private normalizeRepoProfile(repoProfile: RepoProfile): RepoProfile {
+    const repoId = repoProfile.repoId.trim() || repoProfile.name.trim();
+    const type: RepoProfileType = repoProfile.type === 'library' ? 'library' : 'service';
+
+    return {
+      name: repoId,
+      repoId,
+      type,
+      branch: '',
+      buildDefinitionId: repoProfile.buildDefinitionId.trim(),
+      deploymentDefinitionId: type === 'library' ? '' : repoProfile.deploymentDefinitionId.trim(),
+      environment: '',
+      description: ''
+    };
+  }
+
+  private validateRepoProfiles(): string | null {
+    const seenKeys = new Set<string>();
+
+    for (const repoProfile of this.repoProfiles) {
+      const profile = this.normalizeRepoProfile(repoProfile);
+      const key = this.repoProfileKey(profile);
+
+      if (!profile.repoId) {
+        return 'Each repository needs a repo id.';
+      }
+
+      if (seenKeys.has(key)) {
+        return `Repository profile "${profile.name || profile.repoId}" is duplicated.`;
+      }
+
+      seenKeys.add(key);
+    }
+
+    return null;
+  }
+
+  private repoProfileKey(repoProfile: RepoProfile): string {
+    return (repoProfile.repoId.trim() || repoProfile.name.trim()).toLowerCase();
   }
 }

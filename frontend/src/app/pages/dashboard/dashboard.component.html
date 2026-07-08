@@ -118,49 +118,11 @@
 
       <mat-tab>
         <ng-template mat-tab-label>
-          <mat-icon class="tab-icon">build</mat-icon>
-          Builds
+          <mat-icon class="tab-icon">account_tree</mat-icon>
+          Pipelines
         </ng-template>
-        <div class="tab-content">
-          <div class="workspace-grid">
-            <section class="workspace-card mva-card wide-card">
-              <h3>Builds</h3>
-
-              <div class="step-list">
-                <div class="step-item"><span>1</span><p>Use {{ providerLabel(authService.getTabProvider('builds')) }} for this tab</p></div>
-                <div class="step-item"><span>2</span><p>Trigger new builds or inspect recent runs</p></div>
-                <div class="step-item"><span>3</span><p>Surface results and logs inside focused cards</p></div>
-              </div>
-            </section>
-
-            <section class="workspace-card mva-card compact-card">
-              <h3>Ready for build tools</h3>
-            </section>
-          </div>
-        </div>
-      </mat-tab>
-
-      <mat-tab>
-        <ng-template mat-tab-label>
-          <mat-icon class="tab-icon">rocket_launch</mat-icon>
-          Deployments
-        </ng-template>
-        <div class="tab-content">
-          <div class="workspace-grid">
-            <section class="workspace-card mva-card wide-card">
-              <h3>Deployments</h3>
-
-              <div class="step-list">
-                <div class="step-item"><span>1</span><p>Use {{ providerLabel(authService.getTabProvider('deployments')) }} for this tab</p></div>
-                <div class="step-item"><span>2</span><p>Trigger deployments with clear contextual metadata</p></div>
-                <div class="step-item"><span>3</span><p>Display history, health, and rollback paths cleanly</p></div>
-              </div>
-            </section>
-
-            <section class="workspace-card mva-card compact-card">
-              <h3>Ready for deployment tools</h3>
-            </section>
-          </div>
+        <div class="tab-content pipelines-tab-panel">
+          <app-pipelines-workbench />
         </div>
       </mat-tab>
     </mat-tab-group>

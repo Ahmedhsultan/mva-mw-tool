@@ -1,4 +1,14 @@
 {
   "environments" : [ "dev1-common", "int1-common", "qc1-common", "qc2-common", "qc5-common", "prod1-blue", "prod1-common" ],
-  "repositories" : [ "mvax-api" ]
+  "repositories" : [ "mvax-api" ],
+  "repoProfiles" : [ {
+    "name" : "mvax-api",
+    "repoId" : "mvax-api",
+    "type" : "service",
+    "branch" : "main",
+    "buildDefinitionId" : "",
+    "deploymentDefinitionId" : "",
+    "environment" : "dev1-common",
+    "description" : ""
+  } ]
 }
