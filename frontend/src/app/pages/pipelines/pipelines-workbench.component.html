@@ -235,7 +235,7 @@
               </svg>
 
               @for (task of editorNodes; track task.editorId) {
-                <article class="pipeline-node" [class.selected]="selectedTask?.editorId === task.editorId" [class.connect-source]="pendingConnectionSourceEditorId === task.editorId" cdkDrag [cdkDragBoundary]="'.canvas-zoom-layer'" [cdkDragFreeDragPosition]="task.position" (cdkDragEnded)="onNodeDragEnded(task, $event)" (click)="selectTask(task, $event)">
+                <article class="pipeline-node" [class.selected]="selectedTask()?.editorId === task.editorId" [class.connect-source]="pendingConnectionSourceEditorId === task.editorId" cdkDrag [cdkDragBoundary]="'.canvas-zoom-layer'" [cdkDragFreeDragPosition]="task.position" (cdkDragEnded)="onNodeDragEnded(task, $event)" (click)="selectTask(task, $event)">
                   <button type="button" class="port port-top" (click)="onPortClick(task.editorId, $event)"></button>
                   <button type="button" class="port port-right" (click)="onPortClick(task.editorId, $event)"></button>
                   <button type="button" class="port port-bottom" (click)="onPortClick(task.editorId, $event)"></button>
@@ -243,7 +243,7 @@
                   <header class="node-header">
                     <div class="node-type-pill node-drag-handle" cdkDragHandle><mat-icon>{{ taskIcon(task.taskType) }}</mat-icon> {{ taskLabel(task.taskType) }}</div>
                     <div class="node-actions">
-                      <button mat-icon-button type="button" class="inline-icon-btn node-config-btn" (pointerdown)="selectTask(task, $event)" matTooltip="Configure task">
+                      <button mat-icon-button type="button" class="inline-icon-btn node-config-btn" (pointerdown)="$event.stopPropagation()" (click)="selectTask(task, $event)" matTooltip="Configure task">
                         <mat-icon>tune</mat-icon>
                       </button>
                       <button mat-icon-button type="button" class="inline-icon-btn" (pointerdown)="$event.stopPropagation()" (click)="deleteTask(task.editorId, $event)" matTooltip="Delete"><mat-icon>delete_outline</mat-icon></button>
@@ -263,7 +263,7 @@
             </div>
           </div>
 
-          @if (selectedTask; as task) {
+          @if (selectedTask(); as task) {
             <aside class="task-config-window mva-card" (click)="$event.stopPropagation()">
               <header class="drawer-header">
                 <div class="node-type-pill"><mat-icon>{{ taskIcon(task.taskType) }}</mat-icon> {{ taskLabel(task.taskType) }}</div>

@@ -1,7 +1,7 @@
 import { CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
 import { Overlay, OverlayModule, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
-import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, TemplateRef, ViewChild, ViewContainerRef } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, TemplateRef, ViewChild, ViewContainerRef, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -162,7 +162,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   isBuilderWindowOpen = false;
   draftPipelineName = '';
   selectedPipelineName = '';
-  selectedTask: EditorPipelineTaskNode | null = null;
+  readonly selectedTask = signal<EditorPipelineTaskNode | null>(null);
   pendingConnectionSourceEditorId: string | null = null;
 
   isLoadingPipelines = false;
@@ -198,8 +198,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private snackBar: MatSnackBar,
     private overlay: Overlay,
-    private viewContainerRef: ViewContainerRef,
-    private changeDetectorRef: ChangeDetectorRef
+    private viewContainerRef: ViewContainerRef
   ) {}
 
   ngOnInit(): void {
@@ -257,7 +256,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
   startNewPipeline(openBuilderWindow = true): void {
     this.selectedPipelineName = '';
-    this.selectedTask = null;
+    this.selectedTask.set(null);
     this.pendingConnectionSourceEditorId = null;
     this.editorNodes = [];
     this.draftPipelineName = this.generatePipelineName();
@@ -303,7 +302,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
   closeBuilderWindow(): void {
     this.isBuilderWindowOpen = false;
-    this.selectedTask = null;
+    this.selectedTask.set(null);
     this.pendingConnectionSourceEditorId = null;
     this.overlayRef?.detach();
   }
@@ -516,7 +515,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   clearSelection(): void {
-    this.selectedTask = null;
+    this.selectedTask.set(null);
   }
 
   clearPendingConnection(): void {
@@ -525,7 +524,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
   startConnection(editorId: string, event: Event): void {
     event.stopPropagation();
-    this.selectedTask = this.findNodeByEditorId(editorId) || null;
+    this.selectedTask.set(this.findNodeByEditorId(editorId) || null);
     this.pendingConnectionSourceEditorId = this.pendingConnectionSourceEditorId === editorId ? null : editorId;
   }
 
@@ -584,8 +583,8 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
         buildTaskId: node.taskType === 'DeploymentTask' && node.buildTaskId === removed.id ? '' : node.buildTaskId
       }));
 
-    if (this.selectedTask?.editorId === editorId) {
-      this.selectedTask = this.editorNodes[0] || null;
+    if (this.selectedTask()?.editorId === editorId) {
+      this.selectedTask.set(this.editorNodes[0] || null);
     }
 
     if (this.pendingConnectionSourceEditorId === editorId) {
@@ -1320,11 +1319,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
   private openTaskConfig(task: EditorPipelineTaskNode | null, event?: Event): void {
     event?.stopPropagation();
-    if (event instanceof PointerEvent || event instanceof MouseEvent) {
-      event.preventDefault();
-    }
-    this.selectedTask = task;
-    this.changeDetectorRef.detectChanges();
+    this.selectedTask.set(task);
   }
 
   private focusValidationIssue(issue: ValidationIssue): void {
