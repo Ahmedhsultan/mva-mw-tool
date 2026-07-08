@@ -3,37 +3,47 @@
   "repoProfiles" : [ {
     "name" : "mvax-api",
     "type" : "service",
-    "buildDefinitionId" : "",
-    "deploymentDefinitionId" : ""
+    "buildDefinitionId" : "997",
+    "deploymentDefinitionId" : "503"
   }, {
     "name" : "mvax-offers",
     "type" : "service",
-    "buildDefinitionId" : "",
-    "deploymentDefinitionId" : ""
+    "buildDefinitionId" : "5222",
+    "deploymentDefinitionId" : "2102"
   }, {
     "name" : "mvax-upgrades",
     "type" : "service",
-    "buildDefinitionId" : "",
-    "deploymentDefinitionId" : ""
+    "buildDefinitionId" : "7912",
+    "deploymentDefinitionId" : "2388"
   }, {
     "name" : "mvax-plan-services",
     "type" : "service",
-    "buildDefinitionId" : "",
-    "deploymentDefinitionId" : ""
+    "buildDefinitionId" : "5021",
+    "deploymentDefinitionId" : "2067"
   }, {
     "name" : "mvax-native-billing",
     "type" : "service",
-    "buildDefinitionId" : "",
-    "deploymentDefinitionId" : ""
+    "buildDefinitionId" : "5018",
+    "deploymentDefinitionId" : "2066"
   }, {
     "name" : "mvax-adobe-integrator",
     "type" : "service",
-    "buildDefinitionId" : "",
-    "deploymentDefinitionId" : ""
+    "buildDefinitionId" : "5281",
+    "deploymentDefinitionId" : "2110"
   }, {
     "name" : "mvax-authentication",
     "type" : "service",
-    "buildDefinitionId" : "",
+    "buildDefinitionId" : "3768",
+    "deploymentDefinitionId" : "1718"
+  }, {
+    "name" : "mvax-common",
+    "type" : "library",
+    "buildDefinitionId" : "3794",
+    "deploymentDefinitionId" : ""
+  }, {
+    "name" : "mvax-population-engine",
+    "type" : "library",
+    "buildDefinitionId" : "7483",
     "deploymentDefinitionId" : ""
   } ]
 }
