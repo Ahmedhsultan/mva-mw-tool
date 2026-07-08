@@ -87,9 +87,11 @@ describe('PipelinesWorkbenchComponent', () => {
 
     const overlayRoot = overlayContainer.getContainerElement();
     const configureButton = overlayRoot.querySelector('.node-config-btn') as HTMLButtonElement | null;
+    const drawer = overlayRoot.querySelector('.task-config-window') as HTMLElement | null;
 
     expect(configureButton).not.toBeNull();
-    expect(overlayRoot.querySelector('.task-config-window')).toBeNull();
+    expect(drawer).not.toBeNull();
+    expect(drawer?.textContent).toContain('Select a task');
 
     configureButton?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
     configureButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -97,6 +99,6 @@ describe('PipelinesWorkbenchComponent', () => {
     await new Promise(resolve => setTimeout(resolve, 0));
 
     expect(component.selectedTask()?.editorId).toBe(component.editorNodes[0]?.editorId);
-    expect(overlayRoot.querySelector('.task-config-window')).not.toBeNull();
+    expect(overlayRoot.querySelector('.task-config-window')?.textContent).toContain('Task id');
   });
 });

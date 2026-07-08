@@ -43,20 +43,6 @@
               <span class="count-pill">{{ pipelines.length }}</span>
             </div>
 
-            <div class="draft-strip">
-              <div class="draft-strip-copy">
-                <strong>{{ draftPipelineName || 'Untitled pipeline' }}</strong>
-                <span>{{ editorNodes.length }} tasks • {{ edgeCount }} connections • {{ rootCount }} roots</span>
-              </div>
-
-              @if (editorNodes.length) {
-                <button mat-stroked-button type="button" (click)="openBuilderWindow()">
-                  <mat-icon>open_in_full</mat-icon>
-                  Resume draft
-                </button>
-              }
-            </div>
-
             @if (pipelinesError) {
               <div class="message-strip danger">{{ pipelinesError }}</div>
             }
@@ -263,103 +249,118 @@
             </div>
           </div>
 
-          @if (selectedTask(); as task) {
-            <aside class="task-config-window mva-card" (click)="$event.stopPropagation()">
-              <header class="drawer-header">
-                <div class="node-type-pill"><mat-icon>{{ taskIcon(task.taskType) }}</mat-icon> {{ taskLabel(task.taskType) }}</div>
-                <button mat-icon-button (click)="clearSelection()"><mat-icon>close</mat-icon></button>
-              </header>
-              <div class="drawer-scroll">
-                @if (repoProfiles.length) {
-                  <mat-form-field appearance="outline">
-                    <mat-label>Repository preset</mat-label>
-                    <mat-icon matPrefix>folder_managed</mat-icon>
-                    <mat-select [ngModel]="selectedRepoProfileKey(task)" (ngModelChange)="applyRepoProfileSelection(task, $event)">
-                      @for (repoProfile of availableRepoProfiles(task); track repoProfile.name) {
-                        <mat-option [value]="repoProfile.name.toLowerCase()">{{ repoProfileLabel(repoProfile) }}</mat-option>
-                      }
-                    </mat-select>
-                  </mat-form-field>
-                }
+        </div>
 
-                <mat-form-field appearance="outline"><mat-label>Task id</mat-label><input matInput [ngModel]="task.id" (ngModelChange)="updateTaskId(task.editorId, $event)"></mat-form-field>
-                <mat-form-field appearance="outline"><mat-label>Provider</mat-label>
-                  <mat-select [(ngModel)]="task.devOpsServiceFactory">
-                    @for (provider of providerOptions; track provider) { <mat-option [value]="provider">{{ providerLabel(provider) }}</mat-option> }
+        @let task = selectedTask();
+        <aside class="task-config-window mva-card" [class.is-empty]="!task" (click)="$event.stopPropagation()">
+          <header class="drawer-header">
+            @if (task) {
+              <div class="node-type-pill"><mat-icon>{{ taskIcon(task.taskType) }}</mat-icon> {{ taskLabel(task.taskType) }}</div>
+            } @else {
+              <div class="drawer-empty-copy">
+                <strong>Task configuration</strong>
+                <span>Select a task to edit its settings.</span>
+              </div>
+            }
+            <button mat-icon-button (click)="clearSelection()" [disabled]="!task"><mat-icon>close</mat-icon></button>
+          </header>
+          <div class="drawer-scroll">
+            @if (task) {
+              @if (repoProfiles.length) {
+                <mat-form-field appearance="outline">
+                  <mat-label>Repository preset</mat-label>
+                  <mat-icon matPrefix>folder_managed</mat-icon>
+                  <mat-select [ngModel]="selectedRepoProfileKey(task)" (ngModelChange)="applyRepoProfileSelection(task, $event)">
+                    @for (repoProfile of availableRepoProfiles(task); track repoProfile.name) {
+                      <mat-option [value]="repoProfile.name.toLowerCase()">{{ repoProfileLabel(repoProfile) }}</mat-option>
+                    }
                   </mat-select>
                 </mat-form-field>
-                @switch (task.taskType) {
-                  @case ('BuildTask') {
-                    <mat-form-field appearance="outline"><mat-label>Branch</mat-label><input matInput [(ngModel)]="task.branch"></mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>Definition id</mat-label><input matInput [(ngModel)]="task.definitionId"></mat-form-field>
-                  }
-                  @case ('DeploymentTask') {
-                    <mat-form-field appearance="outline"><mat-label>Build ref</mat-label>
-                      <mat-select [(ngModel)]="task.buildTaskId">
-                        @for (bt of buildTaskOptions(task); track bt.editorId) { <mat-option [value]="bt.id">{{ bt.id }}</mat-option> }
-                      </mat-select>
-                    </mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>Definition id</mat-label><input matInput [(ngModel)]="task.definitionId"></mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>Environment</mat-label>
-                      <mat-select [(ngModel)]="task.environment">
-                        @for (environment of environmentOptions(task); track environment) { <mat-option [value]="environment">{{ environment }}</mat-option> }
-                      </mat-select>
-                    </mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>Description</mat-label><input matInput [(ngModel)]="task.description"></mat-form-field>
-                  }
-                  @case ('ApprovalTask') {
-                    <div class="toggle-row"><span>Approved</span>
-                      <button mat-stroked-button [class.active-toggle]="task.approved" (click)="task.approved = !task.approved"><mat-icon>{{ task.approved ? 'task_alt' : 'pending_actions' }}</mat-icon> {{ task.approved ? 'Yes' : 'No' }}</button>
-                    </div>
-                  }
-                  @case ('GitTask') {
-                    <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>Branch</mat-label><input matInput [(ngModel)]="task.branch"></mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>File path</mat-label><input matInput [(ngModel)]="task.filePath"></mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>Commit msg</mat-label><input matInput [(ngModel)]="task.commitMessage"></mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>Content</mat-label><textarea matInput [(ngModel)]="task.content" rows="4"></textarea></mat-form-field>
-                  }
-                  @case ('PrTask') {
-                    <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>Source branch</mat-label><input matInput [(ngModel)]="task.fromBranch"></mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>Target branch</mat-label><input matInput [(ngModel)]="task.targetBranch"></mat-form-field>
-                  }
+              }
+
+              <mat-form-field appearance="outline"><mat-label>Task id</mat-label><input matInput [ngModel]="task.id" (ngModelChange)="updateTaskId(task.editorId, $event)"></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Provider</mat-label>
+                <mat-select [(ngModel)]="task.devOpsServiceFactory">
+                  @for (provider of providerOptions; track provider) { <mat-option [value]="provider">{{ providerLabel(provider) }}</mat-option> }
+                </mat-select>
+              </mat-form-field>
+              @switch (task.taskType) {
+                @case ('BuildTask') {
+                  <mat-form-field appearance="outline"><mat-label>Branch</mat-label><input matInput [(ngModel)]="task.branch"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>Definition id</mat-label><input matInput [(ngModel)]="task.definitionId"></mat-form-field>
                 }
-                <div class="drawer-section">
-                  <h5>Outgoing</h5>
-                  <div class="chip-stack">
-                    @for (nextId of task.nextTaskIds; track nextId) {
-                      <button type="button" class="soft-chip removable-chip" (click)="removeConnection(task.editorId, nextId)">{{ nextId }} <mat-icon>close</mat-icon></button>
-                    }
-                    @if (!task.nextTaskIds.length) { <span class="muted-copy">None</span> }
+                @case ('DeploymentTask') {
+                  <mat-form-field appearance="outline"><mat-label>Build ref</mat-label>
+                    <mat-select [(ngModel)]="task.buildTaskId">
+                      @for (bt of buildTaskOptions(task); track bt.editorId) { <mat-option [value]="bt.id">{{ bt.id }}</mat-option> }
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>Definition id</mat-label><input matInput [(ngModel)]="task.definitionId"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>Environment</mat-label>
+                    <mat-select [(ngModel)]="task.environment">
+                      @for (environment of environmentOptions(task); track environment) { <mat-option [value]="environment">{{ environment }}</mat-option> }
+                    </mat-select>
+                  </mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>Description</mat-label><input matInput [(ngModel)]="task.description"></mat-form-field>
+                }
+                @case ('ApprovalTask') {
+                  <div class="toggle-row"><span>Approved</span>
+                    <button mat-stroked-button [class.active-toggle]="task.approved" (click)="task.approved = !task.approved"><mat-icon>{{ task.approved ? 'task_alt' : 'pending_actions' }}</mat-icon> {{ task.approved ? 'Yes' : 'No' }}</button>
                   </div>
-                </div>
-                <div class="drawer-section">
-                  <div class="section-title-row"><h5>Conditions</h5>
-                    <button mat-stroked-button (click)="addCondition(task)"><mat-icon>add</mat-icon> Add</button>
-                  </div>
-                  @for (condition of task.conditions; track $index) {
-                    <div class="condition-row">
-                      <mat-form-field appearance="outline"><mat-label>Depends on</mat-label>
-                        <mat-select [(ngModel)]="condition.taskId">
-                          @for (opt of conditionTaskOptions(task); track opt.editorId) { <mat-option [value]="opt.id">{{ opt.id }}</mat-option> }
-                        </mat-select>
-                      </mat-form-field>
-                      <mat-form-field appearance="outline"><mat-label>Status</mat-label>
-                        <mat-select [(ngModel)]="condition.status">
-                          @for (s of taskStatuses; track s) { <mat-option [value]="s">{{ readableStatus(s) }}</mat-option> }
-                        </mat-select>
-                      </mat-form-field>
-                      <button mat-icon-button (click)="removeCondition(task, $index)"><mat-icon>delete_outline</mat-icon></button>
-                    </div>
+                }
+                @case ('GitTask') {
+                  <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>Branch</mat-label><input matInput [(ngModel)]="task.branch"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>File path</mat-label><input matInput [(ngModel)]="task.filePath"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>Commit msg</mat-label><input matInput [(ngModel)]="task.commitMessage"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>Content</mat-label><textarea matInput [(ngModel)]="task.content" rows="4"></textarea></mat-form-field>
+                }
+                @case ('PrTask') {
+                  <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>Source branch</mat-label><input matInput [(ngModel)]="task.fromBranch"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>Target branch</mat-label><input matInput [(ngModel)]="task.targetBranch"></mat-form-field>
+                }
+              }
+              <div class="drawer-section">
+                <h5>Outgoing</h5>
+                <div class="chip-stack">
+                  @for (nextId of task.nextTaskIds; track nextId) {
+                    <button type="button" class="soft-chip removable-chip" (click)="removeConnection(task.editorId, nextId)">{{ nextId }} <mat-icon>close</mat-icon></button>
                   }
+                  @if (!task.nextTaskIds.length) { <span class="muted-copy">None</span> }
                 </div>
               </div>
-            </aside>
-          }
-        </div>
+              <div class="drawer-section">
+                <div class="section-title-row"><h5>Conditions</h5>
+                  <button mat-stroked-button (click)="addCondition(task)"><mat-icon>add</mat-icon> Add</button>
+                </div>
+                @for (condition of task.conditions; track $index) {
+                  <div class="condition-row">
+                    <mat-form-field appearance="outline"><mat-label>Depends on</mat-label>
+                      <mat-select [(ngModel)]="condition.taskId">
+                        @for (opt of conditionTaskOptions(task); track opt.editorId) { <mat-option [value]="opt.id">{{ opt.id }}</mat-option> }
+                      </mat-select>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline"><mat-label>Status</mat-label>
+                      <mat-select [(ngModel)]="condition.status">
+                        @for (s of taskStatuses; track s) { <mat-option [value]="s">{{ readableStatus(s) }}</mat-option> }
+                      </mat-select>
+                    </mat-form-field>
+                    <button mat-icon-button (click)="removeCondition(task, $index)"><mat-icon>delete_outline</mat-icon></button>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="drawer-empty-state">
+                <mat-icon>tune</mat-icon>
+                <strong>Select a task</strong>
+                <p>Click a task node or its tune button to open its configuration here.</p>
+              </div>
+            }
+          </div>
+        </aside>
       </section>
     </div>
   </ng-template>

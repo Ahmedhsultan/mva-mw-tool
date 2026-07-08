@@ -312,10 +312,10 @@
 
 .canvas-stage {
   position: relative;
+  z-index: 0;
   flex: 1;
   min-width: 0;
   overflow: auto;
-  cursor: grab;
   user-select: none;
   border-radius: 0;
   background:
@@ -488,6 +488,13 @@
   flex-direction: column;
   z-index: 10;
   overflow: hidden;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+
+  &.is-empty {
+    transform: translateX(calc(100% + 32px));
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 .drawer-header {
@@ -496,6 +503,16 @@
   justify-content: space-between;
   padding: 12px 14px;
   border-bottom: 1px solid rgba(118, 139, 173, 0.14);
+}
+
+.drawer-empty-copy {
+  display: grid;
+}
+
+.drawer-empty-copy span {
+  color: var(--mva-text-muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .drawer-scroll {
@@ -513,6 +530,15 @@
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid rgba(118, 139, 173, 0.12);
+}
+
+.drawer-empty-state {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  text-align: center;
+  color: var(--mva-text-muted);
 }
 
 .condition-row {
