@@ -35,7 +35,7 @@
       "devOpsServiceFactory" : "azure",
       "conditions" : [ ],
       "nextTaskIds" : [ "deploy-1" ],
-      "branch" : "develop",
+      "branch" : "release/develop",
       "repoName" : "mvax-offers",
       "definitionId" : "5222"
     }, {
