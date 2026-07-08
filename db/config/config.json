@@ -45,10 +45,5 @@
     "type" : "library",
     "buildDefinitionId" : "7483",
     "deploymentDefinitionId" : ""
-  }, {
-    "name" : "test",
-    "type" : "service",
-    "buildDefinitionId" : "32r43",
-    "deploymentDefinitionId" : "234234"
   } ]
 }
