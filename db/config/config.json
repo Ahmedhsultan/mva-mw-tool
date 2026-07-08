@@ -1,4 +1,4 @@
 {
   "environments" : [ "dev1-common", "int1-common", "qc1-common", "qc2-common", "qc5-common", "prod1-blue", "prod1-common" ],
-  "repositories" : [ "mvax-api", "mvax-offers", "mvax-upgrades", "mvax-plan-services", "mvax-native-billing" ]
+  "repositories" : [ "mvax-api", "mvax-offers", "mvax-upgrades", "mvax-plan-services", "mvax-native-billing", "mvax-adobe-integrator" ]
 }
