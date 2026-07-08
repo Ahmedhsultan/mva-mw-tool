@@ -1,5 +1,6 @@
 package com.mva.mwtool.service.pipeline;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.mva.mwtool.service.pipeline.tasks.Task;
 import lombok.Getter;
 
@@ -11,8 +12,11 @@ public class PipelineGraph {
 
     private final Map<String, Task> taskMap;
     private final List<Task> rootTasks;
+    private final String pipelineRunName = UUID.randomUUID().toString();
+    private final JsonNode pipelineStructure;
 
-    public PipelineGraph(List<Task> tasks) {
+    public PipelineGraph(List<Task> tasks, JsonNode pipelineStructure) {
+        this.pipelineStructure = pipelineStructure;
         this.taskMap = tasks.stream()
                 .collect(Collectors.toMap(Task::getId, t -> t));
         resolveLinks();

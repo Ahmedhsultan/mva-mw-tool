@@ -110,21 +110,42 @@ export class ApiService {
 
   // ---- Pipelines ----
 
-  getPipelines(): Observable<PipelineDto[]> {
-    return this.http.get<PipelineDto[]>('/api/pipelines');
+  getPipelines(provider: string, repoId: string, branch: string): Observable<PipelineDto[]> {
+    const params = this.baseParams(provider)
+      .set('repoId', repoId)
+      .set('branch', branch);
+
+    return this.http.get<PipelineDto[]>('/api/pipelines', {
+      headers: this.authHeaders(provider),
+      params
+    });
   }
 
-  createPipeline(pipelineName: string, payload: PipelinePayload): Observable<boolean> {
-    const params = new HttpParams().set('pipelineName', pipelineName);
-    return this.http.post<boolean>('/api/pipelines', payload, { params });
+  createPipeline(provider: string, repoId: string, branch: string, pipelineName: string, payload: PipelinePayload): Observable<boolean> {
+    const params = this.baseParams(provider)
+      .set('repoId', repoId)
+      .set('branch', branch)
+      .set('pipelineName', pipelineName);
+
+    return this.http.post<boolean>('/api/pipelines', payload, {
+      headers: this.authHeaders(provider),
+      params
+    });
   }
 
   getPipelineRuns(): Observable<PipelineRunDto[]> {
     return this.http.get<PipelineRunDto[]>('/api/pipelines/runs');
   }
 
-  runPipeline(pipelineName: string, credentials: PipelineRunCredentials): Observable<boolean> {
-    return this.http.post<boolean>(`/api/pipelines/${encodeURIComponent(pipelineName)}/run`, credentials);
+  runPipeline(provider: string, repoId: string, branch: string, pipelineName: string, credentials: PipelineRunCredentials): Observable<boolean> {
+    const params = this.baseParams(provider)
+      .set('repoId', repoId)
+      .set('branch', branch);
+
+    return this.http.post<boolean>(`/api/pipelines/${encodeURIComponent(pipelineName)}/run`, credentials, {
+      headers: this.authHeaders(provider),
+      params
+    });
   }
 
   getPipelineTaskStatus(pipelineRunName: string, taskId: string): Observable<string> {

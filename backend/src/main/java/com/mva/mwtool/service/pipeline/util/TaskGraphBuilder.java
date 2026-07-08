@@ -29,7 +29,7 @@ public class TaskGraphBuilder {
             tasks.add(task);
         }
 
-        return new PipelineGraph(tasks);
+        return new PipelineGraph(tasks, pipelineStructure);
     }
 
     private static Task deserializeTask(JsonNode node, DevOpsServiceFactory devOpsServiceFactory, DevOpsCredentials credentials) {

@@ -4,28 +4,43 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.mva.mwtool.devops.DevOpsServiceFactory;
 import com.mva.mwtool.dto.DevOpsCredentials;
 import com.mva.mwtool.dto.Pipeline;
-import com.mva.mwtool.dto.PipelineRun;
 import com.mva.mwtool.enums.TaskStatus;
+import com.mva.mwtool.repository.PipelineRepository;
 import com.mva.mwtool.service.pipeline.PipelineGraph;
 import com.mva.mwtool.service.pipeline.PipelineRunsRepo;
-import com.mva.mwtool.service.pipeline.PipelinesRepo;
 import com.mva.mwtool.service.pipeline.tasks.Task;
 import com.mva.mwtool.service.pipeline.util.TaskGraphBuilder;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class PipelineService {
 
-    @Autowired
-    private DevOpsServiceFactory devOpsServiceFactory;
+    private final DevOpsServiceFactory devOpsServiceFactory;
+    private final PipelineRepository pipelineRepository;
 
-    public boolean createPipeline(JsonNode pipelineStructure, String pipelineName) {
-        Pipeline pipeline = new Pipeline(pipelineName, pipelineStructure);
-        PipelinesRepo.getPipelines().add(pipeline);
+    public PipelineService(DevOpsServiceFactory devOpsServiceFactory, PipelineRepository pipelineRepository) {
+        this.devOpsServiceFactory = devOpsServiceFactory;
+        this.pipelineRepository = pipelineRepository;
+    }
+
+    public boolean createPipeline(String pat, String provider, String organization, String project,
+                                  String repoId, String branch, JsonNode pipelineStructure, String pipelineName) {
+        List<Pipeline> pipelines = new ArrayList<>(pipelineRepository.readPipelines(
+            pat,
+            provider,
+            organization,
+            project,
+            repoId,
+            branch
+        ));
+
+        pipelines.removeIf(pipeline -> pipeline.getPipelineName().equals(pipelineName));
+        pipelines.add(new Pipeline(pipelineName, pipelineStructure));
+
+        pipelineRepository.updatePipelines(pat, provider, organization, project, repoId, branch, pipelines);
         return true;
     }
 
@@ -34,23 +49,23 @@ public class PipelineService {
                 .stream()
                 .filter(p -> p.getPipelineRunName().equals(pipelineRunName))
                 .findFirst().get()
-                .findTaskById(taskId)
+                .getTaskById(taskId)
                 .getStatus();
     }
 
-    public List<PipelineRun> getAllPipelineRuns() {
+    public List<PipelineGraph> getAllPipelineRuns() {
         return PipelineRunsRepo.getPipelineRuns();
     }
 
-    public List<Pipeline> getAllPipelines() {
-        return PipelinesRepo.getPipelines();
+    public List<Pipeline> getAllPipelines(String pat, String provider, String organization, String project,
+                                          String repoId, String branch) {
+        return pipelineRepository.readPipelines(pat, provider, organization, project, repoId, branch);
     }
 
-    public boolean runPipeline(String pipelineName, DevOpsCredentials devOpsCredentials) {
-        Pipeline pipeline = PipelinesRepo.getPipelines()
-                .stream()
-                .filter(p -> p.getPipelineName().equals(pipelineName))
-                .findFirst().get();
+    public boolean runPipeline(String pat, String provider, String organization, String project,
+                               String repoId, String branch, String pipelineName, DevOpsCredentials devOpsCredentials) {
+        Pipeline pipeline = pipelineRepository.findPipeline(pat, provider, organization, project, repoId, branch, pipelineName)
+            .orElseThrow(() -> new IllegalArgumentException("Pipeline not found: " + pipelineName));
 
         PipelineGraph graph = TaskGraphBuilder.build(pipeline.getPipelineStructure(), devOpsServiceFactory, devOpsCredentials);
 
@@ -59,8 +74,7 @@ public class PipelineService {
             rootTask.run();
         }
 
-        PipelineRun pipelineRun = new PipelineRun(graph, UUID.randomUUID().toString(), pipeline.getPipelineStructure());
-        PipelineRunsRepo.getPipelineRuns().add(pipelineRun);
+        PipelineRunsRepo.getPipelineRuns().add(graph);
         return true;
     }
 

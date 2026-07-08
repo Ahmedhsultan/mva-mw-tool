@@ -227,6 +227,34 @@
   gap: 10px;
 }
 
+.validation-strip {
+  position: absolute;
+  top: 68px;
+  left: 94px;
+  z-index: 8;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: min(560px, calc(100% - 480px));
+  padding: 14px 16px;
+}
+
+.validation-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.validation-copy strong {
+  color: inherit;
+}
+
+.validation-copy ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
 .catalog-hint {
   display: inline-flex;
   align-items: center;
@@ -358,10 +386,25 @@
   padding: 12px 12px 0;
 }
 
+.node-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.node-config-btn {
+  color: var(--mva-accent-strong);
+  background: rgba(36, 119, 255, 0.08);
+}
+
 .node-type-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.node-drag-handle {
+  cursor: move;
 }
 
 .port {
@@ -676,6 +719,13 @@
     left: 70px;
     right: 12px;
     flex-wrap: wrap;
+  }
+
+  .validation-strip {
+    top: 72px;
+    left: 70px;
+    right: 12px;
+    max-width: none;
   }
 
   .task-config-window {

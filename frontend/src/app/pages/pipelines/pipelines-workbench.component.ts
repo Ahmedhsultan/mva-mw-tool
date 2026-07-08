@@ -1,7 +1,7 @@
 import { CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
 import { Overlay, OverlayModule, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
-import { Component, ElementRef, OnDestroy, OnInit, TemplateRef, ViewChild, ViewContainerRef } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, TemplateRef, ViewChild, ViewContainerRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -59,8 +59,13 @@ interface PortInfo {
 }
 
 interface ValidationSummary {
-  errors: string[];
+  errors: ValidationIssue[];
   warnings: string[];
+}
+
+interface ValidationIssue {
+  message: string;
+  editorId?: string;
 }
 
 interface StatusCount {
@@ -143,6 +148,8 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   @ViewChild('canvasBoard') canvasBoard?: ElementRef<HTMLDivElement>;
   @ViewChild('builderTpl') builderTpl?: TemplateRef<unknown>;
 
+  private readonly defaultGitHubConfigRepoId = 'mva-mw-tool';
+
   readonly toolboxTasks = TOOLBOX_TASKS;
   readonly taskStatuses = TASK_STATUS_OPTIONS;
   readonly providerOptions: DevOpsProvider[] = ['azure', 'github'];
@@ -155,7 +162,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   isBuilderWindowOpen = false;
   draftPipelineName = '';
   selectedPipelineName = '';
-  selectedTaskEditorId: string | null = null;
+  selectedTask: EditorPipelineTaskNode | null = null;
   pendingConnectionSourceEditorId: string | null = null;
 
   isLoadingPipelines = false;
@@ -191,16 +198,13 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private snackBar: MatSnackBar,
     private overlay: Overlay,
-    private viewContainerRef: ViewContainerRef
+    private viewContainerRef: ViewContainerRef,
+    private changeDetectorRef: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.startNewPipeline(false);
     this.refreshWorkspace();
-  }
-
-  get selectedTask(): EditorPipelineTaskNode | null {
-    return this.editorNodes.find(node => node.editorId === this.selectedTaskEditorId) || null;
   }
 
   get pendingConnectionSource(): EditorPipelineTaskNode | null {
@@ -253,7 +257,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
   startNewPipeline(openBuilderWindow = true): void {
     this.selectedPipelineName = '';
-    this.selectedTaskEditorId = null;
+    this.selectedTask = null;
     this.pendingConnectionSourceEditorId = null;
     this.editorNodes = [];
     this.draftPipelineName = this.generatePipelineName();
@@ -268,7 +272,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     this.draftPipelineName = pipeline.pipelineName;
     this.pendingConnectionSourceEditorId = null;
     this.editorNodes = this.layoutTasks(pipeline.pipelineStructure.tasks || []);
-    this.selectedTaskEditorId = this.editorNodes[0]?.editorId || null;
+    this.openTaskConfig(this.editorNodes[0] || null);
     this.openBuilderWindow();
   }
 
@@ -278,7 +282,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     this.draftPipelineName = resolvedName || this.generatePipelineName();
     this.pendingConnectionSourceEditorId = null;
     this.editorNodes = this.layoutTasks(run.pipeline?.tasks || []);
-    this.selectedTaskEditorId = this.editorNodes[0]?.editorId || null;
+    this.openTaskConfig(this.editorNodes[0] || null);
     this.openBuilderWindow();
   }
 
@@ -299,6 +303,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
   closeBuilderWindow(): void {
     this.isBuilderWindowOpen = false;
+    this.selectedTask = null;
     this.pendingConnectionSourceEditorId = null;
     this.overlayRef?.detach();
   }
@@ -381,12 +386,19 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
     const validation = this.validationSummary;
     if (validation.errors.length) {
-      this.showMessage('Resolve validation errors before saving the pipeline.', 'error-snackbar');
+      this.focusValidationIssue(validation.errors[0]);
+      this.showMessage(validation.errors[0].message, 'error-snackbar');
+      return;
+    }
+
+    const storage = this.pipelineStorageContext();
+    if (!storage) {
+      this.showMessage('Set the settings repository before saving pipelines.', 'error-snackbar');
       return;
     }
 
     this.isSavingPipeline = true;
-    this.apiService.createPipeline(pipelineName, this.buildPayload())
+    this.apiService.createPipeline(storage.provider, storage.repoId, storage.branch, pipelineName, this.buildPayload())
       .pipe(finalize(() => this.isSavingPipeline = false))
       .subscribe({
         next: () => {
@@ -423,8 +435,20 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const storage = this.pipelineStorageContext();
+    if (!storage) {
+      this.showMessage('Set the settings repository before running saved pipelines.', 'error-snackbar');
+      return;
+    }
+
     this.isRunningPipeline = true;
-    this.apiService.runPipeline(pipelineName, this.buildRunCredentials(providers))
+    this.apiService.runPipeline(
+      storage.provider,
+      storage.repoId,
+      storage.branch,
+      pipelineName,
+      this.buildRunCredentials(providers)
+    )
       .pipe(finalize(() => this.isRunningPipeline = false))
       .subscribe({
         next: () => {
@@ -487,13 +511,12 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     };
   }
 
-  selectTask(editorId: string, event?: Event): void {
-    event?.stopPropagation();
-    this.selectedTaskEditorId = editorId;
+  selectTask(task: EditorPipelineTaskNode, event?: Event): void {
+    this.openTaskConfig(task, event);
   }
 
   clearSelection(): void {
-    this.selectedTaskEditorId = null;
+    this.selectedTask = null;
   }
 
   clearPendingConnection(): void {
@@ -502,7 +525,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
   startConnection(editorId: string, event: Event): void {
     event.stopPropagation();
-    this.selectedTaskEditorId = editorId;
+    this.selectedTask = this.findNodeByEditorId(editorId) || null;
     this.pendingConnectionSourceEditorId = this.pendingConnectionSourceEditorId === editorId ? null : editorId;
   }
 
@@ -532,7 +555,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
     source.nextTaskIds = [...source.nextTaskIds, target.id];
     this.pendingConnectionSourceEditorId = null;
-    this.selectedTaskEditorId = targetEditorId;
+    this.openTaskConfig(target);
   }
 
   removeConnection(sourceEditorId: string, targetId: string): void {
@@ -561,8 +584,8 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
         buildTaskId: node.taskType === 'DeploymentTask' && node.buildTaskId === removed.id ? '' : node.buildTaskId
       }));
 
-    if (this.selectedTaskEditorId === editorId) {
-      this.selectedTaskEditorId = this.editorNodes[0]?.editorId || null;
+    if (this.selectedTask?.editorId === editorId) {
+      this.selectedTask = this.editorNodes[0] || null;
     }
 
     if (this.pendingConnectionSourceEditorId === editorId) {
@@ -789,10 +812,18 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   private loadPipelines(): void {
+    const storage = this.pipelineStorageContext();
+    if (!storage) {
+      this.pipelines = [];
+      this.rebuildPipelineLookup();
+      this.pipelinesError = 'Set the settings repository to load saved pipelines.';
+      return;
+    }
+
     this.isLoadingPipelines = true;
     this.pipelinesError = '';
 
-    this.apiService.getPipelines()
+    this.apiService.getPipelines(storage.provider, storage.repoId, storage.branch)
       .pipe(finalize(() => this.isLoadingPipelines = false))
       .subscribe({
         next: pipelines => {
@@ -822,12 +853,8 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   private loadTaskCatalog(): void {
-    const config = this.authService.getConfig();
-    const configProvider = this.authService.getTabProvider('config');
-    const repoId = config.dbRepoId.trim();
-    const branch = config.dbBranch.trim() || 'main';
-
-    if (!repoId) {
+    const storage = this.pipelineStorageContext();
+    if (!storage) {
       this.repoProfiles = [];
       this.configuredEnvironments = [];
       this.taskCatalogError = 'Set a config repo in Workspace settings to use repository presets in the builder.';
@@ -837,7 +864,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     this.isLoadingTaskCatalog = true;
     this.taskCatalogError = '';
 
-    this.apiService.getConfigData(configProvider, repoId, branch)
+    this.apiService.getConfigData(storage.provider, storage.repoId, storage.branch)
       .pipe(finalize(() => this.isLoadingTaskCatalog = false))
       .subscribe({
         next: configData => {
@@ -855,10 +882,32 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       });
   }
 
+  private pipelineStorageContext(): { provider: DevOpsProvider; repoId: string; branch: string } | null {
+    const config = this.authService.getConfig();
+    const provider = this.authService.getTabProvider('config');
+    const repoId = this.resolvePipelineRepoId(provider, config.dbRepoId);
+    const branch = config.dbBranch.trim() || 'main';
+
+    if (!repoId) {
+      return null;
+    }
+
+    return { provider, repoId, branch };
+  }
+
+  private resolvePipelineRepoId(provider: DevOpsProvider, repoId: string): string {
+    const normalizedRepoId = repoId.trim();
+    if (normalizedRepoId) {
+      return normalizedRepoId;
+    }
+
+    return provider === 'github' ? this.defaultGitHubConfigRepoId : '';
+  }
+
   private addTask(taskType: PipelineTaskType, position: Point): void {
     const task = this.createEditorTask(taskType, position);
     this.editorNodes = [...this.editorNodes, task];
-    this.selectedTaskEditorId = task.editorId;
+    this.openTaskConfig(task);
   }
 
   private createEditorTask(taskType: PipelineTaskType, position: Point): EditorPipelineTaskNode {
@@ -1146,7 +1195,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   private buildValidationSummary(): ValidationSummary {
-    const errors: string[] = [];
+    const errors: ValidationIssue[] = [];
     const warnings: string[] = [];
     const ids = new Set<string>();
     const incoming = new Map<string, number>();
@@ -1157,23 +1206,23 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       .filter(Boolean));
 
     if (!this.editorNodes.length) {
-      errors.push('Add at least one task node to the graph.');
+      this.pushValidationError(errors, 'Add at least one task node to the graph.');
       return { errors, warnings };
     }
 
     for (const node of this.editorNodes) {
       const id = node.id.trim();
       if (!id) {
-        errors.push(`${this.taskLabel(node.taskType)} task is missing an id.`);
+        this.pushValidationError(errors, `${this.taskLabel(node.taskType)} task is missing an id.`, node.editorId);
       } else if (ids.has(id)) {
-        errors.push(`Task id "${id}" is duplicated.`);
+        this.pushValidationError(errors, `Task id "${id}" is duplicated.`, node.editorId);
       } else {
         ids.add(id);
         incoming.set(id, 0);
       }
 
       if (!node.devOpsServiceFactory) {
-        errors.push(`Task "${id || this.taskLabel(node.taskType)}" is missing a provider.`);
+        this.pushValidationError(errors, `Task "${id || this.taskLabel(node.taskType)}" is missing a provider.`, node.editorId);
       }
 
       this.validateRequiredFields(node, errors);
@@ -1183,17 +1232,17 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       for (const nextTaskId of node.nextTaskIds) {
         const trimmedTarget = nextTaskId.trim();
         if (!trimmedTarget) {
-          errors.push(`Task "${node.id || this.taskLabel(node.taskType)}" has an empty outgoing connection.`);
+          this.pushValidationError(errors, `Task "${node.id || this.taskLabel(node.taskType)}" has an empty outgoing connection.`, node.editorId);
           continue;
         }
 
         if (trimmedTarget === node.id.trim()) {
-          errors.push(`Task "${node.id}" cannot connect to itself.`);
+          this.pushValidationError(errors, `Task "${node.id}" cannot connect to itself.`, node.editorId);
           continue;
         }
 
         if (!ids.has(trimmedTarget)) {
-          errors.push(`Task "${node.id}" points to missing task "${trimmedTarget}".`);
+          this.pushValidationError(errors, `Task "${node.id}" points to missing task "${trimmedTarget}".`, node.editorId);
           continue;
         }
 
@@ -1202,24 +1251,24 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
       for (const condition of node.conditions) {
         if (!condition.taskId.trim()) {
-          errors.push(`Task "${node.id || this.taskLabel(node.taskType)}" has a condition with no source task.`);
+          this.pushValidationError(errors, `Task "${node.id || this.taskLabel(node.taskType)}" has a condition with no source task.`, node.editorId);
         } else if (!ids.has(condition.taskId.trim())) {
-          errors.push(`Task "${node.id || this.taskLabel(node.taskType)}" depends on missing task "${condition.taskId}".`);
+          this.pushValidationError(errors, `Task "${node.id || this.taskLabel(node.taskType)}" depends on missing task "${condition.taskId}".`, node.editorId);
         }
 
         if (!this.taskStatuses.includes(condition.status)) {
-          errors.push(`Task "${node.id || this.taskLabel(node.taskType)}" uses unsupported status "${condition.status}".`);
+          this.pushValidationError(errors, `Task "${node.id || this.taskLabel(node.taskType)}" uses unsupported status "${condition.status}".`, node.editorId);
         }
       }
 
       if (node.taskType === 'DeploymentTask' && node.buildTaskId?.trim() && !buildIds.has(node.buildTaskId.trim())) {
-        errors.push(`Deployment task "${node.id || 'deployment'}" must reference an existing BuildTask.`);
+        this.pushValidationError(errors, `Deployment task "${node.id || 'deployment'}" must reference an existing BuildTask.`, node.editorId);
       }
     }
 
     const rootIds = [...incoming.entries()].filter(([, count]) => count === 0).map(([id]) => id);
     if (!rootIds.length) {
-      errors.push('The graph needs at least one root task.');
+      this.pushValidationError(errors, 'The graph needs at least one root task.');
     }
 
     for (const node of this.editorNodes) {
@@ -1235,38 +1284,61 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     }
 
     return {
-      errors: [...new Set(errors)],
+      errors,
       warnings: [...new Set(warnings)]
     };
   }
 
-  private validateRequiredFields(node: EditorPipelineTaskNode, errors: string[]): void {
+  private validateRequiredFields(node: EditorPipelineTaskNode, errors: ValidationIssue[]): void {
     const taskId = node.id.trim() || this.taskLabel(node.taskType);
 
     switch (node.taskType) {
       case 'BuildTask':
-        if (!node.branch?.trim()) errors.push(`Build task "${taskId}" requires a branch.`);
-        if (!node.repoName?.trim()) errors.push(`Build task "${taskId}" requires a repo name.`);
-        if (!node.definitionId?.trim()) errors.push(`Build task "${taskId}" requires a definition id.`);
+        if (!node.branch?.trim()) this.pushValidationError(errors, `Build task "${taskId}" requires a branch.`, node.editorId);
+        if (!node.repoName?.trim()) this.pushValidationError(errors, `Build task "${taskId}" requires a repo name.`, node.editorId);
+        if (!node.definitionId?.trim()) this.pushValidationError(errors, `Build task "${taskId}" requires a definition id.`, node.editorId);
         break;
       case 'DeploymentTask':
-        if (!node.buildTaskId?.trim()) errors.push(`Deployment task "${taskId}" requires a build task reference.`);
-        if (!node.definitionId?.trim()) errors.push(`Deployment task "${taskId}" requires a definition id.`);
-        if (!node.environment?.trim()) errors.push(`Deployment task "${taskId}" requires an environment.`);
+        if (!node.buildTaskId?.trim()) this.pushValidationError(errors, `Deployment task "${taskId}" requires a build task reference.`, node.editorId);
+        if (!node.definitionId?.trim()) this.pushValidationError(errors, `Deployment task "${taskId}" requires a definition id.`, node.editorId);
+        if (!node.environment?.trim()) this.pushValidationError(errors, `Deployment task "${taskId}" requires an environment.`, node.editorId);
         break;
       case 'GitTask':
-        if (!node.repoName?.trim()) errors.push(`Git task "${taskId}" requires a repo name.`);
-        if (!node.branch?.trim()) errors.push(`Git task "${taskId}" requires a branch.`);
-        if (!node.filePath?.trim()) errors.push(`Git task "${taskId}" requires a file path.`);
-        if (!node.content?.length) errors.push(`Git task "${taskId}" requires content.`);
-        if (!node.commitMessage?.trim()) errors.push(`Git task "${taskId}" requires a commit message.`);
+        if (!node.repoName?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a repo name.`, node.editorId);
+        if (!node.branch?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a branch.`, node.editorId);
+        if (!node.filePath?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a file path.`, node.editorId);
+        if (!node.content?.length) this.pushValidationError(errors, `Git task "${taskId}" requires content.`, node.editorId);
+        if (!node.commitMessage?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a commit message.`, node.editorId);
         break;
       case 'PrTask':
-        if (!node.repoName?.trim()) errors.push(`PR task "${taskId}" requires a repo name.`);
-        if (!node.fromBranch?.trim()) errors.push(`PR task "${taskId}" requires a source branch.`);
-        if (!node.targetBranch?.trim()) errors.push(`PR task "${taskId}" requires a target branch.`);
+        if (!node.repoName?.trim()) this.pushValidationError(errors, `PR task "${taskId}" requires a repo name.`, node.editorId);
+        if (!node.fromBranch?.trim()) this.pushValidationError(errors, `PR task "${taskId}" requires a source branch.`, node.editorId);
+        if (!node.targetBranch?.trim()) this.pushValidationError(errors, `PR task "${taskId}" requires a target branch.`, node.editorId);
         break;
     }
+  }
+
+  private openTaskConfig(task: EditorPipelineTaskNode | null, event?: Event): void {
+    event?.stopPropagation();
+    if (event instanceof PointerEvent || event instanceof MouseEvent) {
+      event.preventDefault();
+    }
+    this.selectedTask = task;
+    this.changeDetectorRef.detectChanges();
+  }
+
+  private focusValidationIssue(issue: ValidationIssue): void {
+    if (issue.editorId) {
+      this.openTaskConfig(this.findNodeByEditorId(issue.editorId) || null);
+    }
+  }
+
+  private pushValidationError(errors: ValidationIssue[], message: string, editorId?: string): void {
+    if (errors.some(issue => issue.message === message)) {
+      return;
+    }
+
+    errors.push({ message, editorId });
   }
 
   private computeRootIds(): string[] {

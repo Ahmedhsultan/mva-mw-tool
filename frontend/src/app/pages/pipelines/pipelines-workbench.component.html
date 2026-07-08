@@ -207,6 +207,20 @@
             }
           </div>
 
+          @if (validationSummary.errors.length) {
+            <div class="validation-strip message-strip danger">
+              <mat-icon>error_outline</mat-icon>
+              <div class="validation-copy">
+                <strong>Finish these task settings before saving</strong>
+                <ul>
+                  @for (error of validationSummary.errors.slice(0, 4); track error.message) {
+                    <li>{{ error.message }}</li>
+                  }
+                </ul>
+              </div>
+            </div>
+          }
+
           <div class="canvas-stage" #canvasBoard [style.cursor]="panCursor" (pointerdown)="onCanvasPointerDown($event)" (pointermove)="onCanvasPointerMove($event)" (pointerup)="onCanvasPointerUp($event)" (dragover)="onCanvasDragOver($event)" (drop)="onCanvasDrop($event)" (wheel)="onCanvasWheel($event)">
             @if (pendingConnectionSource; as source) {
               <div class="connect-banner"><mat-icon>north_east</mat-icon> Connecting from <strong>{{ source.id }}</strong> <button mat-button (click)="clearPendingConnection()">Cancel</button></div>
@@ -221,14 +235,19 @@
               </svg>
 
               @for (task of editorNodes; track task.editorId) {
-                <article class="pipeline-node" [class.selected]="selectedTaskEditorId === task.editorId" [class.connect-source]="pendingConnectionSourceEditorId === task.editorId" cdkDrag [cdkDragBoundary]="'.canvas-zoom-layer'" [cdkDragFreeDragPosition]="task.position" (cdkDragEnded)="onNodeDragEnded(task, $event)" (click)="selectTask(task.editorId, $event)">
+                <article class="pipeline-node" [class.selected]="selectedTask?.editorId === task.editorId" [class.connect-source]="pendingConnectionSourceEditorId === task.editorId" cdkDrag [cdkDragBoundary]="'.canvas-zoom-layer'" [cdkDragFreeDragPosition]="task.position" (cdkDragEnded)="onNodeDragEnded(task, $event)" (click)="selectTask(task, $event)">
                   <button type="button" class="port port-top" (click)="onPortClick(task.editorId, $event)"></button>
                   <button type="button" class="port port-right" (click)="onPortClick(task.editorId, $event)"></button>
                   <button type="button" class="port port-bottom" (click)="onPortClick(task.editorId, $event)"></button>
                   <button type="button" class="port port-left" (click)="onPortClick(task.editorId, $event)"></button>
-                  <header class="node-header" cdkDragHandle>
-                    <div class="node-type-pill"><mat-icon>{{ taskIcon(task.taskType) }}</mat-icon> {{ taskLabel(task.taskType) }}</div>
-                    <button mat-icon-button class="inline-icon-btn" (click)="deleteTask(task.editorId, $event)" matTooltip="Delete"><mat-icon>delete_outline</mat-icon></button>
+                  <header class="node-header">
+                    <div class="node-type-pill node-drag-handle" cdkDragHandle><mat-icon>{{ taskIcon(task.taskType) }}</mat-icon> {{ taskLabel(task.taskType) }}</div>
+                    <div class="node-actions">
+                      <button mat-icon-button type="button" class="inline-icon-btn node-config-btn" (pointerdown)="selectTask(task, $event)" matTooltip="Configure task">
+                        <mat-icon>tune</mat-icon>
+                      </button>
+                      <button mat-icon-button type="button" class="inline-icon-btn" (pointerdown)="$event.stopPropagation()" (click)="deleteTask(task.editorId, $event)" matTooltip="Delete"><mat-icon>delete_outline</mat-icon></button>
+                    </div>
                   </header>
                   <div class="node-body">
                     <strong>{{ task.id }}</strong>

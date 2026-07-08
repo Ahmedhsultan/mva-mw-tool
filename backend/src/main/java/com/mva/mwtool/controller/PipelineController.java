@@ -3,9 +3,9 @@ package com.mva.mwtool.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mva.mwtool.dto.DevOpsCredentials;
 import com.mva.mwtool.dto.Pipeline;
-import com.mva.mwtool.dto.PipelineRun;
 import com.mva.mwtool.enums.TaskStatus;
 import com.mva.mwtool.service.PipelineService;
+import com.mva.mwtool.service.pipeline.PipelineGraph;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,26 +22,61 @@ public class PipelineController {
     }
 
     @PostMapping
-    public ResponseEntity<Boolean> createPipeline(@RequestParam String pipelineName,
+    public ResponseEntity<Boolean> createPipeline(@RequestHeader("X-PAT") String pat,
+                                                  @RequestParam String provider,
+                                                  @RequestParam String organization,
+                                                  @RequestParam String project,
+                                                  @RequestParam String repoId,
+                                                  @RequestParam(required = false) String branch,
+                                                  @RequestParam String pipelineName,
                                                   @RequestBody JsonNode pipelineStructure) {
-        boolean result = pipelineService.createPipeline(pipelineStructure, pipelineName);
+        boolean result = pipelineService.createPipeline(
+            pat,
+            provider,
+            organization,
+            project,
+            repoId,
+            branch,
+            pipelineStructure,
+            pipelineName
+        );
         return ResponseEntity.ok(result);
     }
 
     @GetMapping
-    public ResponseEntity<List<Pipeline>> getAllPipelines() {
-        return ResponseEntity.ok(pipelineService.getAllPipelines());
+    public ResponseEntity<List<Pipeline>> getAllPipelines(@RequestHeader("X-PAT") String pat,
+                                                          @RequestParam String provider,
+                                                          @RequestParam String organization,
+                                                          @RequestParam String project,
+                                                          @RequestParam String repoId,
+                                                          @RequestParam(required = false) String branch) {
+        return ResponseEntity.ok(pipelineService.getAllPipelines(pat, provider, organization, project, repoId, branch));
     }
 
     @GetMapping("/runs")
-    public ResponseEntity<List<PipelineRun>> getAllPipelineRuns() {
+    public ResponseEntity<List<PipelineGraph>> getAllPipelineRuns() {
         return ResponseEntity.ok(pipelineService.getAllPipelineRuns());
     }
 
     @PostMapping("/{pipelineName}/run")
-    public ResponseEntity<Boolean> runPipeline(@PathVariable String pipelineName,
+    public ResponseEntity<Boolean> runPipeline(@RequestHeader("X-PAT") String pat,
+                                               @RequestParam String provider,
+                                               @RequestParam String organization,
+                                               @RequestParam String project,
+                                               @RequestParam String repoId,
+                                               @RequestParam(required = false) String branch,
+                                               @PathVariable String pipelineName,
                                                @RequestBody DevOpsCredentials credentials) {
-        boolean result = pipelineService.runPipeline(pipelineName, credentials);
+        boolean result = pipelineService.runPipeline(
+            pat,
+            provider,
+            organization,
+            project,
+            repoId,
+            branch,
+            pipelineName,
+            credentials
+        );
         return ResponseEntity.ok(result);
     }
 

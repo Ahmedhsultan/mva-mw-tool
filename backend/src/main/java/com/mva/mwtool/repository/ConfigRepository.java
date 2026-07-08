@@ -2,82 +2,92 @@ package com.mva.mwtool.repository;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mva.mwtool.devops.DevOpsContext;
+import com.mva.mwtool.devops.DevOpsServiceFactory;
+import com.mva.mwtool.dto.AzureCredentials;
 import com.mva.mwtool.entity.ConfigEntity;
+import com.mva.mwtool.dto.DevOpsCredentials;
+import com.mva.mwtool.dto.GitHubCredentials;
+import com.mva.mwtool.dto.RepoFileDto;
 import org.springframework.stereotype.Repository;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
 
 @Repository
 public class ConfigRepository {
 
     private static final String CONFIG_FILE_PATH = "db/config/config.json";
-    private final ObjectMapper objectMapper;
+    private static final String DEFAULT_BRANCH = "main";
+    private static final String CONFIG_COMMIT_MESSAGE = "Update config catalog";
 
-    public ConfigRepository(ObjectMapper objectMapper) {
+    private final ObjectMapper objectMapper;
+    private final DevOpsServiceFactory factory;
+
+    public ConfigRepository(ObjectMapper objectMapper, DevOpsServiceFactory factory) {
         this.objectMapper = objectMapper;
+        this.factory = factory;
     }
 
     public ConfigEntity readConfig(String pat, String provider, String organization, String project,
                                    String repoId, String branch) {
-        ConfigEntity localConfig = readLocalConfig();
-        if (localConfig != null) {
-            return localConfig;
+        try {
+            DevOpsContext context = createContext(provider, pat, organization, project);
+            RepoFileDto file = context.getRepoService().pullFile(
+                requireRepoId(repoId),
+                CONFIG_FILE_PATH,
+                resolveBranch(branch)
+            );
+            return objectMapper.readValue(file.getContent(), ConfigEntity.class);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("Could not parse config file", exception);
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("Could not load config file from repository", exception);
         }
-
-        throw new IllegalArgumentException("Could not load local config file");
     }
 
     public void updateConfig(String pat, String provider, String organization, String project,
                              String repoId, String branch, ConfigEntity configEntity) {
-        writeLocalConfig(configEntity);
-    }
-
-    private ConfigEntity readLocalConfig() {
         try {
-            Path localConfigPath = resolveLocalConfigPath();
-            if (localConfigPath == null || !Files.exists(localConfigPath)) {
-                return null;
-            }
+            String content = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(configEntity)
+                + System.lineSeparator();
 
-            return objectMapper.readValue(Files.readString(localConfigPath), ConfigEntity.class);
-        } catch (Exception exception) {
-            return null;
-        }
-    }
-
-    private void writeLocalConfig(ConfigEntity configEntity) {
-        try {
-            Path localConfigPath = resolveLocalConfigPath();
-            if (localConfigPath == null) {
-                return;
-            }
-
-            Files.createDirectories(localConfigPath.getParent());
-            Files.writeString(
-                localConfigPath,
-                objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(configEntity) + System.lineSeparator()
+            DevOpsContext context = createContext(provider, pat, organization, project);
+            context.getRepoService().pushFile(
+                requireRepoId(repoId),
+                CONFIG_FILE_PATH,
+                resolveBranch(branch),
+                content,
+                CONFIG_COMMIT_MESSAGE
             );
-        } catch (IOException exception) {
-            throw new IllegalArgumentException("Could not update local config file", exception);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("Could not serialize config file", exception);
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("Could not update config file in repository", exception);
         }
     }
 
-    private Path resolveLocalConfigPath() {
-        List<Path> candidates = List.of(
-            Path.of(CONFIG_FILE_PATH).normalize(),
-            Path.of("..", CONFIG_FILE_PATH).normalize()
-        );
+    private DevOpsContext createContext(String provider, String pat, String organization, String project) {
+        DevOpsCredentials credentials = new DevOpsCredentials();
 
-        for (Path candidate : candidates) {
-            if (Files.exists(candidate)) {
-                return candidate;
-            }
+        if ("azure".equalsIgnoreCase(provider)) {
+            credentials.setAzure(new AzureCredentials(pat, organization, project));
+        } else if ("github".equalsIgnoreCase(provider)) {
+            credentials.setGithub(new GitHubCredentials(pat, organization, project));
         }
 
-        return candidates.get(1);
+        return factory.create(provider, credentials);
+    }
+
+    private String requireRepoId(String repoId) {
+        String normalizedRepoId = repoId == null ? "" : repoId.trim();
+        if (normalizedRepoId.isEmpty()) {
+            throw new IllegalArgumentException("Config repo is missing");
+        }
+
+        return normalizedRepoId;
+    }
+
+    private String resolveBranch(String branch) {
+        String normalizedBranch = branch == null ? "" : branch.trim();
+        return normalizedBranch.isEmpty() ? DEFAULT_BRANCH : normalizedBranch;
     }
 
 }
