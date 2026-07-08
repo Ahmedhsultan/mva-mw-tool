@@ -10,6 +10,11 @@ import com.mva.mwtool.dto.GitHubCredentials;
 import com.mva.mwtool.entity.ConfigEntity;
 import org.springframework.stereotype.Repository;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
 @Repository
 public class ConfigRepository {
 
@@ -26,13 +31,20 @@ public class ConfigRepository {
 
     public ConfigEntity readConfig(String pat, String provider, String organization, String project,
                                    String repoId, String branch) {
+        ConfigEntity localConfig = readLocalConfig();
+        if (localConfig != null) {
+            return localConfig;
+        }
+
         try {
             DevOpsContext context = createContext(provider, pat, organization, project);
             String content = context.getRepoService()
                 .pullFile(repoId, CONFIG_FILE_PATH, branch)
                 .getContent();
 
-            return objectMapper.readValue(content, ConfigEntity.class);
+            ConfigEntity remoteConfig = objectMapper.readValue(content, ConfigEntity.class);
+            writeLocalConfig(remoteConfig);
+            return remoteConfig;
         } catch (JsonProcessingException exception) {
             throw new IllegalArgumentException("Invalid config file format", exception);
         } catch (Exception exception) {
@@ -42,6 +54,8 @@ public class ConfigRepository {
 
     public void updateConfig(String pat, String provider, String organization, String project,
                              String repoId, String branch, ConfigEntity configEntity) {
+        writeLocalConfig(configEntity);
+
         try {
             DevOpsContext context = createContext(provider, pat, organization, project);
             context.getRepoService().pushFile(
@@ -53,7 +67,54 @@ public class ConfigRepository {
             );
         } catch (JsonProcessingException exception) {
             throw new IllegalArgumentException("Could not serialize config data", exception);
+        } catch (Exception exception) {
+            // Keep the local workspace file updated even when the remote provider write fails.
         }
+    }
+
+    private ConfigEntity readLocalConfig() {
+        try {
+            Path localConfigPath = resolveLocalConfigPath();
+            if (localConfigPath == null || !Files.exists(localConfigPath)) {
+                return null;
+            }
+
+            return objectMapper.readValue(Files.readString(localConfigPath), ConfigEntity.class);
+        } catch (Exception exception) {
+            return null;
+        }
+    }
+
+    private void writeLocalConfig(ConfigEntity configEntity) {
+        try {
+            Path localConfigPath = resolveLocalConfigPath();
+            if (localConfigPath == null) {
+                return;
+            }
+
+            Files.createDirectories(localConfigPath.getParent());
+            Files.writeString(
+                localConfigPath,
+                objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(configEntity) + System.lineSeparator()
+            );
+        } catch (IOException exception) {
+            throw new IllegalArgumentException("Could not update local config file", exception);
+        }
+    }
+
+    private Path resolveLocalConfigPath() {
+        List<Path> candidates = List.of(
+            Path.of(CONFIG_FILE_PATH).normalize(),
+            Path.of("..", CONFIG_FILE_PATH).normalize()
+        );
+
+        for (Path candidate : candidates) {
+            if (Files.exists(candidate)) {
+                return candidate;
+            }
+        }
+
+        return candidates.get(1);
     }
 
     private DevOpsContext createContext(String provider, String pat, String organization, String project) {

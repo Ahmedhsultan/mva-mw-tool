@@ -127,13 +127,6 @@ export class ConfigDialogComponent implements OnInit {
     return type === 'library' ? 'Library' : 'Service';
   }
 
-  reloadConfigSource(): void {
-    const repoId = this.resolveDbRepoId(this.dbRepoId);
-    const branch = this.dbBranch.trim() || 'main';
-    this.persistConfigSource(repoId, branch);
-    this.loadConfig();
-  }
-
   setAppTabProvider(tab: AppTabKey, provider: DevOpsProvider): void {
     this.tabProviders = {
       ...this.tabProviders,

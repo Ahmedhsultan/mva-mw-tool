@@ -158,40 +158,6 @@
           }
 
           <div class="config-grid">
-            <section class="config-section config-source-section">
-              <div class="section-header">
-                <h3>Config Source</h3>
-                <button mat-stroked-button type="button" class="source-refresh-btn"
-                        (click)="reloadConfigSource()"
-                        [disabled]="isConfigBusy()">
-                  <mat-icon>refresh</mat-icon>
-                  Load Source
-                </button>
-              </div>
-
-              <p class="repo-help">Repository catalog changes are read from and saved into this repo and branch.</p>
-
-              <div class="source-row">
-                <mat-form-field appearance="outline" class="source-repo-input">
-                  <mat-label>Config repo id</mat-label>
-                  <mat-icon matPrefix>inventory_2</mat-icon>
-                  <input matInput [(ngModel)]="dbRepoId"
-                         [disabled]="isConfigBusy()"
-                         placeholder="mva-mw-tool"
-                         autocomplete="off">
-                </mat-form-field>
-
-                <mat-form-field appearance="outline" class="source-branch-input">
-                  <mat-label>Config branch</mat-label>
-                  <mat-icon matPrefix>account_tree</mat-icon>
-                  <input matInput [(ngModel)]="dbBranch"
-                         [disabled]="isConfigBusy()"
-                         placeholder="main"
-                         autocomplete="off">
-                </mat-form-field>
-              </div>
-            </section>
-
             <section class="config-section">
               <div class="section-header">
                 <h3>Repositories</h3>
