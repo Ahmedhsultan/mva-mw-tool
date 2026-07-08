@@ -1,10 +1,9 @@
 package com.mva.mwtool.service.pipeline.tasks;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.mva.mwtool.dto.DeployDto;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-
-import java.util.List;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -12,27 +11,41 @@ import java.util.List;
 public class DeploymentTask extends Task {
     private String buildId;
     private String repoName;
+    private String definitionId;
+    private String environment;
+    private String description;
     private String deploymentLink;
+    private transient DeployDto deployResult;
 
     public DeploymentTask() {}
 
     @Override
-    public void execute() {
-
-    }
-
-    @Override
-    public boolean checkConditions(List<Task> previousTasks) {
-        return false;
-    }
-
-    @Override
-    public boolean isSucceed() {
-        return false;
+    protected void execute() {
+        DeployDto deploy = devOpsContext.getDeployService()
+                .createDeploy(buildId, definitionId, environment, description);
+        this.deployResult = deploy;
+        this.deploymentLink = deploy.getId();
+        this.succeeded = "succeeded".equalsIgnoreCase(deploy.getStatus());
     }
 
     @Override
     public Object getOutput() {
-        return null;
+        return deployResult;
+    }
+
+    @Override
+    public boolean stop() {
+        return false;
+    }
+
+    @Override
+    public void reTryRun() {
+        this.succeeded = false;
+        execute();
+    }
+
+    @Override
+    public String getStatus() {
+        return succeeded ? "succeeded" : "pending";
     }
 }

@@ -4,5 +4,5 @@ import com.mva.mwtool.dto.AuthResponse;
 
 public interface AuthService {
 
-    AuthResponse validateToken(String pat, String organization, String project);
+    AuthResponse validateToken();
 }

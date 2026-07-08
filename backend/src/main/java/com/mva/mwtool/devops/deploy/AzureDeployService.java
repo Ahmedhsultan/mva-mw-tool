@@ -3,26 +3,31 @@ package com.mva.mwtool.devops.deploy;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mva.mwtool.devops.auth.AzureAuthService;
 import com.mva.mwtool.dto.DeployDto;
+import com.mva.mwtool.dto.DevOpsCredentials;
 import org.springframework.http.*;
-import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 
-@Service("azureDeployService")
 public class AzureDeployService implements DeployService {
 
     private static final String BASE_URL = "https://vsrm.dev.azure.com";
     private static final String API_VERSION = "7.1";
 
     private final RestTemplate restTemplate;
+    private final String pat;
+    private final String organization;
+    private final String project;
 
-    public AzureDeployService(RestTemplate restTemplate) {
+    public AzureDeployService(RestTemplate restTemplate, DevOpsCredentials credentials) {
         this.restTemplate = restTemplate;
+        this.pat = credentials.getPat("azure");
+        this.organization = credentials.getOrganization("azure");
+        this.project = credentials.getProject("azure");
     }
 
     @Override
-    public DeployDto getDeployById(String pat, String organization, String project, String deployId) {
+    public DeployDto getDeployById(String deployId) {
         String url = String.format("%s/%s/%s/_apis/release/releases/%s?api-version=%s",
                 BASE_URL, organization, project, deployId, API_VERSION);
 
@@ -33,9 +38,7 @@ public class AzureDeployService implements DeployService {
     }
 
     @Override
-    public DeployDto createDeploy(String pat, String organization, String project,
-                                  String buildId, String definitionId, String environment,
-                                  String description) {
+    public DeployDto createDeploy(String buildId, String definitionId, String environment, String description) {
         String url = String.format("%s/%s/%s/_apis/release/releases?api-version=%s",
                 BASE_URL, organization, project, API_VERSION);
 

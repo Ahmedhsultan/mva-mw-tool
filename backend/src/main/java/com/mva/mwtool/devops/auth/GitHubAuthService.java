@@ -2,22 +2,23 @@ package com.mva.mwtool.devops.auth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mva.mwtool.dto.AuthResponse;
+import com.mva.mwtool.dto.DevOpsCredentials;
 import org.springframework.http.*;
-import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-@Service("githubAuthService")
 public class GitHubAuthService implements AuthService {
 
     private final RestTemplate restTemplate;
+    private final String pat;
 
-    public GitHubAuthService(RestTemplate restTemplate) {
+    public GitHubAuthService(RestTemplate restTemplate, DevOpsCredentials credentials) {
         this.restTemplate = restTemplate;
+        this.pat = credentials.getPat("github");
     }
 
     @Override
-    public AuthResponse validateToken(String pat, String organization, String project) {
+    public AuthResponse validateToken() {
         String url = "https://api.github.com/user";
 
         HttpHeaders headers = createHeaders(pat);

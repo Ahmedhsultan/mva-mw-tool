@@ -1,8 +1,8 @@
 package com.mva.mwtool.controller;
 
+import com.mva.mwtool.devops.DevOpsContext;
 import com.mva.mwtool.devops.DevOpsServiceFactory;
-import com.mva.mwtool.dto.BuildDto;
-import com.mva.mwtool.dto.CreateBuildRequest;
+import com.mva.mwtool.dto.*;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,8 +26,8 @@ public class BuildController {
             @RequestParam String organization,
             @RequestParam String project,
             @PathVariable String buildId) {
-        BuildDto build = factory.getBuildService(provider)
-                .getBuildById(pat, organization, project, buildId);
+        DevOpsContext context = createContext(provider, pat, organization, project);
+        BuildDto build = context.getBuildService().getBuildById(buildId);
         return ResponseEntity.ok(build);
     }
 
@@ -39,8 +39,8 @@ public class BuildController {
             @RequestParam String project,
             @RequestParam String branch,
             @RequestParam String repoId) {
-        List<BuildDto> builds = factory.getBuildService(provider)
-                .getBuildsByBranchAndRepo(pat, organization, project, branch, repoId);
+        DevOpsContext context = createContext(provider, pat, organization, project);
+        List<BuildDto> builds = context.getBuildService().getBuildsByBranchAndRepo(branch, repoId);
         return ResponseEntity.ok(builds);
     }
 
@@ -51,9 +51,19 @@ public class BuildController {
             @RequestParam String organization,
             @RequestParam String project,
             @Valid @RequestBody CreateBuildRequest request) {
-        BuildDto build = factory.getBuildService(provider)
-                .createBuild(pat, organization, project,
-                        request.getBranch(), request.getRepoId(), request.getDefinitionId());
+        DevOpsContext context = createContext(provider, pat, organization, project);
+        BuildDto build = context.getBuildService()
+                .createBuild(request.getBranch(), request.getRepoId(), request.getDefinitionId());
         return ResponseEntity.ok(build);
+    }
+
+    private DevOpsContext createContext(String provider, String pat, String organization, String project) {
+        DevOpsCredentials credentials = new DevOpsCredentials();
+        if ("azure".equalsIgnoreCase(provider)) {
+            credentials.setAzure(new AzureCredentials(pat, organization, project));
+        } else if ("github".equalsIgnoreCase(provider)) {
+            credentials.setGithub(new GitHubCredentials(pat, organization, project));
+        }
+        return factory.create(provider, credentials);
     }
 }

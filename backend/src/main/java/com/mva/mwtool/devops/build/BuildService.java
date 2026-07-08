@@ -6,11 +6,9 @@ import java.util.List;
 
 public interface BuildService {
 
-    BuildDto getBuildById(String pat, String organization, String project, String buildId);
+    BuildDto getBuildById(String buildId);
 
-    List<BuildDto> getBuildsByBranchAndRepo(String pat, String organization, String project,
-                                            String branch, String repoId);
+    List<BuildDto> getBuildsByBranchAndRepo(String branch, String repoId);
 
-    BuildDto createBuild(String pat, String organization, String project,
-                         String branch, String repoId, String definitionId);
+    BuildDto createBuild(String branch, String repoId, String definitionId);
 }

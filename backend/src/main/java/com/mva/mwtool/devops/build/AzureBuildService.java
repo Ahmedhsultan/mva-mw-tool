@@ -3,8 +3,8 @@ package com.mva.mwtool.devops.build;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mva.mwtool.devops.auth.AzureAuthService;
 import com.mva.mwtool.dto.BuildDto;
+import com.mva.mwtool.dto.DevOpsCredentials;
 import org.springframework.http.*;
-import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
@@ -12,20 +12,25 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Service("azureBuildService")
 public class AzureBuildService implements BuildService {
 
     private static final String BASE_URL = "https://dev.azure.com";
     private static final String API_VERSION = "7.1";
 
     private final RestTemplate restTemplate;
+    private final String pat;
+    private final String organization;
+    private final String project;
 
-    public AzureBuildService(RestTemplate restTemplate) {
+    public AzureBuildService(RestTemplate restTemplate, DevOpsCredentials credentials) {
         this.restTemplate = restTemplate;
+        this.pat = credentials.getPat("azure");
+        this.organization = credentials.getOrganization("azure");
+        this.project = credentials.getProject("azure");
     }
 
     @Override
-    public BuildDto getBuildById(String pat, String organization, String project, String buildId) {
+    public BuildDto getBuildById(String buildId) {
         String url = String.format("%s/%s/%s/_apis/build/builds/%s?api-version=%s",
                 BASE_URL, organization, project, buildId, API_VERSION);
 
@@ -36,8 +41,7 @@ public class AzureBuildService implements BuildService {
     }
 
     @Override
-    public List<BuildDto> getBuildsByBranchAndRepo(String pat, String organization, String project,
-                                                    String branch, String repoId) {
+    public List<BuildDto> getBuildsByBranchAndRepo(String branch, String repoId) {
         String branchRef = branch.startsWith("refs/") ? branch : "refs/heads/" + branch;
         String url = String.format(
                 "%s/%s/%s/_apis/build/builds?branchName=%s&repositoryId=%s&repositoryType=TfsGit&api-version=%s",
@@ -57,8 +61,7 @@ public class AzureBuildService implements BuildService {
     }
 
     @Override
-    public BuildDto createBuild(String pat, String organization, String project,
-                                String branch, String repoId, String definitionId) {
+    public BuildDto createBuild(String branch, String repoId, String definitionId) {
         String url = String.format("%s/%s/%s/_apis/build/builds?api-version=%s",
                 BASE_URL, organization, project, API_VERSION);
 

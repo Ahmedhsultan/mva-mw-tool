@@ -1,16 +1,3 @@
-# macOS
-.DS_Store
-
-# IDE metadata
-.idea/
-*.iml
-
-# Java and Maven build output
-target/
-
-# Local logs
-*.log
-
 # Compiled class files
 target/
 

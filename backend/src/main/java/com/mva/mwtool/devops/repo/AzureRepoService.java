@@ -2,28 +2,32 @@ package com.mva.mwtool.devops.repo;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mva.mwtool.devops.auth.AzureAuthService;
+import com.mva.mwtool.dto.DevOpsCredentials;
 import com.mva.mwtool.dto.RepoFileDto;
 import org.springframework.http.*;
-import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 
-@Service("azureRepoService")
 public class AzureRepoService implements RepoService {
 
     private static final String BASE_URL = "https://dev.azure.com";
     private static final String API_VERSION = "7.1";
 
     private final RestTemplate restTemplate;
+    private final String pat;
+    private final String organization;
+    private final String project;
 
-    public AzureRepoService(RestTemplate restTemplate) {
+    public AzureRepoService(RestTemplate restTemplate, DevOpsCredentials credentials) {
         this.restTemplate = restTemplate;
+        this.pat = credentials.getPat("azure");
+        this.organization = credentials.getOrganization("azure");
+        this.project = credentials.getProject("azure");
     }
 
     @Override
-    public RepoFileDto pullFile(String pat, String organization, String project,
-                                String repoId, String filePath, String branch) {
+    public RepoFileDto pullFile(String repoId, String filePath, String branch) {
         String url = String.format(
                 "%s/%s/%s/_apis/git/repositories/%s/items?path=%s&versionDescriptor.version=%s" +
                         "&versionDescriptor.versionType=branch&includeContent=true&$format=json&api-version=%s",
@@ -44,13 +48,9 @@ public class AzureRepoService implements RepoService {
     }
 
     @Override
-    public void pushFile(String pat, String organization, String project,
-                         String repoId, String filePath, String branch,
-                         String content, String commitMessage) {
-        String currentCommitId = getCurrentCommitId(pat, organization, project, repoId, branch);
-        String changeType = fileExists(pat, organization, project, repoId, filePath, branch)
-            ? "edit"
-            : "add";
+    public void pushFile(String repoId, String filePath, String branch, String content, String commitMessage) {
+        String currentCommitId = getCurrentCommitId(repoId, branch);
+        String changeType = fileExists(repoId, filePath, branch) ? "edit" : "add";
 
         String url = String.format("%s/%s/%s/_apis/git/repositories/%s/pushes?api-version=%s",
                 BASE_URL, organization, project, repoId, API_VERSION);
@@ -65,7 +65,7 @@ public class AzureRepoService implements RepoService {
         requestBody.put("refUpdates", List.of(refUpdate));
 
         Map<String, Object> change = new HashMap<>();
-    change.put("changeType", changeType);
+        change.put("changeType", changeType);
         Map<String, String> item = new HashMap<>();
         item.put("path", filePath);
         change.put("item", item);
@@ -85,18 +85,16 @@ public class AzureRepoService implements RepoService {
         restTemplate.exchange(url, HttpMethod.POST, entity, JsonNode.class);
     }
 
-    private boolean fileExists(String pat, String organization, String project,
-                               String repoId, String filePath, String branch) {
+    private boolean fileExists(String repoId, String filePath, String branch) {
         try {
-            pullFile(pat, organization, project, repoId, filePath, branch);
+            pullFile(repoId, filePath, branch);
             return true;
         } catch (Exception ignored) {
             return false;
         }
     }
 
-    private String getCurrentCommitId(String pat, String organization, String project,
-                                      String repoId, String branch) {
+    private String getCurrentCommitId(String repoId, String branch) {
         String branchRef = branch.startsWith("refs/") ? branch : "refs/heads/" + branch;
         String url = String.format(
                 "%s/%s/%s/_apis/git/repositories/%s/refs?filter=%s&api-version=%s",

@@ -3,28 +3,30 @@ package com.mva.mwtool.devops.auth;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mva.mwtool.dto.AuthResponse;
+import com.mva.mwtool.dto.DevOpsCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
-import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Base64;
 
-@Service("azureAuthService")
 public class AzureAuthService implements AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AzureAuthService.class);
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final String pat;
+    private final String organization;
 
-    public AzureAuthService(RestTemplate restTemplate) {
+    public AzureAuthService(RestTemplate restTemplate, DevOpsCredentials credentials) {
         this.restTemplate = restTemplate;
+        this.pat = credentials.getPat("azure");
+        this.organization = credentials.getOrganization("azure");
     }
 
     @Override
-    public AuthResponse validateToken(String pat, String organization, String project) {
-        // Use connectionData endpoint — works with any PAT scope
+    public AuthResponse validateToken() {
         String url = String.format("https://dev.azure.com/%s/_apis/connectionData", organization);
 
         HttpHeaders headers = createHeaders(pat);

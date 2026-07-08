@@ -1,11 +1,13 @@
-package com.mva.mwtool.service.pipeline;
+package com.mva.mwtool.service.pipeline.util;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.mva.mwtool.devops.DevOpsContext;
 import com.mva.mwtool.devops.DevOpsServiceFactory;
+import com.mva.mwtool.dto.DevOpsCredentials;
 import com.mva.mwtool.service.pipeline.tasks.*;
 import lombok.Setter;
 
@@ -17,6 +19,8 @@ public class TaskDeserializer extends StdDeserializer<Task> {
 
     @Setter
     private static DevOpsServiceFactory devOpsServiceFactory;
+    @Setter
+    private static DevOpsCredentials credentials;
 
     public TaskDeserializer() {
         super(Task.class);
@@ -43,8 +47,13 @@ public class TaskDeserializer extends StdDeserializer<Task> {
         cleanMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         Task task = cleanMapper.treeToValue(node, taskClass);
 
-        // Inject DevOpsServiceFactory using the provider value from JSON
-        task.setDevOpsServiceFactory(devOpsServiceFactory);
+        // Resolve provider from JSON and create DevOpsContext
+        String provider = node.has("devOpsServiceFactory") ? node.get("devOpsServiceFactory").asText() : null;
+        task.setDevOpsProvider(provider);
+        if (provider != null) {
+            DevOpsContext context = devOpsServiceFactory.create(provider, credentials);
+            task.setDevOpsContext(context);
+        }
 
         // Recursively parse nextTasks using the original mapper (with this deserializer)
         if (node.has("nextTasks") && node.get("nextTasks").isArray()) {

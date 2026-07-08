@@ -1,8 +1,8 @@
 package com.mva.mwtool.controller;
 
+import com.mva.mwtool.devops.DevOpsContext;
 import com.mva.mwtool.devops.DevOpsServiceFactory;
-import com.mva.mwtool.dto.PushFileRequest;
-import com.mva.mwtool.dto.RepoFileDto;
+import com.mva.mwtool.dto.*;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,8 +26,8 @@ public class RepoController {
             @RequestParam String repoId,
             @RequestParam String filePath,
             @RequestParam String branch) {
-        RepoFileDto file = factory.getRepoService(provider)
-                .pullFile(pat, organization, project, repoId, filePath, branch);
+        DevOpsContext context = createContext(provider, pat, organization, project);
+        RepoFileDto file = context.getRepoService().pullFile(repoId, filePath, branch);
         return ResponseEntity.ok(file);
     }
 
@@ -38,10 +38,20 @@ public class RepoController {
             @RequestParam String organization,
             @RequestParam String project,
             @Valid @RequestBody PushFileRequest request) {
-        factory.getRepoService(provider)
-                .pushFile(pat, organization, project,
-                        request.getRepoId(), request.getFilePath(), request.getBranch(),
-                        request.getContent(), request.getCommitMessage());
+        DevOpsContext context = createContext(provider, pat, organization, project);
+        context.getRepoService().pushFile(
+                request.getRepoId(), request.getFilePath(), request.getBranch(),
+                request.getContent(), request.getCommitMessage());
         return ResponseEntity.ok().build();
+    }
+
+    private DevOpsContext createContext(String provider, String pat, String organization, String project) {
+        DevOpsCredentials credentials = new DevOpsCredentials();
+        if ("azure".equalsIgnoreCase(provider)) {
+            credentials.setAzure(new AzureCredentials(pat, organization, project));
+        } else if ("github".equalsIgnoreCase(provider)) {
+            credentials.setGithub(new GitHubCredentials(pat, organization, project));
+        }
+        return factory.create(provider, credentials);
     }
 }

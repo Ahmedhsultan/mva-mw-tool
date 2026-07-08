@@ -1,27 +1,41 @@
 package com.mva.mwtool.service.pipeline.tasks;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
+@Data
+@EqualsAndHashCode(callSuper = true)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ApprovalTask extends Task {
     private boolean approved;
 
-    @Override
-    public void execute() {
-        approved = true;
-    }
+    public ApprovalTask() {}
 
     @Override
-    public boolean checkConditions(List<Task> previousTasks) {
-        return false;
-    }
-
-    @Override
-    public boolean isSucceed() {
-        return approved;
+    protected void execute() {
+        // Approval is a manual gate — mark as succeeded when approved
+        this.succeeded = approved;
     }
 
     @Override
     public Object getOutput() {
-        return null;
+        return approved;
+    }
+
+    @Override
+    public boolean stop() {
+        return !approved;
+    }
+
+    @Override
+    public void reTryRun() {
+        this.succeeded = false;
+        execute();
+    }
+
+    @Override
+    public String getStatus() {
+        return succeeded ? "succeeded" : "pending";
     }
 }

@@ -4,10 +4,7 @@ import com.mva.mwtool.dto.RepoFileDto;
 
 public interface RepoService {
 
-    RepoFileDto pullFile(String pat, String organization, String project,
-                         String repoId, String filePath, String branch);
+    RepoFileDto pullFile(String repoId, String filePath, String branch);
 
-    void pushFile(String pat, String organization, String project,
-                  String repoId, String filePath, String branch,
-                  String content, String commitMessage);
+    void pushFile(String repoId, String filePath, String branch, String content, String commitMessage);
 }

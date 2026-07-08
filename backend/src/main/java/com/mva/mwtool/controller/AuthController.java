@@ -1,8 +1,8 @@
 package com.mva.mwtool.controller;
 
+import com.mva.mwtool.devops.DevOpsContext;
 import com.mva.mwtool.devops.DevOpsServiceFactory;
-import com.mva.mwtool.dto.AuthRequest;
-import com.mva.mwtool.dto.AuthResponse;
+import com.mva.mwtool.dto.*;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +19,20 @@ public class AuthController {
 
     @PostMapping("/validate")
     public ResponseEntity<AuthResponse> validateToken(@Valid @RequestBody AuthRequest request) {
-        AuthResponse response = factory.getAuthService(request.getProvider())
-                .validateToken(request.getPat(), request.getOrganization(), request.getProject());
+        DevOpsCredentials credentials = buildCredentials(request.getProvider(),
+                request.getPat(), request.getOrganization(), request.getProject());
+        DevOpsContext context = factory.create(request.getProvider(), credentials);
+        AuthResponse response = context.getAuthService().validateToken();
         return ResponseEntity.ok(response);
+    }
+
+    private DevOpsCredentials buildCredentials(String provider, String pat, String organization, String project) {
+        DevOpsCredentials credentials = new DevOpsCredentials();
+        if ("azure".equalsIgnoreCase(provider)) {
+            credentials.setAzure(new AzureCredentials(pat, organization, project));
+        } else if ("github".equalsIgnoreCase(provider)) {
+            credentials.setGithub(new GitHubCredentials(pat, organization, project));
+        }
+        return credentials;
     }
 }
