@@ -256,8 +256,8 @@
                     <mat-label>Repository preset</mat-label>
                     <mat-icon matPrefix>folder_managed</mat-icon>
                     <mat-select [ngModel]="selectedRepoProfileKey(task)" (ngModelChange)="applyRepoProfileSelection(task, $event)">
-                      @for (repoProfile of availableRepoProfiles(task); track repoProfile.repoId || repoProfile.name) {
-                        <mat-option [value]="repoProfile.repoId.toLowerCase() || repoProfile.name.toLowerCase()">{{ repoProfileLabel(repoProfile) }}</mat-option>
+                      @for (repoProfile of availableRepoProfiles(task); track repoProfile.name) {
+                        <mat-option [value]="repoProfile.name.toLowerCase()">{{ repoProfileLabel(repoProfile) }}</mat-option>
                       }
                     </mat-select>
                   </mat-form-field>

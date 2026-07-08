@@ -198,11 +198,11 @@
               </div>
 
               <div class="repo-profile-list" [class.is-busy]="isConfigBusy()">
-                @for (repoProfile of repoProfiles; track repoProfile.repoId || repoProfile.name; let profileIndex = $index) {
+                @for (repoProfile of repoProfiles; track repoProfile.name; let profileIndex = $index) {
                   <section class="repo-profile-card">
                     <div class="repo-profile-header">
                       <div>
-                        <strong>{{ repoProfile.repoId || repoProfile.name || 'Repository' }}</strong>
+                        <strong>{{ repoProfile.name || 'Repository' }}</strong>
                         <span>{{ repoTypeLabel(repoProfile.type) }} repo</span>
                       </div>
 
@@ -226,11 +226,11 @@
                       </mat-form-field>
 
                       <mat-form-field appearance="outline">
-                        <mat-label>Repo id</mat-label>
+                         <mat-label>Repository</mat-label>
                         <mat-icon matPrefix>folder_open</mat-icon>
-                        <input matInput [ngModel]="repoProfile.repoId"
+                         <input matInput [ngModel]="repoProfile.name"
                                [disabled]="isConfigBusy()"
-                               (ngModelChange)="updateRepoProfile(profileIndex, 'repoId', $event)">
+                           (ngModelChange)="updateRepoProfile(profileIndex, 'name', $event)">
                       </mat-form-field>
 
                       <mat-form-field appearance="outline">

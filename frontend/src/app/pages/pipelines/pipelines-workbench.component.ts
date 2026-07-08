@@ -630,8 +630,8 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
   selectedRepoProfileKey(task: EditorPipelineTaskNode): string {
     const match = this.repoProfiles.find(repoProfile => {
-      const repoId = this.profileRepoId(repoProfile);
-      if (repoId !== (task.repoName || '')) {
+      const repoName = this.profileRepoName(repoProfile);
+      if (repoName !== (task.repoName || '')) {
         return false;
       }
 
@@ -660,7 +660,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
   repoProfileLabel(repoProfile: RepoProfile): string {
     const suffix = repoProfile.type === 'library' ? 'Library' : 'Service';
-    return `${this.profileRepoId(repoProfile)} · ${suffix}`;
+    return `${this.profileRepoName(repoProfile)} · ${suffix}`;
   }
 
   environmentOptions(task: EditorPipelineTaskNode): string[] {
@@ -949,10 +949,10 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   private applyRepoProfileToTask(task: EditorPipelineTaskNode, repoProfile: RepoProfile): void {
-    const repoId = this.profileRepoId(repoProfile);
+    const repoName = this.profileRepoName(repoProfile);
 
-    if (repoId) {
-      task.repoName = repoId;
+    if (repoName) {
+      task.repoName = repoName;
     }
 
     switch (task.taskType) {
@@ -965,12 +965,12 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     }
   }
 
-  private profileRepoId(repoProfile: RepoProfile): string {
-    return (repoProfile.repoId || repoProfile.name).trim();
+  private profileRepoName(repoProfile: RepoProfile): string {
+    return repoProfile.name.trim();
   }
 
   private repoProfileKey(repoProfile: RepoProfile): string {
-    return (repoProfile.repoId || repoProfile.name).trim().toLowerCase();
+    return repoProfile.name.trim().toLowerCase();
   }
 
   private normalizeRepoProfiles(repoProfiles: RepoProfile[] | undefined, repositories: string[] | undefined): RepoProfile[] {
@@ -978,14 +978,10 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
     for (const repoProfile of repoProfiles || []) {
       const normalizedProfile: RepoProfile = {
-        name: repoProfile.repoId?.trim() || repoProfile.name?.trim() || '',
-        repoId: repoProfile.repoId?.trim() || repoProfile.name?.trim() || '',
+        name: repoProfile.name?.trim() || '',
         type: repoProfile.type === 'library' ? 'library' : 'service',
-        branch: '',
         buildDefinitionId: repoProfile.buildDefinitionId?.trim() || '',
-        deploymentDefinitionId: repoProfile.type === 'library' ? '' : repoProfile.deploymentDefinitionId?.trim() || '',
-        environment: '',
-        description: ''
+        deploymentDefinitionId: repoProfile.type === 'library' ? '' : repoProfile.deploymentDefinitionId?.trim() || ''
       };
 
       const key = this.repoProfileKey(normalizedProfile);
@@ -1002,13 +998,9 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
       const fallbackProfile: RepoProfile = {
         name: repoId,
-        repoId,
         type: 'service',
-        branch: '',
         buildDefinitionId: '',
-        deploymentDefinitionId: '',
-        environment: '',
-        description: ''
+        deploymentDefinitionId: ''
       };
 
       const key = this.repoProfileKey(fallbackProfile);

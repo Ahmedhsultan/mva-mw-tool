@@ -77,13 +77,9 @@ export type RepoProfileType = 'service' | 'library';
 
 export interface RepoProfile {
   name: string;
-  repoId: string;
   type: RepoProfileType;
-  branch: string;
   buildDefinitionId: string;
   deploymentDefinitionId: string;
-  environment: string;
-  description: string;
 }
 
 export interface ConfigDataFile {

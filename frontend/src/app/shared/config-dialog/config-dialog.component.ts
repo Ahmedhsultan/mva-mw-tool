@@ -97,7 +97,7 @@ export class ConfigDialogComponent implements OnInit {
     const values = new Set<string>();
 
     for (const repoProfile of this.repoProfiles) {
-      const value = (repoProfile.repoId || repoProfile.name).trim();
+      const value = repoProfile.name.trim();
       if (value) {
         values.add(value);
       }
@@ -239,9 +239,9 @@ export class ConfigDialogComponent implements OnInit {
   addRepositoryProfile(): void {
     if (this.isConfigBusy()) return;
 
-    const repoId = this.newRepositoryName.trim();
-    if (!repoId) return;
-    if (this.repoProfiles.some(profile => this.repoProfileKey(profile) === repoId.toLowerCase())) {
+    const repoName = this.newRepositoryName.trim();
+    if (!repoName) return;
+    if (this.repoProfiles.some(profile => this.repoProfileKey(profile) === repoName.toLowerCase())) {
       this.snackBar.open('Repository profile already exists', 'Close', {
         duration: 2500,
         panelClass: 'error-snackbar'
@@ -252,14 +252,10 @@ export class ConfigDialogComponent implements OnInit {
     this.repoProfiles = [
       ...this.repoProfiles,
       {
-        name: repoId,
-        repoId,
+        name: repoName,
         type: this.newRepositoryType,
-        branch: '',
         buildDefinitionId: '',
-        deploymentDefinitionId: '',
-        environment: '',
-        description: ''
+        deploymentDefinitionId: ''
       }
     ];
     this.newRepositoryName = '';
@@ -462,13 +458,9 @@ export class ConfigDialogComponent implements OnInit {
 
       const fallback = this.normalizeRepoProfile({
         name: repoId,
-        repoId,
         type: 'service',
-        branch: 'main',
         buildDefinitionId: '',
-        deploymentDefinitionId: '',
-        environment: '',
-        description: ''
+        deploymentDefinitionId: ''
       });
 
       const key = this.repoProfileKey(fallback);
@@ -495,18 +487,14 @@ export class ConfigDialogComponent implements OnInit {
   }
 
   private normalizeRepoProfile(repoProfile: RepoProfile): RepoProfile {
-    const repoId = repoProfile.repoId.trim() || repoProfile.name.trim();
+    const name = repoProfile.name.trim();
     const type: RepoProfileType = repoProfile.type === 'library' ? 'library' : 'service';
 
     return {
-      name: repoId,
-      repoId,
+      name,
       type,
-      branch: '',
       buildDefinitionId: repoProfile.buildDefinitionId.trim(),
-      deploymentDefinitionId: type === 'library' ? '' : repoProfile.deploymentDefinitionId.trim(),
-      environment: '',
-      description: ''
+      deploymentDefinitionId: type === 'library' ? '' : repoProfile.deploymentDefinitionId.trim()
     };
   }
 
@@ -517,12 +505,12 @@ export class ConfigDialogComponent implements OnInit {
       const profile = this.normalizeRepoProfile(repoProfile);
       const key = this.repoProfileKey(profile);
 
-      if (!profile.repoId) {
-        return 'Each repository needs a repo id.';
+      if (!profile.name) {
+        return 'Each repository needs a name.';
       }
 
       if (seenKeys.has(key)) {
-        return `Repository profile "${profile.name || profile.repoId}" is duplicated.`;
+        return `Repository profile "${profile.name}" is duplicated.`;
       }
 
       seenKeys.add(key);
@@ -532,6 +520,6 @@ export class ConfigDialogComponent implements OnInit {
   }
 
   private repoProfileKey(repoProfile: RepoProfile): string {
-    return (repoProfile.repoId.trim() || repoProfile.name.trim()).toLowerCase();
+    return repoProfile.name.trim().toLowerCase();
   }
 }

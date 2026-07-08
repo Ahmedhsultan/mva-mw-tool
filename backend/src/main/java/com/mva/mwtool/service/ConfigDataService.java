@@ -110,13 +110,13 @@ public class ConfigDataService {
                     key,
                     new RepositoryProfileDto(
                         normalizedRepository,
-                        normalizedRepository,
+                        null,
                         "service",
-                        "main",
+                        null,
                         "",
                         "",
-                        "",
-                        ""
+                        null,
+                        null
                     )
                 );
             }
@@ -144,13 +144,13 @@ public class ConfigDataService {
 
         return new RepositoryProfileDto(
             name,
-            repoId,
+            null,
             type,
-            normalizeValue(repoProfile.getBranch(), false),
+            null,
             normalizeValue(repoProfile.getBuildDefinitionId(), false),
             "library".equals(type) ? "" : normalizeValue(repoProfile.getDeploymentDefinitionId(), false),
-            normalizeValue(repoProfile.getEnvironment(), false),
-            normalizeValue(repoProfile.getDescription(), false)
+            null,
+            null
         );
     }
 
