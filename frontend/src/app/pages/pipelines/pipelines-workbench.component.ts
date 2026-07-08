@@ -841,7 +841,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => this.isLoadingTaskCatalog = false))
       .subscribe({
         next: configData => {
-          this.repoProfiles = this.normalizeRepoProfiles(configData.repoProfiles, configData.repositories);
+          this.repoProfiles = this.normalizeRepoProfiles(configData.repoProfiles);
           this.configuredEnvironments = [...configData.environments];
           if (!this.repoProfiles.length) {
             this.taskCatalogError = 'No repository presets saved yet. Add them in Workspace settings to auto-fill build and deploy tasks.';
@@ -973,7 +973,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     return repoProfile.name.trim().toLowerCase();
   }
 
-  private normalizeRepoProfiles(repoProfiles: RepoProfile[] | undefined, repositories: string[] | undefined): RepoProfile[] {
+  private normalizeRepoProfiles(repoProfiles: RepoProfile[] | undefined): RepoProfile[] {
     const normalized = new Map<string, RepoProfile>();
 
     for (const repoProfile of repoProfiles || []) {
@@ -987,25 +987,6 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       const key = this.repoProfileKey(normalizedProfile);
       if (key) {
         normalized.set(key, normalizedProfile);
-      }
-    }
-
-    for (const repository of repositories || []) {
-      const repoId = repository.trim();
-      if (!repoId) {
-        continue;
-      }
-
-      const fallbackProfile: RepoProfile = {
-        name: repoId,
-        type: 'service',
-        buildDefinitionId: '',
-        deploymentDefinitionId: ''
-      };
-
-      const key = this.repoProfileKey(fallbackProfile);
-      if (!normalized.has(key)) {
-        normalized.set(key, fallbackProfile);
       }
     }
 

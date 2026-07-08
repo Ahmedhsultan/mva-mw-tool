@@ -41,7 +41,6 @@ public class ConfigDataService {
 
         return new ConfigDataDto(
             normalize(configEntity.getEnvironments(), true),
-            deriveRepositories(repoProfiles, configEntity.getRepositories()),
             repoProfiles
         );
     }
@@ -52,11 +51,11 @@ public class ConfigDataService {
         String resolvedBranch = resolveBranch(request.getBranch());
         List<RepositoryProfileDto> repoProfiles = normalizeRepoProfiles(
             request.getRepoProfiles(),
-            request.getRepositories()
+            null
         );
         ConfigEntity payload = new ConfigEntity(
             normalize(request.getEnvironments(), true),
-            deriveRepositories(repoProfiles, request.getRepositories()),
+            null,
             repoProfiles
         );
 
@@ -152,32 +151,6 @@ public class ConfigDataService {
             null,
             null
         );
-    }
-
-    private List<String> deriveRepositories(List<RepositoryProfileDto> repoProfiles, List<String> repositories) {
-        Set<String> normalized = new LinkedHashSet<>();
-
-        if (repoProfiles != null) {
-            for (RepositoryProfileDto repoProfile : repoProfiles) {
-                String repository = normalizeValue(
-                    firstNonBlank(repoProfile.getRepoId(), repoProfile.getName()),
-                    false
-                );
-
-                if (!repository.isBlank()) {
-                    normalized.add(repository);
-                }
-            }
-        }
-
-        if (normalized.isEmpty() && repositories != null) {
-            repositories.stream()
-                .map(repository -> normalizeValue(repository, false))
-                .filter(repository -> !repository.isBlank())
-                .forEach(normalized::add);
-        }
-
-        return new ArrayList<>(normalized);
     }
 
     private String profileKey(RepositoryProfileDto repoProfile) {

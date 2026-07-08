@@ -12,6 +12,5 @@ import java.util.List;
 public class ConfigDataDto {
 
     private List<String> environments;
-    private List<String> repositories;
     private List<RepositoryProfileDto> repoProfiles;
 }

@@ -93,19 +93,6 @@ export class ConfigDialogComponent implements OnInit {
     this.loadConfig();
   }
 
-  get repositories(): string[] {
-    const values = new Set<string>();
-
-    for (const repoProfile of this.repoProfiles) {
-      const value = repoProfile.name.trim();
-      if (value) {
-        values.add(value);
-      }
-    }
-
-    return [...values];
-  }
-
   saveProviderSettings(): void {
     this.authService.updateProviderSettings(this.provider, {
       pat: this.token,
@@ -330,7 +317,7 @@ export class ConfigDialogComponent implements OnInit {
       .subscribe({
         next: response => {
           this.environments = [...response.environments];
-          this.repoProfiles = this.normalizeRepoProfiles(response.repoProfiles, response.repositories);
+          this.repoProfiles = this.normalizeRepoProfiles(response.repoProfiles);
           this.configLoaded = true;
           this.loadError = '';
           this.repoProfilesDirty = false;
@@ -372,7 +359,6 @@ export class ConfigDialogComponent implements OnInit {
       repoId,
       branch,
       environments: this.environments,
-      repositories: this.repositories,
       repoProfiles: this.serializeRepoProfiles()
     }).pipe(finalize(() => this.isSavingConfig.set(false))).subscribe({
       next: () => {
@@ -439,7 +425,7 @@ export class ConfigDialogComponent implements OnInit {
     return '';
   }
 
-  private normalizeRepoProfiles(repoProfiles: RepoProfile[] | undefined, repositories: string[] | undefined): RepoProfile[] {
+  private normalizeRepoProfiles(repoProfiles: RepoProfile[] | undefined): RepoProfile[] {
     const normalized = new Map<string, RepoProfile>();
 
     for (const repoProfile of repoProfiles || []) {
@@ -447,25 +433,6 @@ export class ConfigDialogComponent implements OnInit {
       const key = this.repoProfileKey(profile);
       if (key) {
         normalized.set(key, profile);
-      }
-    }
-
-    for (const repository of repositories || []) {
-      const repoId = repository.trim();
-      if (!repoId) {
-        continue;
-      }
-
-      const fallback = this.normalizeRepoProfile({
-        name: repoId,
-        type: 'service',
-        buildDefinitionId: '',
-        deploymentDefinitionId: ''
-      });
-
-      const key = this.repoProfileKey(fallback);
-      if (!normalized.has(key)) {
-        normalized.set(key, fallback);
       }
     }
 

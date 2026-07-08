@@ -17,7 +17,5 @@ public class ConfigDataRequest {
     @NotNull
     private List<String> environments;
 
-    private List<String> repositories;
-
     private List<RepositoryProfileDto> repoProfiles;
 }

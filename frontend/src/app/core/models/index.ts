@@ -84,7 +84,6 @@ export interface RepoProfile {
 
 export interface ConfigDataFile {
   environments: string[];
-  repositories: string[];
   repoProfiles: RepoProfile[];
 }
 
@@ -92,7 +91,6 @@ export interface ConfigDataRequest {
   repoId: string;
   branch: string;
   environments: string[];
-  repositories: string[];
   repoProfiles: RepoProfile[];
 }
 
