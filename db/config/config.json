@@ -48,7 +48,7 @@
   }, {
     "name" : "test",
     "type" : "service",
-    "buildDefinitionId" : "",
-    "deploymentDefinitionId" : ""
+    "buildDefinitionId" : "32r43",
+    "deploymentDefinitionId" : "234234"
   } ]
 }
