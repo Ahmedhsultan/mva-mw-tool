@@ -41,6 +41,9 @@ public class BuildTask extends Task {
 
     @Override
     public TaskStatus getStatus() {
+        if (executionFailed) {
+            return TaskStatus.FAILED;
+        }
         if (buildResult == null || buildResult.getId() == null) {
             return TaskStatus.PENDING;
         }

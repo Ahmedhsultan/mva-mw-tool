@@ -41,6 +41,9 @@ public class PrTask extends Task {
 
     @Override
     public TaskStatus getStatus() {
+        if (executionFailed) {
+            return TaskStatus.FAILED;
+        }
         return executed ? TaskStatus.SUCCEEDED : TaskStatus.PENDING;
     }
 }

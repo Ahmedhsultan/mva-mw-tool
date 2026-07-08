@@ -210,8 +210,8 @@ export class PipelineRunViewerComponent implements OnChanges, OnDestroy {
 
   private collectLinks(): string[] {
     return Object.values(this.run?.taskMap || {})
-      .map(t => this.taskLink(t))
-      .filter((link): link is string => !!link);
+      .filter(t => this.taskLink(t))
+      .map(t => `${t.id}: ${this.taskLink(t)}`);
   }
 
   private startPolling(): void {
@@ -223,11 +223,21 @@ export class PipelineRunViewerComponent implements OnChanges, OnDestroy {
       const updated = runs.find(r => r.pipelineRunName === this.run?.pipelineRunName);
       if (updated) {
         this.run = updated;
-        this.buildGraph();
+        this.refreshNodeStatuses();
         if (this.isTerminal()) {
           this.stopPolling();
         }
       }
+    });
+  }
+
+  private refreshNodeStatuses(): void {
+    const taskMap = this.run?.taskMap;
+    if (!taskMap) return;
+
+    this.nodes = this.nodes.map(node => {
+      const updated = taskMap[node.task.id];
+      return updated ? { ...node, task: updated } : node;
     });
   }
 

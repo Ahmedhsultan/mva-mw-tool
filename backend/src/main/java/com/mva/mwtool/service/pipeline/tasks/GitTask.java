@@ -39,6 +39,9 @@ public class GitTask extends Task {
 
     @Override
     public TaskStatus getStatus() {
+        if (executionFailed) {
+            return TaskStatus.FAILED;
+        }
         // Git push is synchronous — if executed, it succeeded
         return executed ? TaskStatus.SUCCEEDED : TaskStatus.PENDING;
     }

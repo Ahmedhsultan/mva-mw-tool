@@ -53,6 +53,18 @@ public class PipelineController {
         return ResponseEntity.ok(pipelineService.getAllPipelines(pat, provider, organization, project, repoId, branch));
     }
 
+    @DeleteMapping("/{pipelineName}")
+    public ResponseEntity<Boolean> deletePipeline(@RequestHeader("X-PAT") String pat,
+                                                   @RequestParam String provider,
+                                                   @RequestParam String organization,
+                                                   @RequestParam(required = false) String project,
+                                                   @RequestParam String repoId,
+                                                   @RequestParam(required = false) String branch,
+                                                   @PathVariable String pipelineName) {
+        boolean result = pipelineService.deletePipeline(pat, provider, organization, project, repoId, branch, pipelineName);
+        return ResponseEntity.ok(result);
+    }
+
     @GetMapping("/runs")
     public ResponseEntity<List<PipelineGraph>> getAllPipelineRuns() {
         return ResponseEntity.ok(pipelineService.getAllPipelineRuns());

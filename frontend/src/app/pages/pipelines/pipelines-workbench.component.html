@@ -59,6 +59,10 @@
                   <button mat-icon-button type="button" class="inline-icon-btn" matTooltip="Run saved pipeline" (click)="runSavedPipeline(pipeline.pipelineName)">
                     <mat-icon>play_arrow</mat-icon>
                   </button>
+
+                  <button mat-icon-button type="button" class="inline-icon-btn delete-btn" matTooltip="Delete pipeline" (click)="deletePipeline(pipeline.pipelineName)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
                 </article>
               }
 

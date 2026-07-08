@@ -32,6 +32,9 @@ public class ApprovalTask extends Task {
 
     @Override
     public TaskStatus getStatus() {
+        if (executionFailed) {
+            return TaskStatus.FAILED;
+        }
         return approved ? TaskStatus.SUCCEEDED : TaskStatus.WAITING_APPROVAL;
     }
 }

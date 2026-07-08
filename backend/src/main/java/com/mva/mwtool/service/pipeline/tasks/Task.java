@@ -32,6 +32,10 @@ public abstract class Task {
     protected transient DevOpsContext devOpsContext;
     @JsonIgnore
     protected transient PipelineGraph pipelineGraph;
+    @JsonIgnore
+    protected transient boolean executionFailed;
+    @JsonIgnore
+    protected transient String failureMessage;
 
     public Task() {}
 

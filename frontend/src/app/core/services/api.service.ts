@@ -133,6 +133,17 @@ export class ApiService {
     });
   }
 
+  deletePipeline(provider: string, repoId: string, branch: string, pipelineName: string): Observable<boolean> {
+    const params = this.baseParams(provider)
+      .set('repoId', repoId)
+      .set('branch', branch);
+
+    return this.http.delete<boolean>(`/api/pipelines/${encodeURIComponent(pipelineName)}`, {
+      headers: this.authHeaders(provider),
+      params
+    });
+  }
+
   getPipelineRuns(): Observable<PipelineRunDto[]> {
     return this.http.get<PipelineRunDto[]>('/api/pipelines/runs');
   }

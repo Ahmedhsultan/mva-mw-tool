@@ -48,6 +48,9 @@ public class DeploymentTask extends Task {
 
     @Override
     public TaskStatus getStatus() {
+        if (executionFailed) {
+            return TaskStatus.FAILED;
+        }
         if (deployResult == null || deployResult.getId() == null) {
             return TaskStatus.PENDING;
         }

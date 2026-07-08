@@ -69,12 +69,23 @@ public class PipelineService {
 
         PipelineGraph graph = TaskGraphBuilder.build(pipeline.getPipelineStructure(), devOpsServiceFactory, devOpsCredentials);
 
-        // Run root tasks (tasks with no parents)
-        for (Task rootTask : graph.getRootTasks()) {
-            rootTask.run();
+        PipelineRunsRepo.getPipelineRuns().add(graph);
+        graph.startOrchestration();
+        return true;
+    }
+
+    public boolean deletePipeline(String pat, String provider, String organization, String project,
+                                   String repoId, String branch, String pipelineName) {
+        List<Pipeline> pipelines = new ArrayList<>(pipelineRepository.readPipelines(
+            pat, provider, organization, project, repoId, branch
+        ));
+
+        boolean removed = pipelines.removeIf(pipeline -> pipeline.getPipelineName().equals(pipelineName));
+        if (!removed) {
+            throw new IllegalArgumentException("Pipeline not found: " + pipelineName);
         }
 
-        PipelineRunsRepo.getPipelineRuns().add(graph);
+        pipelineRepository.updatePipelines(pat, provider, organization, project, repoId, branch, pipelines);
         return true;
     }
 

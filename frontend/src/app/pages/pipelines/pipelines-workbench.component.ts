@@ -431,6 +431,32 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     this.runSavedPipeline(this.selectedPipelineName);
   }
 
+  deletePipeline(pipelineName: string): void {
+    if (!confirm(`Delete pipeline "${pipelineName}"?`)) {
+      return;
+    }
+
+    const storage = this.pipelineStorageContext();
+    if (!storage) {
+      this.showMessage('Set the settings repository first.', 'error-snackbar');
+      return;
+    }
+
+    this.apiService.deletePipeline(storage.provider, storage.repoId, storage.branch, pipelineName)
+      .subscribe({
+        next: () => {
+          this.showMessage(`Pipeline "${pipelineName}" deleted.`, 'success-snackbar');
+          if (this.selectedPipelineName === pipelineName) {
+            this.selectedPipelineName = '';
+          }
+          this.loadPipelines();
+        },
+        error: () => {
+          this.showMessage('Could not delete the pipeline.', 'error-snackbar');
+        }
+      });
+  }
+
   runSavedPipeline(pipelineName: string): void {
     const pipeline = this.pipelines.find(candidate => candidate.pipelineName === pipelineName);
     if (!pipeline) {
