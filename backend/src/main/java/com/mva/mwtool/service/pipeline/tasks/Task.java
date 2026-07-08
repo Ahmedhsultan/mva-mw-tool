@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.mva.mwtool.devops.DevOpsContext;
 import com.mva.mwtool.dto.Condition;
-import com.mva.mwtool.dto.DevOpsCredentials;
 import com.mva.mwtool.service.pipeline.util.TaskDeserializer;
 import lombok.Data;
 

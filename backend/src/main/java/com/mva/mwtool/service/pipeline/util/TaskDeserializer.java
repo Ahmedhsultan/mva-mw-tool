@@ -61,6 +61,7 @@ public class TaskDeserializer extends StdDeserializer<Task> {
             for (JsonNode childNode : node.get("nextTasks")) {
                 Task childTask = mapper.treeToValue(childNode, Task.class);
                 nextTasks.add(childTask);
+                childTask.setNextTasks(List.of(childTask));
             }
             task.setNextTasks(nextTasks);
         }
