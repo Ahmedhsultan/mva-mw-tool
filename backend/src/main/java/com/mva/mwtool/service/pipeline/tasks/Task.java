@@ -1,5 +1,6 @@
 package com.mva.mwtool.service.pipeline.tasks;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.mva.mwtool.devops.DevOpsContext;
@@ -23,9 +24,13 @@ public abstract class Task {
     private List<String> nextTaskIds = new ArrayList<>();
 
     // Resolved at runtime (not from JSON)
+    @JsonIgnore
     protected transient List<Task> nextTasks = new ArrayList<>();
+    @JsonIgnore
     protected transient List<Task> previousTasks = new ArrayList<>();
+    @JsonIgnore
     protected transient DevOpsContext devOpsContext;
+    @JsonIgnore
     protected transient PipelineGraph pipelineGraph;
 
     public Task() {}
