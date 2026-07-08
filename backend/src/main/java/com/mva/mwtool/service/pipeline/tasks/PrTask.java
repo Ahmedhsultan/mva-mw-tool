@@ -1,7 +1,7 @@
 package com.mva.mwtool.service.pipeline.tasks;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.mva.mwtool.dto.RepoFileDto;
+import com.mva.mwtool.dto.PrDto;
 import com.mva.mwtool.enums.TaskStatus;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -15,17 +15,18 @@ public class PrTask extends Task {
     private String repoName;
     private String prLink;
     private boolean executed;
-    private transient Object prResult;
+    private transient PrDto prResult;
 
     public PrTask() {}
 
     @Override
     protected void execute() {
-        // PR creation uses the repo service
-        RepoFileDto result = devOpsContext.getRepoService()
-                .pullFile(repoName, "", fromBranch);
+        PrDto result = devOpsContext.getRepoService()
+                .createPullRequest(repoName, fromBranch, targetBranch,
+                        fromBranch + " → " + targetBranch, null);
         this.prResult = result;
-        this.executed = result != null;
+        this.prLink = result.getUrl();
+        this.executed = result.getId() != null;
     }
 
     @Override

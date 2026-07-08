@@ -3,6 +3,7 @@ package com.mva.mwtool.devops.repo;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mva.mwtool.devops.auth.GitHubAuthService;
 import com.mva.mwtool.dto.DevOpsCredentials;
+import com.mva.mwtool.dto.PrDto;
 import com.mva.mwtool.dto.RepoFileDto;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
@@ -80,5 +81,31 @@ public class GitHubRepoService implements RepoService {
         } catch (Exception ignored) {
         }
         return null;
+    }
+
+    @Override
+    public PrDto createPullRequest(String repoId, String sourceBranch, String targetBranch, String title, String description) {
+        String url = String.format("%s/repos/%s/%s/pulls", BASE_URL, organization, repoId);
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("head", sourceBranch);
+        requestBody.put("base", targetBranch);
+        requestBody.put("title", title != null ? title : sourceBranch + " → " + targetBranch);
+        requestBody.put("body", description != null ? description : "Created via MVA-MW-Tool");
+
+        HttpHeaders headers = GitHubAuthService.createHeaders(pat);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.POST, entity, JsonNode.class);
+        JsonNode body = response.getBody();
+
+        PrDto dto = new PrDto();
+        if (body != null) {
+            dto.setId(body.path("number").asText());
+            dto.setTitle(body.path("title").asText());
+            dto.setStatus(body.path("state").asText());
+            dto.setUrl(body.path("html_url").asText());
+        }
+        return dto;
     }
 }

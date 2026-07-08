@@ -3,6 +3,7 @@ package com.mva.mwtool.devops.repo;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mva.mwtool.devops.auth.AzureAuthService;
 import com.mva.mwtool.dto.DevOpsCredentials;
+import com.mva.mwtool.dto.PrDto;
 import com.mva.mwtool.dto.RepoFileDto;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
@@ -109,5 +110,38 @@ public class AzureRepoService implements RepoService {
             return body.get("value").get(0).path("objectId").asText();
         }
         throw new RuntimeException("Could not resolve branch ref: " + branch);
+    }
+
+    @Override
+    public PrDto createPullRequest(String repoId, String sourceBranch, String targetBranch, String title, String description) {
+        String url = String.format("%s/%s/%s/_apis/git/repositories/%s/pullrequests?api-version=%s",
+                BASE_URL, organization, project, repoId, API_VERSION);
+
+        String sourceRef = sourceBranch.startsWith("refs/") ? sourceBranch : "refs/heads/" + sourceBranch;
+        String targetRef = targetBranch.startsWith("refs/") ? targetBranch : "refs/heads/" + targetBranch;
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("sourceRefName", sourceRef);
+        requestBody.put("targetRefName", targetRef);
+        requestBody.put("title", title != null ? title : sourceBranch + " → " + targetBranch);
+        requestBody.put("description", description != null ? description : "Created via MVA-MW-Tool");
+
+        HttpHeaders headers = AzureAuthService.createHeaders(pat);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.POST, entity, JsonNode.class);
+        JsonNode body = response.getBody();
+
+        PrDto dto = new PrDto();
+        if (body != null) {
+            dto.setId(body.path("pullRequestId").asText());
+            dto.setTitle(body.path("title").asText());
+            dto.setStatus(body.path("status").asText());
+            String webUrl = body.path("url").asText();
+            // Build the human-readable URL
+            dto.setUrl(String.format("%s/%s/%s/_git/%s/pullrequest/%s",
+                    BASE_URL, organization, project, repoId, dto.getId()));
+        }
+        return dto;
     }
 }

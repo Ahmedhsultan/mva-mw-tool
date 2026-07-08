@@ -1,26 +1,32 @@
 <div class="pipeline-workbench">
   <section class="pipeline-hero mva-card">
+    <div class="hero-visual">
+      <div class="hero-icon-ring">
+        <mat-icon>hub</mat-icon>
+      </div>
+    </div>
+
     <div class="hero-copy">
-      <span class="section-kicker">Pipelines</span>
-      <h2>Visual graph editor for backend pipeline flows</h2>
-      <p>Open saved pipelines, inspect run history, and build new task graphs that export the backend's flat <strong>tasks + nextTaskIds</strong> payload.</p>
+      <span class="section-kicker"><mat-icon>auto_awesome</mat-icon> Pipelines</span>
+      <h2>Visual pipeline editor</h2>
+      <p>Build, run, and track task graphs from a single workspace.</p>
     </div>
 
     <div class="hero-actions">
-      <button mat-stroked-button type="button" (click)="startNewPipeline()">
-        <mat-icon>auto_awesome</mat-icon>
+      <button mat-flat-button color="primary" type="button" class="hero-btn" (click)="startNewPipeline()">
+        <mat-icon>add_circle</mat-icon>
         New pipeline
       </button>
 
       @if (editorNodes.length) {
-        <button mat-flat-button color="primary" type="button" (click)="openBuilderWindow()">
+        <button mat-stroked-button type="button" class="hero-btn" (click)="openBuilderWindow()">
           <mat-icon>open_in_full</mat-icon>
-          Open builder window
+          Open builder
         </button>
       }
 
       <button mat-icon-button type="button" class="refresh-action" (click)="refreshWorkspace()" matTooltip="Refresh pipelines and runs">
-        <mat-icon>refresh</mat-icon>
+        <mat-icon>sync</mat-icon>
       </button>
     </div>
   </section>
@@ -29,7 +35,7 @@
     <mat-tab-group class="workbench-tabs" [(selectedIndex)]="workbenchTabIndex" animationDuration="200ms">
       <mat-tab>
         <ng-template mat-tab-label>
-          <mat-icon class="tab-icon">folder_open</mat-icon>
+          <mat-icon class="tab-icon">inventory_2</mat-icon>
           Library
         </ng-template>
 
@@ -38,45 +44,58 @@
             <div class="card-heading">
               <div>
                 <h3>Saved Pipelines</h3>
-                <p>Open an existing pipeline into the full-screen builder or run it directly with the provider settings saved in Workspace settings.</p>
+                <p>Open an existing pipeline or run it directly.</p>
               </div>
               <span class="count-pill">{{ pipelines.length }}</span>
             </div>
 
             @if (pipelinesError) {
-              <div class="message-strip danger">{{ pipelinesError }}</div>
+              <div class="message-strip danger"><mat-icon>error</mat-icon> {{ pipelinesError }}</div>
             }
 
             <div class="saved-pipeline-list">
               @for (pipeline of pipelines; track pipeline.pipelineName) {
                 <article class="saved-pipeline-item" [class.active]="selectedPipelineName === pipeline.pipelineName">
                   <button type="button" class="saved-pipeline-main" (click)="openPipeline(pipeline)">
-                    <strong>{{ pipeline.pipelineName }}</strong>
-                    <span>{{ pipeline.pipelineStructure.tasks.length }} tasks</span>
-                    <small>{{ pipelineProvidersLabel(pipeline) }}</small>
+                    <div class="pipeline-item-icon">
+                      <mat-icon>account_tree</mat-icon>
+                    </div>
+                    <div class="pipeline-item-text">
+                      <strong>{{ pipeline.pipelineName }}</strong>
+                      <div class="pipeline-meta-row">
+                        <span class="meta-chip"><mat-icon>layers</mat-icon> {{ pipeline.pipelineStructure.tasks.length }} tasks</span>
+                        <span class="meta-chip"><mat-icon>cloud</mat-icon> {{ pipelineProvidersLabel(pipeline) }}</span>
+                      </div>
+                    </div>
                   </button>
 
-                  <button mat-icon-button type="button" class="inline-icon-btn" matTooltip="Run saved pipeline" (click)="runSavedPipeline(pipeline.pipelineName)">
-                    <mat-icon>play_arrow</mat-icon>
-                  </button>
-
-                  <button mat-icon-button type="button" class="inline-icon-btn delete-btn" matTooltip="Delete pipeline" (click)="deletePipeline(pipeline.pipelineName)">
-                    <mat-icon>delete</mat-icon>
-                  </button>
+                  <div class="pipeline-item-actions">
+                    <button mat-icon-button type="button" class="action-btn run-btn" matTooltip="Run pipeline" (click)="runSavedPipeline(pipeline.pipelineName)">
+                      <mat-icon>play_circle</mat-icon>
+                    </button>
+                    <button mat-icon-button type="button" class="action-btn delete-btn" matTooltip="Delete pipeline" (click)="deletePipeline(pipeline.pipelineName)">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </div>
                 </article>
               }
 
               @if (!pipelines.length && !isLoadingPipelines) {
                 <div class="empty-card">
-                  <mat-icon>lan</mat-icon>
-                  <p>No pipelines saved yet. Start with a blank graph and save the draft.</p>
+                  <div class="empty-icon-wrap">
+                    <mat-icon>lan</mat-icon>
+                  </div>
+                  <strong>No pipelines yet</strong>
+                  <p>Create a new pipeline to get started.</p>
                 </div>
               }
 
               @if (isLoadingPipelines) {
                 <div class="empty-card loading-card">
-                  <mat-icon>hourglass_top</mat-icon>
-                  <p>Loading pipelines...</p>
+                  <div class="empty-icon-wrap shimmer">
+                    <mat-icon>hourglass_top</mat-icon>
+                  </div>
+                  <p>Loading pipelines…</p>
                 </div>
               }
             </div>
@@ -86,7 +105,7 @@
 
       <mat-tab>
         <ng-template mat-tab-label>
-          <mat-icon class="tab-icon">history</mat-icon>
+          <mat-icon class="tab-icon">monitoring</mat-icon>
           Runs
         </ng-template>
 
@@ -95,22 +114,27 @@
             <div class="card-heading">
               <div>
                 <h3>Run History</h3>
-                <p>Surface running and historical pipeline executions from the backend.</p>
+                <p>Inspect running and completed pipeline executions.</p>
               </div>
               <span class="count-pill">{{ pipelineRuns.length }}</span>
             </div>
 
             @if (runsError) {
-              <div class="message-strip danger">{{ runsError }}</div>
+              <div class="message-strip danger"><mat-icon>error</mat-icon> {{ runsError }}</div>
             }
 
             <div class="run-list">
               @for (run of pipelineRuns; track run.pipelineRunName) {
                 <article class="run-item">
                   <div class="run-item-top">
-                    <div>
-                      <strong>{{ pipelineNameForRun(run) }}</strong>
-                      <span>{{ run.pipelineRunName }}</span>
+                    <div class="run-identity">
+                      <div class="run-icon-wrap" [class]="statusTone(overallRunStatus(run))">
+                        <mat-icon>{{ overallRunStatus(run) === 'SUCCEEDED' ? 'check_circle' : overallRunStatus(run) === 'FAILED' ? 'cancel' : overallRunStatus(run) === 'RUNNING' ? 'play_circle' : 'schedule' }}</mat-icon>
+                      </div>
+                      <div>
+                        <strong>{{ pipelineNameForRun(run) }}</strong>
+                        <span class="run-id">{{ run.pipelineRunName }}</span>
+                      </div>
                     </div>
                     <span class="status-chip" [class]="statusTone(overallRunStatus(run))">{{ readableStatus(overallRunStatus(run)) }}</span>
                   </div>
@@ -125,12 +149,12 @@
                   </div>
 
                   <div class="run-item-actions">
-                    <button mat-flat-button color="primary" type="button" (click)="openRunViewer(run)">
+                    <button mat-stroked-button type="button" class="run-action-btn" (click)="openRunViewer(run)">
                       <mat-icon>visibility</mat-icon>
                       View run
                     </button>
 
-                    <button mat-stroked-button type="button" (click)="loadRunAsReference(run)">
+                    <button mat-stroked-button type="button" class="run-action-btn" (click)="loadRunAsReference(run)">
                       <mat-icon>account_tree</mat-icon>
                       Load in builder
                     </button>
@@ -140,15 +164,20 @@
 
               @if (!pipelineRuns.length && !isLoadingRuns) {
                 <div class="empty-card">
-                  <mat-icon>history</mat-icon>
-                  <p>No pipeline runs have been recorded yet.</p>
+                  <div class="empty-icon-wrap">
+                    <mat-icon>history</mat-icon>
+                  </div>
+                  <strong>No runs recorded</strong>
+                  <p>Pipeline executions will appear here.</p>
                 </div>
               }
 
               @if (isLoadingRuns) {
                 <div class="empty-card loading-card">
-                  <mat-icon>hourglass_top</mat-icon>
-                  <p>Loading pipeline runs...</p>
+                  <div class="empty-icon-wrap shimmer">
+                    <mat-icon>hourglass_top</mat-icon>
+                  </div>
+                  <p>Loading pipeline runs…</p>
                 </div>
               }
             </div>

@@ -39,6 +39,9 @@ public class AzureDeployService implements DeployService {
 
     @Override
     public DeployDto createDeploy(String buildId, String definitionId, String environment, String description) {
+        // Fetch the release definition to resolve the actual artifact alias
+        String artifactAlias = resolveArtifactAlias(definitionId);
+
         String url = String.format("%s/%s/%s/_apis/release/releases?api-version=%s",
                 BASE_URL, organization, project, API_VERSION);
 
@@ -48,7 +51,7 @@ public class AzureDeployService implements DeployService {
         requestBody.put("isDraft", false);
 
         Map<String, Object> artifact = new HashMap<>();
-        artifact.put("alias", "_build");
+        artifact.put("alias", artifactAlias);
         Map<String, Object> instanceRef = new HashMap<>();
         instanceRef.put("id", buildId);
         artifact.put("instanceReference", instanceRef);
@@ -59,6 +62,19 @@ public class AzureDeployService implements DeployService {
 
         ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.POST, entity, JsonNode.class);
         return mapToDeployDto(response.getBody());
+    }
+
+    private String resolveArtifactAlias(String definitionId) {
+        String url = String.format("%s/%s/%s/_apis/release/definitions/%s?api-version=%s",
+                BASE_URL, organization, project, definitionId, API_VERSION);
+        HttpEntity<Void> entity = new HttpEntity<>(AzureAuthService.createHeaders(pat));
+        ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, entity, JsonNode.class);
+        JsonNode body = response.getBody();
+        if (body != null && body.has("artifacts") && body.get("artifacts").isArray()
+                && !body.get("artifacts").isEmpty()) {
+            return body.get("artifacts").get(0).path("alias").asText("_build");
+        }
+        return "_build"; // fallback
     }
 
     private DeployDto mapToDeployDto(JsonNode node) {

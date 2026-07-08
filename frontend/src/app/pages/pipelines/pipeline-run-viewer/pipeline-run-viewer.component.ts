@@ -42,6 +42,7 @@ export class PipelineRunViewerComponent implements OnChanges, OnDestroy {
   canvasHeight = 0;
 
   private pollSub?: Subscription;
+  isRefreshing = false;
 
   constructor(private apiService: ApiService, private snackBar: MatSnackBar) {}
 
@@ -72,6 +73,20 @@ export class PipelineRunViewerComponent implements OnChanges, OnDestroy {
     }
     navigator.clipboard.writeText(links.join('\n')).then(() => {
       this.snackBar.open(`${links.length} link(s) copied.`, '', { duration: 2000, panelClass: 'success-snackbar' });
+    });
+  }
+
+  refreshRun(): void {
+    if (!this.run || this.isRefreshing) return;
+    this.isRefreshing = true;
+    this.apiService.getPipelineRuns().pipe(
+      finalize(() => this.isRefreshing = false)
+    ).subscribe(runs => {
+      const updated = runs.find(r => r.pipelineRunName === this.run?.pipelineRunName);
+      if (updated) {
+        this.run = updated;
+        this.refreshNodeStatuses();
+      }
     });
   }
 

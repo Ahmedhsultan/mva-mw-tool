@@ -13,6 +13,10 @@
           <mat-icon>content_copy</mat-icon>
         </button>
 
+        <button mat-icon-button type="button" (click)="refreshRun()" matTooltip="Refresh task statuses" [disabled]="isRefreshing">
+          <mat-icon [class.spin]="isRefreshing">sync</mat-icon>
+        </button>
+
         <button mat-icon-button type="button" (click)="close()" matTooltip="Close">
           <mat-icon>close</mat-icon>
         </button>
