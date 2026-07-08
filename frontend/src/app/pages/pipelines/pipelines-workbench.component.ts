@@ -456,8 +456,10 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
           this.closeBuilderWindow();
           this.workbenchTabIndex = 1;
         },
-        error: () => {
-          this.showMessage('Could not start the pipeline run.', 'error-snackbar');
+        error: (err) => {
+          console.error('Pipeline run failed:', err);
+          const detail = err?.error?.error || err?.message || 'Unknown error';
+          this.showMessage(`Could not start the pipeline run: ${detail}`, 'error-snackbar');
         }
       });
   }
@@ -1369,7 +1371,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       if (!credentials.organization.trim()) {
         messages.push(`${this.providerLabel(provider)} organization is required to run this pipeline.`);
       }
-      if (!credentials.project.trim()) {
+      if (provider === 'azure' && !credentials.project.trim()) {
         messages.push(`${this.providerLabel(provider)} project is required to run this pipeline.`);
       }
     }

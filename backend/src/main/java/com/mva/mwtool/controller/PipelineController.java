@@ -25,7 +25,7 @@ public class PipelineController {
     public ResponseEntity<Boolean> createPipeline(@RequestHeader("X-PAT") String pat,
                                                   @RequestParam String provider,
                                                   @RequestParam String organization,
-                                                  @RequestParam String project,
+                                                  @RequestParam(required = false) String project,
                                                   @RequestParam String repoId,
                                                   @RequestParam(required = false) String branch,
                                                   @RequestParam String pipelineName,
@@ -47,7 +47,7 @@ public class PipelineController {
     public ResponseEntity<List<Pipeline>> getAllPipelines(@RequestHeader("X-PAT") String pat,
                                                           @RequestParam String provider,
                                                           @RequestParam String organization,
-                                                          @RequestParam String project,
+                                                          @RequestParam(required = false) String project,
                                                           @RequestParam String repoId,
                                                           @RequestParam(required = false) String branch) {
         return ResponseEntity.ok(pipelineService.getAllPipelines(pat, provider, organization, project, repoId, branch));
@@ -62,7 +62,7 @@ public class PipelineController {
     public ResponseEntity<Boolean> runPipeline(@RequestHeader("X-PAT") String pat,
                                                @RequestParam String provider,
                                                @RequestParam String organization,
-                                               @RequestParam String project,
+                                               @RequestParam(required = false) String project,
                                                @RequestParam String repoId,
                                                @RequestParam(required = false) String branch,
                                                @PathVariable String pipelineName,

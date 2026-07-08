@@ -54,11 +54,11 @@ public class PipelineRepository {
             if (exception.getStatusCode() == HttpStatus.NOT_FOUND) {
                 return new ArrayList<>();
             }
-            throw new IllegalArgumentException("Could not load pipeline catalog from repository", exception);
+            throw new IllegalArgumentException("Could not load pipeline catalog: " + exception.getStatusText(), exception);
         } catch (JsonProcessingException exception) {
             throw new IllegalArgumentException("Could not parse pipeline catalog", exception);
         } catch (Exception exception) {
-            throw new IllegalArgumentException("Could not load pipeline catalog from repository", exception);
+            throw new IllegalArgumentException("Could not load pipeline catalog: " + exception.getMessage(), exception);
         }
     }
 
