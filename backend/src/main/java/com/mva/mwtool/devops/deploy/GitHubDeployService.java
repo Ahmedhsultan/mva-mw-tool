@@ -24,7 +24,7 @@ public class GitHubDeployService implements DeployService {
     }
 
     @Override
-    public DeployDto getDeployById(String deployId) {
+    public DeployDto getDeployById(String deployId, String environment) {
         String url = String.format("%s/repos/%s/%s/deployments/%s",
                 BASE_URL, organization, deployId, deployId);
 

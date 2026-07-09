@@ -35,7 +35,7 @@ public class GitTask extends Task {
     }
 
     @Override
-    public TaskStatus getStatus() {
+    protected TaskStatus computeStatus() {
         if (executionFailed) {
             return TaskStatus.FAILED;
         }

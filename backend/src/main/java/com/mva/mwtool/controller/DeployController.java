@@ -23,9 +23,10 @@ public class DeployController {
             @RequestParam String provider,
             @RequestParam String organization,
             @RequestParam String project,
-            @PathVariable String deployId) {
+            @PathVariable String deployId,
+            @RequestParam(required = false) String environment) {
         DevOpsContext context = createContext(provider, pat, organization, project);
-        DeployDto deploy = context.getDeployService().getDeployById(deployId);
+        DeployDto deploy = context.getDeployService().getDeployById(deployId, environment);
         return ResponseEntity.ok(deploy);
     }
 

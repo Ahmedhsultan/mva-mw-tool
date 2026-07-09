@@ -161,5 +161,17 @@ public class PipelineGraph {
     public Collection<Task> getAllTasks() {
         return taskMap.values();
     }
+
+    public void stopAll() {
+        for (Task task : taskMap.values()) {
+            TaskStatus s = task.getStatus();
+            if (s == TaskStatus.RUNNING || s == TaskStatus.PENDING || s == TaskStatus.WAITING_APPROVAL) {
+                task.forceStop();
+            }
+        }
+        if (scheduler != null && !scheduler.isShutdown()) {
+            scheduler.shutdown();
+        }
+    }
 }
 

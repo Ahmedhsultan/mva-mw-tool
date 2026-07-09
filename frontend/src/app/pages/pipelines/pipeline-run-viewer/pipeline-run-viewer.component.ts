@@ -4,8 +4,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Subscription, interval } from 'rxjs';
-import { switchMap, finalize } from 'rxjs/operators';
+import { Subscription, interval, EMPTY } from 'rxjs';
+import { switchMap, finalize, catchError } from 'rxjs/operators';
 import { PipelineRunDto, PipelineRunTask, PipelineTaskStatus } from '../../../core/models';
 import { ApiService } from '../../../core/services/api.service';
 
@@ -96,6 +96,39 @@ export class PipelineRunViewerComponent implements OnChanges, OnDestroy {
 
   openLink(link: string): void {
     window.open(link, '_blank', 'noopener');
+  }
+
+  rerunTask(task: PipelineRunTask): void {
+    if (!this.run) return;
+    this.apiService.rerunTask(this.run.pipelineRunName, task.id).subscribe({
+      next: () => {
+        this.snackBar.open(`Task "${task.id}" rerun started.`, '', { duration: 2000, panelClass: 'success-snackbar' });
+        this.refreshRun();
+        if (!this.pollSub) this.startPolling();
+      },
+      error: () => this.snackBar.open(`Failed to rerun "${task.id}".`, '', { duration: 3000, panelClass: 'error-snackbar' })
+    });
+  }
+
+  stopTask(task: PipelineRunTask): void {
+    if (!this.run) return;
+    this.apiService.stopTask(this.run.pipelineRunName, task.id).subscribe({
+      next: () => {
+        this.snackBar.open(`Task "${task.id}" stopped.`, '', { duration: 2000, panelClass: 'success-snackbar' });
+        this.refreshRun();
+      },
+      error: () => this.snackBar.open(`Failed to stop "${task.id}".`, '', { duration: 3000, panelClass: 'error-snackbar' })
+    });
+  }
+
+  canRerun(task: PipelineRunTask): boolean {
+    const s = task.status || 'PENDING';
+    return s === 'FAILED' || s === 'CANCELLED' || s === 'SUCCEEDED';
+  }
+
+  canStop(task: PipelineRunTask): boolean {
+    const s = task.status || 'PENDING';
+    return s === 'RUNNING' || s === 'PENDING' || s === 'WAITING_APPROVAL';
   }
 
   statusIcon(status?: PipelineTaskStatus): string {
@@ -233,7 +266,9 @@ export class PipelineRunViewerComponent implements OnChanges, OnDestroy {
     if (!this.run || this.isTerminal()) return;
 
     this.pollSub = interval(5000).pipe(
-      switchMap(() => this.apiService.getPipelineRuns())
+      switchMap(() => this.apiService.getPipelineRuns().pipe(
+        catchError(() => EMPTY)
+      ))
     ).subscribe(runs => {
       const updated = runs.find(r => r.pipelineRunName === this.run?.pipelineRunName);
       if (updated) {

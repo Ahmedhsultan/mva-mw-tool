@@ -36,6 +36,8 @@ public abstract class Task {
     protected transient boolean executionFailed;
     @JsonIgnore
     protected transient boolean executionStarted;
+    @JsonIgnore
+    protected transient TaskStatus lastKnownStatus = TaskStatus.PENDING;
 
     protected transient String failureMessage;
 
@@ -46,6 +48,31 @@ public abstract class Task {
             this.executionStarted = true;
             execute();
         }
+    }
+
+    /** Safe status getter – caches result so JSON serialization never triggers HTTP errors. */
+    public TaskStatus getStatus() {
+        try {
+            lastKnownStatus = computeStatus();
+        } catch (Exception ignored) {
+            // return last known status on failure
+        }
+        return lastKnownStatus;
+    }
+
+    public void forceRun() {
+        this.executionFailed = false;
+        this.executionStarted = true;
+        this.failureMessage = null;
+        this.lastKnownStatus = TaskStatus.RUNNING;
+        execute();
+    }
+
+    public void forceStop() {
+        stop();
+        this.executionFailed = true;
+        this.failureMessage = "Stopped by user";
+        this.lastKnownStatus = TaskStatus.CANCELLED;
     }
 
     public boolean checkConditions() {
@@ -70,5 +97,5 @@ public abstract class Task {
     protected abstract void execute();
     public abstract boolean stop();
     public abstract void reTryRun();
-    public abstract TaskStatus getStatus();
+    protected abstract TaskStatus computeStatus();
 }

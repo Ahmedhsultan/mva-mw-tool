@@ -104,5 +104,19 @@ public class PipelineController {
         pipelineService.stopPipelineRun(pipelineRunName);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/runs/{pipelineRunName}/tasks/{taskId}/rerun")
+    public ResponseEntity<Void> rerunTask(@PathVariable String pipelineRunName,
+                                          @PathVariable String taskId) {
+        pipelineService.rerunTask(pipelineRunName, taskId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/runs/{pipelineRunName}/tasks/{taskId}/stop")
+    public ResponseEntity<Void> stopTask(@PathVariable String pipelineRunName,
+                                         @PathVariable String taskId) {
+        pipelineService.stopTask(pipelineRunName, taskId);
+        return ResponseEntity.ok().build();
+    }
 }
 

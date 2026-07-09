@@ -4,7 +4,7 @@ import com.mva.mwtool.dto.DeployDto;
 
 public interface DeployService {
 
-    DeployDto getDeployById(String deployId);
+    DeployDto getDeployById(String deployId, String environment);
 
     DeployDto createDeploy(String buildId, String definitionId, String environment, String description);
 }

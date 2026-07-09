@@ -27,14 +27,14 @@ public class AzureDeployService implements DeployService {
     }
 
     @Override
-    public DeployDto getDeployById(String deployId) {
+    public DeployDto getDeployById(String deployId, String environment) {
         String url = String.format("%s/%s/%s/_apis/release/releases/%s?api-version=%s",
                 BASE_URL, organization, project, deployId, API_VERSION);
 
         HttpEntity<Void> entity = new HttpEntity<>(AzureAuthService.createHeaders(pat));
         ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, entity, JsonNode.class);
 
-        return mapToDeployDto(response.getBody());
+        return mapToDeployDto(response.getBody(), environment);
     }
 
     @Override
@@ -61,7 +61,14 @@ public class AzureDeployService implements DeployService {
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
         ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.POST, entity, JsonNode.class);
-        return mapToDeployDto(response.getBody());
+        JsonNode releaseNode = response.getBody();
+
+        // Trigger the target environment deployment
+        if (releaseNode != null && environment != null && !environment.isBlank()) {
+            triggerEnvironment(releaseNode, environment);
+        }
+
+        return mapToDeployDto(releaseNode, environment);
     }
 
     private String resolveArtifactAlias(String definitionId) {
@@ -77,12 +84,35 @@ public class AzureDeployService implements DeployService {
         return "_build"; // fallback
     }
 
-    private DeployDto mapToDeployDto(JsonNode node) {
+    private void triggerEnvironment(JsonNode releaseNode, String targetEnvironment) {
+        String releaseId = releaseNode.path("id").asText();
+        JsonNode environments = releaseNode.get("environments");
+        if (environments == null || !environments.isArray()) return;
+
+        for (JsonNode env : environments) {
+            if (targetEnvironment.equalsIgnoreCase(env.path("name").asText())) {
+                String envId = env.path("id").asText();
+                String url = String.format("%s/%s/%s/_apis/release/releases/%s/environments/%s?api-version=%s",
+                        BASE_URL, organization, project, releaseId, envId, API_VERSION);
+
+                Map<String, Object> body = new HashMap<>();
+                body.put("status", "inProgress");
+                body.put("comment", "Triggered via MVA-MW-Tool");
+
+                HttpHeaders headers = AzureAuthService.createHeaders(pat);
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+                restTemplate.exchange(url, HttpMethod.PATCH, entity, JsonNode.class);
+                return;
+            }
+        }
+    }
+
+    private DeployDto mapToDeployDto(JsonNode node, String targetEnvironment) {
         if (node == null) return null;
         DeployDto dto = new DeployDto();
         dto.setId(node.path("id").asText());
         dto.setName(node.path("name").asText());
-        dto.setStatus(node.path("status").asText());
         dto.setUrl(node.path("_links").path("web").path("href").asText());
 
         List<String> artifacts = new ArrayList<>();
@@ -95,9 +125,24 @@ public class AzureDeployService implements DeployService {
 
         if (node.has("environments") && node.get("environments").isArray()
                 && !node.get("environments").isEmpty()) {
-            dto.setEnvironment(node.get("environments").get(0).path("name").asText());
+            JsonNode envNode = findEnvironment(node.get("environments"), targetEnvironment);
+            dto.setEnvironment(envNode.path("name").asText());
+            dto.setStatus(envNode.path("status").asText());
+        } else {
+            dto.setStatus(node.path("status").asText());
         }
 
         return dto;
+    }
+
+    private JsonNode findEnvironment(JsonNode environments, String targetEnvironment) {
+        if (targetEnvironment != null && !targetEnvironment.isBlank()) {
+            for (JsonNode env : environments) {
+                if (targetEnvironment.equalsIgnoreCase(env.path("name").asText())) {
+                    return env;
+                }
+            }
+        }
+        return environments.get(0);
     }
 }

@@ -160,6 +160,7 @@ export interface PipelineRunTask {
   taskType: PipelineTaskType;
   nextTaskIds: string[];
   status?: PipelineTaskStatus;
+  failureMessage?: string;
   buildLink?: string;
   deploymentLink?: string;
   prLink?: string;

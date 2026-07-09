@@ -52,6 +52,9 @@
               @if (node.task.environment) {
                 <span class="node-detail"><mat-icon class="detail-icon">dns</mat-icon>{{ node.task.environment }}</span>
               }
+              @if (node.task.failureMessage) {
+                <span class="node-detail node-error"><mat-icon class="detail-icon">error_outline</mat-icon>{{ node.task.failureMessage }}</span>
+              }
             </div>
 
             <div class="node-footer">
@@ -59,11 +62,23 @@
                 {{ (node.task.status || 'PENDING') | lowercase }}
               </span>
 
-              @if (taskLink(node.task); as link) {
-                <button mat-icon-button class="link-btn" (click)="openLink(link)" matTooltip="Open in DevOps portal">
-                  <mat-icon>open_in_new</mat-icon>
-                </button>
-              }
+              <span class="node-actions">
+                @if (canRerun(node.task)) {
+                  <button mat-icon-button class="action-btn rerun-btn" (click)="rerunTask(node.task)" matTooltip="Rerun task">
+                    <mat-icon>replay</mat-icon>
+                  </button>
+                }
+                @if (canStop(node.task)) {
+                  <button mat-icon-button class="action-btn stop-btn" (click)="stopTask(node.task)" matTooltip="Stop task">
+                    <mat-icon>stop_circle</mat-icon>
+                  </button>
+                }
+                @if (taskLink(node.task); as link) {
+                  <button mat-icon-button class="action-btn link-btn" (click)="openLink(link)" matTooltip="Open in DevOps portal">
+                    <mat-icon>open_in_new</mat-icon>
+                  </button>
+                }
+              </span>
             </div>
           </article>
         }

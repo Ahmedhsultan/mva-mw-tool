@@ -47,14 +47,14 @@ public class DeploymentTask extends Task {
     }
 
     @Override
-    public TaskStatus getStatus() {
+    protected TaskStatus computeStatus() {
         if (executionFailed) {
             return TaskStatus.FAILED;
         }
         if (deployResult == null || deployResult.getId() == null) {
             return TaskStatus.PENDING;
         }
-        DeployDto current = devOpsContext.getDeployService().getDeployById(deployResult.getId());
+        DeployDto current = devOpsContext.getDeployService().getDeployById(deployResult.getId(), this.environment);
         this.deployResult = current;
 
         String status = current.getStatus();
@@ -62,7 +62,7 @@ public class DeploymentTask extends Task {
             return TaskStatus.SUCCEEDED;
         } else if ("failed".equalsIgnoreCase(status) || "rejected".equalsIgnoreCase(status)) {
             return TaskStatus.FAILED;
-        } else if ("cancelled".equalsIgnoreCase(status)) {
+        } else if ("cancelled".equalsIgnoreCase(status) || "canceled".equalsIgnoreCase(status)) {
             return TaskStatus.CANCELLED;
         } else if ("inProgress".equalsIgnoreCase(status) || "queued".equalsIgnoreCase(status)) {
             return TaskStatus.RUNNING;

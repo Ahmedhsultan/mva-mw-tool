@@ -90,6 +90,28 @@ public class PipelineService {
     }
 
     public void stopPipelineRun(String pipelineRunName) {
-        // To Be Implemented later
+        PipelineGraph graph = PipelineRunsRepo.getPipelineRuns().stream()
+                .filter(p -> p.getPipelineRunName().equals(pipelineRunName))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Run not found: " + pipelineRunName));
+        graph.stopAll();
+    }
+
+    public void rerunTask(String pipelineRunName, String taskId) {
+        Task task = findTask(pipelineRunName, taskId);
+        task.forceRun();
+    }
+
+    public void stopTask(String pipelineRunName, String taskId) {
+        Task task = findTask(pipelineRunName, taskId);
+        task.forceStop();
+    }
+
+    private Task findTask(String pipelineRunName, String taskId) {
+        return PipelineRunsRepo.getPipelineRuns().stream()
+                .filter(p -> p.getPipelineRunName().equals(pipelineRunName))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Run not found: " + pipelineRunName))
+                .getTaskById(taskId);
     }
 }

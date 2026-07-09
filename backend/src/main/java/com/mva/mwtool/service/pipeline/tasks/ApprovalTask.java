@@ -31,7 +31,7 @@ public class ApprovalTask extends Task {
     }
 
     @Override
-    public TaskStatus getStatus() {
+    protected TaskStatus computeStatus() {
         if (executionFailed) {
             return TaskStatus.FAILED;
         }
