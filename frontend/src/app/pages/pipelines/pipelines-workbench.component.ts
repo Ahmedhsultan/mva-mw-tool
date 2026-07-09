@@ -1182,16 +1182,30 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   private buildPayload(): PipelinePayload {
-    return {
-      tasks: [...this.editorNodes]
-        .sort((left, right) => {
-          if (left.position.x === right.position.x) {
-            return left.position.y - right.position.y;
-          }
-          return left.position.x - right.position.x;
-        })
-        .map(node => this.serializeTask(node))
-    };
+    const tasks = [...this.editorNodes]
+      .sort((left, right) => {
+        if (left.position.x === right.position.x) {
+          return left.position.y - right.position.y;
+        }
+        return left.position.x - right.position.x;
+      })
+      .map(node => this.serializeTask(node));
+
+    // Auto-add default SUCCEEDED condition for each predecessor
+    for (const task of tasks) {
+      const predecessorIds = tasks
+        .filter(t => t.nextTaskIds.includes(task.id))
+        .map(t => t.id);
+
+      for (const predId of predecessorIds) {
+        const alreadyHasCondition = task.conditions.some(c => c.taskId === predId);
+        if (!alreadyHasCondition) {
+          task.conditions.push({ taskId: predId, status: 'SUCCEEDED' });
+        }
+      }
+    }
+
+    return { tasks };
   }
 
   private serializeTask(node: EditorPipelineTaskNode): PipelineTaskNode {
@@ -1223,8 +1237,10 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
         task.approved = !!node.approved;
         break;
       case 'GitTask':
+        task.gitAction = node.gitAction || 'PUSH_FILE';
         task.repoName = node.repoName?.trim() || '';
         task.branch = node.branch?.trim() || '';
+        task.sourceBranch = node.sourceBranch?.trim() || '';
         task.filePath = node.filePath?.trim() || '';
         task.content = node.content || '';
         task.commitMessage = node.commitMessage?.trim() || '';
@@ -1351,9 +1367,13 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       case 'GitTask':
         if (!node.repoName?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a repo name.`, node.editorId);
         if (!node.branch?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a branch.`, node.editorId);
-        if (!node.filePath?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a file path.`, node.editorId);
-        if (!node.content?.length) this.pushValidationError(errors, `Git task "${taskId}" requires content.`, node.editorId);
-        if (!node.commitMessage?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a commit message.`, node.editorId);
+        if (node.gitAction === 'CREATE_BRANCH') {
+          if (!node.sourceBranch?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a source branch.`, node.editorId);
+        } else {
+          if (!node.filePath?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a file path.`, node.editorId);
+          if (!node.content?.length) this.pushValidationError(errors, `Git task "${taskId}" requires content.`, node.editorId);
+          if (!node.commitMessage?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a commit message.`, node.editorId);
+        }
         break;
       case 'PrTask':
         if (!node.repoName?.trim()) this.pushValidationError(errors, `PR task "${taskId}" requires a repo name.`, node.editorId);
