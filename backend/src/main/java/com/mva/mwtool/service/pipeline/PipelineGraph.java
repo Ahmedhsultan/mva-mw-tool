@@ -71,6 +71,10 @@ public class PipelineGraph {
                 if (task.isExecutionFailed()) {
                     continue;
                 }
+                // Don't re-start a task that's already been started
+                if (task.isExecutionStarted()) {
+                    continue;
+                }
 
                 List<Task> predecessors = task.getPreviousTasks();
                 if (predecessors.isEmpty()) {

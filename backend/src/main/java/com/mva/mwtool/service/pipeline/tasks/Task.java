@@ -34,6 +34,8 @@ public abstract class Task {
     protected transient PipelineGraph pipelineGraph;
     @JsonIgnore
     protected transient boolean executionFailed;
+    @JsonIgnore
+    protected transient boolean executionStarted;
 
     protected transient String failureMessage;
 
@@ -41,6 +43,7 @@ public abstract class Task {
 
     public final void run() {
         if (checkConditions()) {
+            this.executionStarted = true;
             execute();
         }
     }
