@@ -144,4 +144,22 @@ public class AzureRepoService implements RepoService {
         }
         return dto;
     }
+
+    @Override
+    public void createBranch(String repoId, String newBranch, String sourceBranch) {
+        String sourceCommitId = getCurrentCommitId(repoId, sourceBranch);
+        String newRef = newBranch.startsWith("refs/") ? newBranch : "refs/heads/" + newBranch;
+
+        String url = String.format("%s/%s/%s/_apis/git/repositories/%s/refs?api-version=%s",
+                BASE_URL, organization, project, repoId, API_VERSION);
+
+        Map<String, Object> refUpdate = new HashMap<>();
+        refUpdate.put("name", newRef);
+        refUpdate.put("oldObjectId", "0000000000000000000000000000000000000000");
+        refUpdate.put("newObjectId", sourceCommitId);
+
+        HttpHeaders headers = AzureAuthService.createHeaders(pat);
+        HttpEntity<List<Map<String, Object>>> entity = new HttpEntity<>(List.of(refUpdate), headers);
+        restTemplate.exchange(url, HttpMethod.POST, entity, JsonNode.class);
+    }
 }

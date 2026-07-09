@@ -55,7 +55,10 @@ public class BuildTask extends Task {
         String result = current.getResult();
 
         if ("completed".equalsIgnoreCase(status)) {
-            return "succeeded".equalsIgnoreCase(result) ? TaskStatus.SUCCEEDED : TaskStatus.FAILED;
+            if ("succeeded".equalsIgnoreCase(result) || "partiallySucceeded".equalsIgnoreCase(result)) {
+                return TaskStatus.SUCCEEDED;
+            }
+            return TaskStatus.FAILED;
         } else if ("cancelling".equalsIgnoreCase(status) || "cancelled".equalsIgnoreCase(status)) {
             return TaskStatus.CANCELLED;
         } else if ("inProgress".equalsIgnoreCase(status) || "queued".equalsIgnoreCase(status)) {

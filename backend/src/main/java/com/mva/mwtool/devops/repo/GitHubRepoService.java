@@ -108,4 +108,24 @@ public class GitHubRepoService implements RepoService {
         }
         return dto;
     }
+
+    @Override
+    public void createBranch(String repoId, String newBranch, String sourceBranch) {
+        // Get the SHA of the source branch
+        String url = String.format("%s/repos/%s/%s/git/ref/heads/%s",
+                BASE_URL, organization, repoId, sourceBranch);
+        HttpEntity<Void> getEntity = new HttpEntity<>(GitHubAuthService.createHeaders(pat));
+        ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, getEntity, JsonNode.class);
+        String sha = response.getBody().path("object").path("sha").asText();
+
+        // Create the new branch ref
+        String createUrl = String.format("%s/repos/%s/%s/git/refs", BASE_URL, organization, repoId);
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("ref", "refs/heads/" + newBranch);
+        requestBody.put("sha", sha);
+
+        HttpHeaders headers = GitHubAuthService.createHeaders(pat);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+        restTemplate.exchange(createUrl, HttpMethod.POST, entity, JsonNode.class);
+    }
 }

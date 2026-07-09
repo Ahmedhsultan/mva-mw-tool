@@ -94,6 +94,8 @@ export interface ConfigDataRequest {
   repoProfiles: RepoProfile[];
 }
 
+export type GitAction = 'PUSH_FILE' | 'CREATE_BRANCH';
+
 export type PipelineTaskType = 'BuildTask' | 'DeploymentTask' | 'ApprovalTask' | 'GitTask' | 'PrTask';
 
 export type PipelineTaskStatus =
@@ -126,6 +128,8 @@ export interface PipelineTaskNode {
   approved?: boolean;
   fromBranch?: string;
   targetBranch?: string;
+  sourceBranch?: string;
+  gitAction?: GitAction;
   filePath?: string;
   content?: string;
   commitMessage?: string;

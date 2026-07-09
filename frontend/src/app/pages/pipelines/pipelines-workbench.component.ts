@@ -973,6 +973,8 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       approved: false,
       fromBranch: 'feature/new-change',
       targetBranch: 'main',
+      sourceBranch: 'main',
+      gitAction: 'PUSH_FILE',
       filePath: '',
       content: '',
       commitMessage: 'Update generated file'

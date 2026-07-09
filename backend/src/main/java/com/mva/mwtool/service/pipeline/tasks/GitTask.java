@@ -1,6 +1,7 @@
 package com.mva.mwtool.service.pipeline.tasks;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.mva.mwtool.enums.GitAction;
 import com.mva.mwtool.enums.TaskStatus;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -9,8 +10,10 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GitTask extends Task {
+    private GitAction gitAction = GitAction.PUSH_FILE;
     private String repoName;
     private String branch;
+    private String sourceBranch;
     private String filePath;
     private String content;
     private String commitMessage;
@@ -20,8 +23,16 @@ public class GitTask extends Task {
 
     @Override
     protected void execute() {
-        devOpsContext.getRepoService()
-                .pushFile(repoName, filePath, branch, content, commitMessage);
+        switch (gitAction) {
+            case CREATE_BRANCH -> {
+                devOpsContext.getRepoService()
+                        .createBranch(repoName, branch, sourceBranch);
+            }
+            case PUSH_FILE -> {
+                devOpsContext.getRepoService()
+                        .pushFile(repoName, filePath, branch, content, commitMessage);
+            }
+        }
         this.executed = true;
     }
 

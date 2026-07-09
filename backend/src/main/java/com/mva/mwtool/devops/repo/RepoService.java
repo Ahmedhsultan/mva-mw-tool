@@ -10,4 +10,6 @@ public interface RepoService {
     void pushFile(String repoId, String filePath, String branch, String content, String commitMessage);
 
     PrDto createPullRequest(String repoId, String sourceBranch, String targetBranch, String title, String description);
+
+    void createBranch(String repoId, String newBranch, String sourceBranch);
 }
