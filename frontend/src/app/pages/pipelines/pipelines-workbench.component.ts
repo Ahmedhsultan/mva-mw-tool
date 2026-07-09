@@ -95,9 +95,9 @@ const TOOLBOX_TASKS: ToolboxTask[] = [
   },
   {
     type: 'GitTask',
-    label: 'Git Push',
-    icon: 'upload_file',
-    description: 'Push generated content into a repository file.'
+    label: 'Git Branch',
+    icon: 'account_tree',
+    description: 'Create a new branch from a source branch.'
   },
   {
     type: 'PrTask',
@@ -774,7 +774,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       case 'ApprovalTask':
         return node.approved ? 'Approval already granted' : 'Manual approval gate';
       case 'GitTask':
-        return `${node.repoName || 'repo'} • ${node.branch || 'branch'} • ${node.filePath || 'file path'}`;
+        return `${node.repoName || 'repo'} • ${node.sourceBranch || 'source'} → ${node.branch || 'new branch'}`;
       case 'PrTask':
         return `${node.repoName || 'repo'} • ${node.fromBranch || 'source'} -> ${node.targetBranch || 'target'}`;
       default:
@@ -1237,13 +1237,9 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
         task.approved = !!node.approved;
         break;
       case 'GitTask':
-        task.gitAction = node.gitAction || 'PUSH_FILE';
         task.repoName = node.repoName?.trim() || '';
         task.branch = node.branch?.trim() || '';
         task.sourceBranch = node.sourceBranch?.trim() || '';
-        task.filePath = node.filePath?.trim() || '';
-        task.content = node.content || '';
-        task.commitMessage = node.commitMessage?.trim() || '';
         break;
       case 'PrTask':
         task.fromBranch = node.fromBranch?.trim() || '';
@@ -1366,14 +1362,8 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
         break;
       case 'GitTask':
         if (!node.repoName?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a repo name.`, node.editorId);
-        if (!node.branch?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a branch.`, node.editorId);
-        if (node.gitAction === 'CREATE_BRANCH') {
-          if (!node.sourceBranch?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a source branch.`, node.editorId);
-        } else {
-          if (!node.filePath?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a file path.`, node.editorId);
-          if (!node.content?.length) this.pushValidationError(errors, `Git task "${taskId}" requires content.`, node.editorId);
-          if (!node.commitMessage?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a commit message.`, node.editorId);
-        }
+        if (!node.branch?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a branch name.`, node.editorId);
+        if (!node.sourceBranch?.trim()) this.pushValidationError(errors, `Git task "${taskId}" requires a source branch.`, node.editorId);
         break;
       case 'PrTask':
         if (!node.repoName?.trim()) this.pushValidationError(errors, `PR task "${taskId}" requires a repo name.`, node.editorId);

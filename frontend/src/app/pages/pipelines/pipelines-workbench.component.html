@@ -351,22 +351,9 @@
                   </div>
                 }
                 @case ('GitTask') {
-                  <mat-form-field appearance="outline"><mat-label>Action</mat-label>
-                    <mat-select [(ngModel)]="task.gitAction">
-                      <mat-option value="PUSH_FILE">Push file</mat-option>
-                      <mat-option value="CREATE_BRANCH">Create branch</mat-option>
-                    </mat-select>
-                  </mat-form-field>
                   <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
-                  @if (task.gitAction === 'CREATE_BRANCH') {
-                    <mat-form-field appearance="outline"><mat-label>Source branch</mat-label><input matInput [(ngModel)]="task.sourceBranch"></mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>New branch name</mat-label><input matInput [(ngModel)]="task.branch"></mat-form-field>
-                  } @else {
-                    <mat-form-field appearance="outline"><mat-label>Branch</mat-label><input matInput [(ngModel)]="task.branch"></mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>File path</mat-label><input matInput [(ngModel)]="task.filePath"></mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>Commit msg</mat-label><input matInput [(ngModel)]="task.commitMessage"></mat-form-field>
-                    <mat-form-field appearance="outline"><mat-label>Content</mat-label><textarea matInput [(ngModel)]="task.content" rows="4"></textarea></mat-form-field>
-                  }
+                  <mat-form-field appearance="outline"><mat-label>Source branch</mat-label><input matInput [(ngModel)]="task.sourceBranch"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>New branch name</mat-label><input matInput [(ngModel)]="task.branch"></mat-form-field>
                 }
                 @case ('PrTask') {
                   <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>

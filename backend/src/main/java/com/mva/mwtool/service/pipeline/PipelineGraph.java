@@ -36,7 +36,13 @@ public class PipelineGraph {
 
     public void startOrchestration() {
         for (Task rootTask : rootTasks) {
-            rootTask.run();
+            try {
+                rootTask.run();
+            } catch (Exception e) {
+                rootTask.setExecutionFailed(true);
+                rootTask.setFailureMessage(e.getMessage());
+                log.log(Level.SEVERE, "Root task " + rootTask.getId() + " failed: " + e.getMessage());
+            }
         }
         scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "pipeline-" + pipelineRunName);
@@ -85,6 +91,14 @@ public class PipelineGraph {
                         .allMatch(p -> isTerminal(statusCache.getOrDefault(p.getId(), TaskStatus.PENDING)));
 
                 if (allPredecessorsDone) {
+                    if (!task.checkConditions()) {
+                        // All predecessors are terminal but conditions aren't satisfied → will never be met
+                        task.setExecutionStarted(true);
+                        task.setExecutionFailed(true);
+                        task.setFailureMessage("Skipped: predecessor conditions not satisfied");
+                        log.info("[Pipeline " + pipelineRunName + "] Skipping task " + task.getId() + " – conditions not met");
+                        continue;
+                    }
                     log.info("[Pipeline " + pipelineRunName + "] Starting task " + task.getId());
                     try {
                         task.run();
