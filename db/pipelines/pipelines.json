@@ -131,6 +131,82 @@
     } ]
   }
 }, {
+  "pipelineName" : "pr3",
+  "pipelineStructure" : {
+    "tasks" : [ {
+      "id" : "git-1",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ ],
+      "nextTaskIds" : [ "upgrade-pr" ],
+      "repoName" : "mvax-upgrades",
+      "branch" : "release/testm2",
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "offer-pr",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ ],
+      "nextTaskIds" : [ "offer-build-1" ],
+      "fromBranch" : "release/test-nd-refactor",
+      "targetBranch" : "release/test-e",
+      "repoName" : "mvax-offers"
+    }, {
+      "id" : "upgrade-pr",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "git-1",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "build-2" ],
+      "fromBranch" : "release/test-nd-refactor",
+      "targetBranch" : "release/testm2",
+      "repoName" : "mvax-upgrades"
+    }, {
+      "id" : "offer-build-1",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "offer-pr",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "deploy-1" ],
+      "branch" : "release/test-e",
+      "repoName" : "mvax-offers",
+      "definitionId" : "5222"
+    }, {
+      "id" : "build-2",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "upgrade-pr",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "deploy-1" ],
+      "branch" : "release/test-e",
+      "repoName" : "mvax-upgrades",
+      "definitionId" : "7912"
+    }, {
+      "id" : "deploy-1",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "build-2",
+        "status" : "SUCCEEDED"
+      }, {
+        "taskId" : "offer-build-1",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "offer-build-1",
+      "repoName" : "mvax-offers",
+      "definitionId" : "2102",
+      "environment" : "dev1-common",
+      "description" : ""
+    } ]
+  }
+}, {
   "pipelineName" : "test2",
   "pipelineStructure" : {
     "tasks" : [ {
