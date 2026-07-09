@@ -58,15 +58,28 @@ public class DeploymentTask extends Task {
         this.deployResult = current;
 
         String status = current.getStatus();
-        if ("succeeded".equalsIgnoreCase(status)) {
-            return TaskStatus.SUCCEEDED;
-        } else if ("failed".equalsIgnoreCase(status) || "rejected".equalsIgnoreCase(status)) {
-            return TaskStatus.FAILED;
-        } else if ("cancelled".equalsIgnoreCase(status) || "canceled".equalsIgnoreCase(status)) {
-            return TaskStatus.CANCELLED;
-        } else if ("inProgress".equalsIgnoreCase(status) || "queued".equalsIgnoreCase(status)) {
-            return TaskStatus.RUNNING;
+        if (status == null) return TaskStatus.PENDING;
+
+        switch (status.toLowerCase()) {
+            case "succeeded":
+            case "partiallysucceeded":
+                return TaskStatus.SUCCEEDED;
+            case "failed":
+            case "rejected":
+                return TaskStatus.FAILED;
+            case "cancelled":
+            case "canceled":
+                return TaskStatus.CANCELLED;
+            case "inprogress":
+            case "queued":
+                return TaskStatus.RUNNING;
+            case "pending":
+            case "scheduled":
+            case "notstarted":
+            case "undefined":
+                return TaskStatus.PENDING;
+            default:
+                return TaskStatus.PENDING;
         }
-        return TaskStatus.PENDING;
     }
 }
