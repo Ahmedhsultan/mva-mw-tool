@@ -51,34 +51,6 @@
     } ]
   }
 }, {
-  "pipelineName" : "test",
-  "pipelineStructure" : {
-    "tasks" : [ {
-      "id" : "deploy-1",
-      "taskType" : "DeploymentTask",
-      "devOpsServiceFactory" : "azure",
-      "conditions" : [ {
-        "taskId" : "build-1",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ ],
-      "buildTaskId" : "build-1",
-      "repoName" : "mvax-offers",
-      "definitionId" : "2102",
-      "environment" : "dev1-common",
-      "description" : ""
-    }, {
-      "id" : "build-1",
-      "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "azure",
-      "conditions" : [ ],
-      "nextTaskIds" : [ "deploy-1" ],
-      "branch" : "refs/heads/develop",
-      "repoName" : "mvax-offers",
-      "definitionId" : "5222"
-    } ]
-  }
-}, {
   "pipelineName" : "test2",
   "pipelineStructure" : {
     "tasks" : [ {
