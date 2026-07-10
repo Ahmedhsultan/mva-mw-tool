@@ -7,13 +7,18 @@
       "devOpsServiceFactory" : "azure",
       "conditions" : [ ],
       "nextTaskIds" : [ "upgrade-pr" ],
-      "gitAction" : "CREATE_BRANCH",
       "repoName" : "mvax-upgrades",
       "branch" : "release/testm",
-      "sourceBranch" : "release/develop",
-      "filePath" : "",
-      "content" : "",
-      "commitMessage" : "Update generated file"
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "offer-pr",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ ],
+      "nextTaskIds" : [ "offer-build-1" ],
+      "fromBranch" : "release/test-nd-refactor",
+      "targetBranch" : "release/test-e",
+      "repoName" : "mvax-offers"
     }, {
       "id" : "upgrade-pr",
       "taskType" : "PrTask",
@@ -27,14 +32,17 @@
       "targetBranch" : "release/testm",
       "repoName" : "mvax-upgrades"
     }, {
-      "id" : "offer-pr",
-      "taskType" : "PrTask",
+      "id" : "offer-build-1",
+      "taskType" : "BuildTask",
       "devOpsServiceFactory" : "azure",
-      "conditions" : [ ],
-      "nextTaskIds" : [ "offer-build-1" ],
-      "fromBranch" : "release/test-nd-refactor",
-      "targetBranch" : "release/test-e",
-      "repoName" : "mvax-offers"
+      "conditions" : [ {
+        "taskId" : "offer-pr",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "deploy-1" ],
+      "branch" : "release/test-e",
+      "repoName" : "mvax-offers",
+      "definitionId" : "5222"
     }, {
       "id" : "build-2",
       "taskType" : "BuildTask",
@@ -47,18 +55,6 @@
       "branch" : "release/test-e",
       "repoName" : "mvax-upgrades",
       "definitionId" : "7912"
-    }, {
-      "id" : "offer-build-1",
-      "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "azure",
-      "conditions" : [ {
-        "taskId" : "offer-pr",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ "deploy-1" ],
-      "branch" : "release/test-e",
-      "repoName" : "mvax-offers",
-      "definitionId" : "5222"
     }, {
       "id" : "deploy-1",
       "taskType" : "DeploymentTask",
