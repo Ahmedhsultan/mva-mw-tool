@@ -98,8 +98,8 @@
 
               @if (isLoadingPipelines) {
                 <div class="empty-card loading-card">
-                  <div class="empty-icon-wrap shimmer">
-                    <mat-icon>hourglass_top</mat-icon>
+                  <div class="modern-loader">
+                    <div class="loader-ring"></div>
                   </div>
                   <p>Loading pipelines…</p>
                 </div>
@@ -180,8 +180,8 @@
 
               @if (isLoadingRuns) {
                 <div class="empty-card loading-card">
-                  <div class="empty-icon-wrap shimmer">
-                    <mat-icon>hourglass_top</mat-icon>
+                  <div class="modern-loader">
+                    <div class="loader-ring"></div>
                   </div>
                   <p>Loading pipeline runs…</p>
                 </div>
@@ -208,7 +208,8 @@
               <button mat-icon-button (click)="zoomOut()" matTooltip="Zoom out"><mat-icon>remove</mat-icon></button>
               <span class="zoom-label">{{ zoomPercent }}%</span>
               <button mat-icon-button (click)="zoomIn()" matTooltip="Zoom in"><mat-icon>add</mat-icon></button>
-              <button mat-icon-button (click)="resetZoom()" matTooltip="Reset"><mat-icon>fit_screen</mat-icon></button>
+              <button mat-icon-button (click)="fitToView()" matTooltip="Fit to view"><mat-icon>center_focus_strong</mat-icon></button>
+              <button mat-icon-button (click)="resetZoom()" matTooltip="Reset zoom"><mat-icon>fit_screen</mat-icon></button>
             </div>
             <button mat-stroked-button type="button" (click)="closeBuilderWindow()"><mat-icon>close</mat-icon> Close</button>
             <button mat-flat-button color="primary" type="button" (click)="promptSave()" [disabled]="isSavingPipeline"><mat-icon>save</mat-icon> {{ isSavingPipeline ? 'Saving...' : 'Save' }}</button>

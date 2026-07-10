@@ -357,6 +357,27 @@
   50% { opacity: 0.45; }
 }
 
+.modern-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+}
+
+.loader-ring {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid rgba(36, 119, 255, 0.15);
+  border-top-color: #2477ff;
+  animation: loaderSpin 0.7s linear infinite;
+}
+
+@keyframes loaderSpin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── Inline icon btn (builder compat) ── */
 .inline-icon-btn { flex: none; color: #6b7280; }
 
@@ -555,6 +576,7 @@
 .canvas-zoom-layer {
   position: relative;
   transform-origin: 0 0;
+  padding: 40px;
 }
 
 .canvas-edges {
@@ -592,7 +614,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 240px;
+  width: 300px;
   border-radius: 18px;
   border: 1px solid rgba(118, 144, 186, 0.22);
   background: rgba(255, 255, 255, 0.94);

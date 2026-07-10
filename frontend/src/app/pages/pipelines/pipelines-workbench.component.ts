@@ -196,17 +196,17 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   isLoadingTaskCatalog = false;
   isPanning = false;
   panCursor = 'grab';
-  readonly canvasWidth = 12000;
-  readonly canvasHeight = 9000;
+  readonly canvasWidth = 8000;
+  readonly canvasHeight = 6000;
 
   private panStartX = 0;
   private panStartY = 0;
   private panScrollX = 0;
   private panScrollY = 0;
   private panMoved = false;
-  private readonly canvasOriginX = 900;
-  private readonly canvasOriginY = 560;
-  private readonly nodeWidth = 240;
+  private readonly canvasOriginX = 80;
+  private readonly canvasOriginY = 80;
+  private readonly nodeWidth = 300;
   private readonly nodeHeight = 130;
   private pipelineLookup = new Map<string, string>();
   private overlayRef?: OverlayRef;
@@ -322,6 +322,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
   openBuilderWindow(): void {
     this.isBuilderWindowOpen = true;
+    this.canvasZoom = 1;
     if (!this.overlayRef) {
       this.overlayRef = this.overlay.create({
         hasBackdrop: false,
@@ -332,7 +333,16 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     if (this.builderTpl && !this.overlayRef.hasAttached()) {
       this.overlayRef.attach(new TemplatePortal(this.builderTpl, this.viewContainerRef));
     }
-    setTimeout(() => this.resetCanvasViewport(), 0);
+    setTimeout(() => {
+      if (!this.canvasBoard && this.overlayRef) {
+        const el = this.overlayRef.overlayElement.querySelector('.canvas-stage') as HTMLDivElement;
+        if (el) this.canvasBoard = new ElementRef(el);
+      }
+      if (this.canvasBoard) {
+        this.canvasBoard.nativeElement.scrollLeft = 0;
+        this.canvasBoard.nativeElement.scrollTop = 0;
+      }
+    }, 50);
   }
 
   closeBuilderWindow(): void {
@@ -355,7 +365,36 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       event.preventDefault();
       const delta = event.deltaY > 0 ? -0.05 : 0.05;
       this.canvasZoom = Math.min(2, Math.max(0.25, +(this.canvasZoom + delta).toFixed(2)));
+    } else if (this.canvasBoard) {
+      // Allow free panning with trackpad/scroll in all directions
+      event.preventDefault();
+      const el = this.canvasBoard.nativeElement;
+      el.scrollLeft += event.deltaX;
+      el.scrollTop += event.deltaY;
     }
+  }
+
+  fitToView(): void {
+    if (!this.canvasBoard || !this.editorNodes.length) return;
+    const el = this.canvasBoard.nativeElement;
+    const viewW = el.clientWidth;
+    const viewH = el.clientHeight;
+
+    const minX = Math.min(...this.editorNodes.map(n => n.position.x));
+    const maxX = Math.max(...this.editorNodes.map(n => n.position.x)) + this.nodeWidth;
+    const minY = Math.min(...this.editorNodes.map(n => n.position.y));
+    const maxY = Math.max(...this.editorNodes.map(n => n.position.y)) + this.nodeHeight;
+
+    const contentW = maxX - minX + 100;
+    const contentH = maxY - minY + 100;
+
+    const zoom = Math.min(1.2, Math.max(0.3, Math.min(viewW / contentW, viewH / contentH) * 0.85));
+    this.canvasZoom = +zoom.toFixed(2);
+
+    setTimeout(() => {
+      el.scrollLeft = Math.max(0, (minX - 50) * this.canvasZoom);
+      el.scrollTop = Math.max(0, (minY - 50) * this.canvasZoom);
+    });
   }
 
   onCanvasPointerDown(event: PointerEvent): void {
@@ -582,10 +621,10 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   addTaskFromToolbox(taskType: PipelineTaskType): void {
-    const offset = 32 + (this.editorNodes.length % 4) * 24;
+    const offset = (this.editorNodes.length % 5) * 30;
     this.addTask(taskType, {
-      x: this.canvasOriginX + offset,
-      y: this.canvasOriginY + offset
+      x: 400 + offset,
+      y: 400 + offset
     });
   }
 
@@ -614,8 +653,8 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     const el = this.canvasBoard.nativeElement;
     const rect = el.getBoundingClientRect();
     const position = {
-      x: Math.max(24, (event.clientX - rect.left + el.scrollLeft) / this.canvasZoom - this.nodeWidth / 2),
-      y: Math.max(24, (event.clientY - rect.top + el.scrollTop) / this.canvasZoom - 54)
+      x: Math.max(40, (event.clientX - rect.left + el.scrollLeft) / this.canvasZoom - this.nodeWidth / 2),
+      y: Math.max(40, (event.clientY - rect.top + el.scrollTop) / this.canvasZoom - 54)
     };
 
     this.addTask(taskType, position);
@@ -624,8 +663,8 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   onNodeDragEnded(task: EditorPipelineTaskNode, event: CdkDragEnd): void {
     const position = event.source.getFreeDragPosition();
     task.position = {
-      x: Math.min(this.canvasWidth - this.nodeWidth - 24, Math.max(12, position.x)),
-      y: Math.min(this.canvasHeight - this.nodeHeight - 24, Math.max(12, position.y))
+      x: Math.min(this.canvasWidth - this.nodeWidth - 40, Math.max(40, position.x)),
+      y: Math.min(this.canvasHeight - this.nodeHeight - 40, Math.max(40, position.y))
     };
   }
 
@@ -1199,22 +1238,9 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   private resetCanvasViewport(): void {
-    if (!this.canvasBoard) {
-      return;
-    }
-
-    const canvasBoard = this.canvasBoard.nativeElement;
-
-    if (!this.editorNodes.length) {
-      canvasBoard.scrollLeft = Math.max(0, this.canvasOriginX - 220);
-      canvasBoard.scrollTop = Math.max(0, this.canvasOriginY - 180);
-      return;
-    }
-
-    const minX = Math.min(...this.editorNodes.map(node => node.position.x));
-    const minY = Math.min(...this.editorNodes.map(node => node.position.y));
-    canvasBoard.scrollLeft = Math.max(0, minX - 220);
-    canvasBoard.scrollTop = Math.max(0, minY - 180);
+    if (!this.canvasBoard) return;
+    this.canvasBoard.nativeElement.scrollLeft = 0;
+    this.canvasBoard.nativeElement.scrollTop = 0;
   }
 
   private hydrateTask(task: PipelineTaskNode): EditorPipelineTaskNode {
