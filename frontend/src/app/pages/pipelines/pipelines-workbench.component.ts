@@ -208,6 +208,8 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   private panMoved = false;
   private readonly canvasOriginX = 80;
   private readonly canvasOriginY = 80;
+  private readonly initialViewportX = 1000;
+  private readonly initialViewportY = 1000;
   private readonly nodeWidth = 300;
   private readonly nodeHeight = 130;
   private pipelineLookup = new Map<string, string>();
@@ -341,8 +343,8 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
         if (el) this.canvasBoard = new ElementRef(el);
       }
       if (this.canvasBoard) {
-        this.canvasBoard.nativeElement.scrollLeft = 0;
-        this.canvasBoard.nativeElement.scrollTop = 0;
+        this.canvasBoard.nativeElement.scrollLeft = this.initialViewportX;
+        this.canvasBoard.nativeElement.scrollTop = this.initialViewportY;
       }
     }, 50);
   }
@@ -625,8 +627,8 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   addTaskFromToolbox(taskType: PipelineTaskType): void {
     const offset = (this.editorNodes.length % 5) * 30;
     this.addTask(taskType, {
-      x: 400 + offset,
-      y: 400 + offset
+        x: 1400 + offset,
+        y: 1400 + offset
     });
   }
 
@@ -1241,8 +1243,8 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
   private resetCanvasViewport(): void {
     if (!this.canvasBoard) return;
-    this.canvasBoard.nativeElement.scrollLeft = 0;
-    this.canvasBoard.nativeElement.scrollTop = 0;
+    this.canvasBoard.nativeElement.scrollLeft = this.initialViewportX;
+    this.canvasBoard.nativeElement.scrollTop = this.initialViewportY;
   }
 
   private hydrateTask(task: PipelineTaskNode): EditorPipelineTaskNode {
