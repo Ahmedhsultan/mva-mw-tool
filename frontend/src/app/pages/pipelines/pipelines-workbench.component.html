@@ -35,7 +35,6 @@
     <mat-tab-group class="workbench-tabs" [(selectedIndex)]="workbenchTabIndex" animationDuration="200ms">
       <mat-tab>
         <ng-template mat-tab-label>
-          <mat-icon class="tab-icon">inventory_2</mat-icon>
           Library
         </ng-template>
 
@@ -70,18 +69,26 @@
                   </button>
 
                   <div class="pipeline-item-actions">
-                    <button mat-icon-button type="button" class="action-btn" matTooltip="Edit pipeline" (click)="openPipeline(pipeline)">
-                      <mat-icon>edit</mat-icon>
-                    </button>
-                    <button mat-icon-button type="button" class="action-btn" matTooltip="Duplicate pipeline" (click)="duplicatePipeline(pipeline)">
-                      <mat-icon>content_copy</mat-icon>
-                    </button>
                     <button mat-icon-button type="button" class="action-btn run-btn" matTooltip="Run pipeline" (click)="runSavedPipeline(pipeline.pipelineName)">
                       <mat-icon>play_circle</mat-icon>
                     </button>
-                    <button mat-icon-button type="button" class="action-btn delete-btn" matTooltip="Delete pipeline" (click)="deletePipeline(pipeline.pipelineName)">
-                      <mat-icon>delete_outline</mat-icon>
+                    <button mat-icon-button type="button" class="action-btn" [matMenuTriggerFor]="pipelineMenu">
+                      <mat-icon>more_vert</mat-icon>
                     </button>
+                    <mat-menu #pipelineMenu="matMenu">
+                      <button mat-menu-item (click)="openPipeline(pipeline)">
+                        <mat-icon>edit</mat-icon>
+                        <span>Edit</span>
+                      </button>
+                      <button mat-menu-item (click)="duplicatePipeline(pipeline)">
+                        <mat-icon>content_copy</mat-icon>
+                        <span>Duplicate</span>
+                      </button>
+                      <button mat-menu-item (click)="deletePipeline(pipeline.pipelineName)">
+                        <mat-icon>delete_outline</mat-icon>
+                        <span>Delete</span>
+                      </button>
+                    </mat-menu>
                   </div>
                 </article>
               }
@@ -111,7 +118,6 @@
 
       <mat-tab>
         <ng-template mat-tab-label>
-          <mat-icon class="tab-icon">monitoring</mat-icon>
           Runs
         </ng-template>
 
@@ -199,10 +205,6 @@
 
       <section class="builder-window mva-card" (click)="$event.stopPropagation()">
         <header class="builder-window-header">
-          <div>
-            <strong>{{ draftPipelineName || 'Untitled pipeline' }}</strong>
-            <span class="header-stats">{{ editorNodes.length }} tasks · {{ edgeCount }} edges</span>
-          </div>
           <div class="builder-window-actions">
             <div class="zoom-controls">
               <button mat-icon-button (click)="zoomOut()" matTooltip="Zoom out"><mat-icon>remove</mat-icon></button>

@@ -12,6 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatMenuModule } from '@angular/material/menu';
 import { finalize } from 'rxjs';
 import {
   DevOpsProvider,
@@ -148,6 +149,7 @@ class ImmediateErrorStateMatcher implements ErrorStateMatcher {
     MatSnackBarModule,
     MatTabsModule,
     MatTooltipModule,
+    MatMenuModule,
     PipelineRunViewerComponent
   ],
   providers: [
