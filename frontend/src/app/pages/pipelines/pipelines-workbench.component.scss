@@ -221,6 +221,7 @@
 }
 
 .action-btn {
+  color: #6b7280;
   transition: color 0.2s, background 0.2s;
 }
 
@@ -357,7 +358,7 @@
 }
 
 /* ── Inline icon btn (builder compat) ── */
-.inline-icon-btn { flex: none; }
+.inline-icon-btn { flex: none; color: #6b7280; }
 
 .node-type-pill { padding: 8px 12px; background: rgba(36, 119, 255, 0.1); color: var(--mva-accent-strong); border-radius: 999px; font-size: 11px; font-weight: 800; }
 
@@ -575,6 +576,13 @@
     stroke-width: 2.5;
   }
 
+  .drag-line {
+    stroke: rgba(36, 119, 255, 0.7);
+    stroke-width: 2;
+    stroke-dasharray: 6 4;
+    marker-end: none;
+  }
+
   path:not(.edge-path) {
     fill: rgba(36, 119, 255, 0.6);
   }
@@ -596,6 +604,11 @@
 .pipeline-node.connect-source {
   border-color: rgba(36, 119, 255, 0.4);
   box-shadow: 0 18px 36px rgba(36, 119, 255, 0.14);
+}
+
+.pipeline-node.node-incomplete {
+  border-color: #d32f2f;
+  box-shadow: 0 0 0 1px #d32f2f, 0 14px 28px rgba(211, 47, 47, 0.12);
 }
 
 .node-header,
@@ -748,6 +761,17 @@
   display: grid;
   gap: 4px;
   align-content: start;
+
+  .mat-mdc-form-field.ng-invalid {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: #d32f2f !important;
+    }
+    .mat-mdc-floating-label {
+      color: #d32f2f !important;
+    }
+  }
 }
 
 .drawer-section {

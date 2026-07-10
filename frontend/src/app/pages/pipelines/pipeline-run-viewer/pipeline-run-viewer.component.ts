@@ -259,7 +259,7 @@ export class PipelineRunViewerComponent implements OnChanges, OnDestroy {
   private collectLinks(): string[] {
     return Object.values(this.run?.taskMap || {})
       .filter(t => this.taskLink(t))
-      .map(t => `${t.id}: ${this.taskLink(t)}`);
+      .map(t => `${t.id}-${t.taskType}: ${this.taskLink(t)}`);
   }
 
   private startPolling(): void {

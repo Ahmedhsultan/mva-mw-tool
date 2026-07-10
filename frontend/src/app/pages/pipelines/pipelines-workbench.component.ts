@@ -4,6 +4,7 @@ import { TemplatePortal } from '@angular/cdk/portal';
 import { Component, ElementRef, OnDestroy, OnInit, TemplateRef, ViewChild, ViewContainerRef, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { ErrorStateMatcher } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -126,6 +127,12 @@ const TASK_PREFIX: Record<PipelineTaskType, string> = {
   PrTask: 'pr'
 };
 
+class ImmediateErrorStateMatcher implements ErrorStateMatcher {
+  isErrorState(control: any): boolean {
+    return !!(control && control.invalid);
+  }
+}
+
 @Component({
   selector: 'app-pipelines-workbench',
   standalone: true,
@@ -142,6 +149,9 @@ const TASK_PREFIX: Record<PipelineTaskType, string> = {
     MatTabsModule,
     MatTooltipModule,
     PipelineRunViewerComponent
+  ],
+  providers: [
+    { provide: ErrorStateMatcher, useClass: ImmediateErrorStateMatcher }
   ],
   templateUrl: './pipelines-workbench.component.html',
   styleUrl: './pipelines-workbench.component.scss'
@@ -167,6 +177,11 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   selectedPipelineName = '';
   readonly selectedTask = signal<EditorPipelineTaskNode | null>(null);
   pendingConnectionSourceEditorId: string | null = null;
+
+  // Drag-to-connect state
+  isDraggingConnection = false;
+  dragLineFrom: { x: number; y: number } | null = null;
+  dragLineTo: { x: number; y: number } | null = null;
 
   isLoadingPipelines = false;
   isLoadingRuns = false;
@@ -278,6 +293,15 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     this.openBuilderWindow();
   }
 
+  duplicatePipeline(pipeline: PipelineDto): void {
+    this.selectedPipelineName = '';
+    this.draftPipelineName = `${pipeline.pipelineName} (copy)`;
+    this.pendingConnectionSourceEditorId = null;
+    this.editorNodes = this.layoutTasks(pipeline.pipelineStructure.tasks || []);
+    this.openTaskConfig(this.editorNodes[0] || null);
+    this.openBuilderWindow();
+  }
+
   loadRunAsReference(run: PipelineRunDto): void {
     const resolvedName = this.resolvePipelineName(run.pipelineStructure);
     this.selectedPipelineName = resolvedName;
@@ -369,10 +393,15 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   promptSave(): void {
-    const name = prompt('Pipeline name:', this.draftPipelineName);
-    if (name !== null && name.trim()) {
-      this.draftPipelineName = name.trim();
+    if (this.selectedPipelineName) {
+      // Editing existing pipeline — save directly without prompting
       this.savePipeline();
+    } else {
+      const name = prompt('Pipeline name:', this.draftPipelineName);
+      if (name !== null && name.trim()) {
+        this.draftPipelineName = name.trim();
+        this.savePipeline();
+      }
     }
   }
 
@@ -384,6 +413,52 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       }
     } else {
       this.startConnection(editorId, event);
+    }
+  }
+
+  onPortDragStart(editorId: string, event: MouseEvent): void {
+    event.stopPropagation();
+    event.preventDefault();
+    const task = this.findNodeByEditorId(editorId);
+    if (!task) return;
+    this.pendingConnectionSourceEditorId = editorId;
+    this.isDraggingConnection = true;
+    const ports = this.nodePorts(task.position);
+    const center = { x: task.position.x + this.nodeWidth / 2, y: task.position.y + this.nodeHeight / 2 };
+    this.dragLineFrom = center;
+    this.dragLineTo = center;
+  }
+
+  onConnectionDragMove(event: MouseEvent): void {
+    if (!this.isDraggingConnection || !this.canvasBoard) return;
+    const el = this.canvasBoard.nativeElement;
+    const zoomLayer = el.querySelector('.canvas-zoom-layer') as HTMLElement;
+    if (!zoomLayer) return;
+    const rect = zoomLayer.getBoundingClientRect();
+    this.dragLineTo = {
+      x: (event.clientX - rect.left) / this.canvasZoom,
+      y: (event.clientY - rect.top) / this.canvasZoom
+    };
+  }
+
+  onConnectionDragEnd(event: MouseEvent): void {
+    if (!this.isDraggingConnection) return;
+    this.isDraggingConnection = false;
+    this.dragLineFrom = null;
+    this.dragLineTo = null;
+
+    // Find target node under the mouse
+    const target = event.target as HTMLElement;
+    const nodeEl = target.closest('.pipeline-node');
+    if (!nodeEl) {
+      this.pendingConnectionSourceEditorId = null;
+      return;
+    }
+    const targetEditorId = nodeEl.getAttribute('data-editor-id');
+    if (targetEditorId && targetEditorId !== this.pendingConnectionSourceEditorId) {
+      this.completeConnection(targetEditorId, event);
+    } else {
+      this.pendingConnectionSourceEditorId = null;
     }
   }
 
@@ -597,6 +672,12 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     }
 
     source.nextTaskIds = [...source.nextTaskIds, target.id];
+
+    // Add default SUCCEEDED condition on the target for this source
+    if (!target.conditions.some(c => c.taskId === source.id)) {
+      target.conditions = [...target.conditions, { taskId: source.id, status: 'SUCCEEDED' }];
+    }
+
     this.pendingConnectionSourceEditorId = null;
     this.openTaskConfig(target);
   }
@@ -634,6 +715,20 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     if (this.pendingConnectionSourceEditorId === editorId) {
       this.pendingConnectionSourceEditorId = null;
     }
+  }
+
+  duplicateTask(task: EditorPipelineTaskNode, event?: Event): void {
+    event?.stopPropagation();
+    const newTask: EditorPipelineTaskNode = {
+      ...task,
+      editorId: this.createEditorId(),
+      id: this.generateTaskId(task.taskType),
+      position: { x: task.position.x + 40, y: task.position.y + 40 },
+      nextTaskIds: [],
+      conditions: []
+    };
+    this.editorNodes = [...this.editorNodes, newTask];
+    this.selectedTask.set(newTask);
   }
 
   updateTaskId(editorId: string, newId: string): void {
@@ -779,6 +874,22 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
         return `${node.repoName || 'repo'} • ${node.fromBranch || 'source'} -> ${node.targetBranch || 'target'}`;
       default:
         return 'Configure the selected task.';
+    }
+  }
+
+  isTaskIncomplete(task: EditorPipelineTaskNode): boolean {
+    if (!task.id.trim()) return true;
+    switch (task.taskType) {
+      case 'BuildTask':
+        return !task.branch?.trim() || !task.repoName?.trim() || !task.definitionId?.trim();
+      case 'DeploymentTask':
+        return !task.buildTaskId?.trim() || !task.repoName?.trim() || !task.definitionId?.trim() || !task.environment?.trim();
+      case 'GitTask':
+        return !task.repoName?.trim() || !task.sourceBranch?.trim() || !task.branch?.trim();
+      case 'PrTask':
+        return !task.repoName?.trim() || !task.fromBranch?.trim() || !task.targetBranch?.trim();
+      default:
+        return false;
     }
   }
 
@@ -964,16 +1075,16 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       devOpsServiceFactory: provider,
       conditions: [],
       nextTaskIds: [],
-      branch: taskType === 'GitTask' ? 'main' : 'refs/heads/main',
+      branch: '',
       repoName: '',
       definitionId: '',
       buildTaskId: '',
       environment: taskType === 'DeploymentTask' ? (this.configuredEnvironments[0] || 'production') : '',
       description: '',
       approved: false,
-      fromBranch: 'feature/new-change',
-      targetBranch: 'main',
-      sourceBranch: 'main',
+      fromBranch: '',
+      targetBranch: '',
+      sourceBranch: '',
       gitAction: 'PUSH_FILE',
       filePath: '',
       content: '',
@@ -1115,7 +1226,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       devOpsServiceFactory: task.devOpsServiceFactory,
       conditions: (task.conditions || []).map(condition => ({ ...condition })),
       nextTaskIds: [...(task.nextTaskIds || [])],
-      branch: task.branch || (task.taskType === 'GitTask' ? 'main' : 'refs/heads/main'),
+      branch: task.branch || '',
       repoName: task.repoName || '',
       definitionId: task.definitionId || '',
       buildTaskId: task.buildTaskId || '',
@@ -1124,6 +1235,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       approved: task.approved || false,
       fromBranch: task.fromBranch || '',
       targetBranch: task.targetBranch || '',
+      sourceBranch: task.sourceBranch || '',
       filePath: task.filePath || '',
       content: task.content || '',
       commitMessage: task.commitMessage || ''
@@ -1466,6 +1578,14 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     return `pipeline-${index}`;
   }
 
+  onRepoNameChange(task: EditorPipelineTaskNode, newRepoName: string): void {
+    task.repoName = newRepoName;
+    if (newRepoName && (task.taskType === 'BuildTask' || task.taskType === 'DeploymentTask' || task.taskType === 'PrTask')) {
+      const newId = this.generateRepoTaskId(newRepoName);
+      this.updateTaskId(task.editorId, newId);
+    }
+  }
+
   private generateTaskId(taskType: PipelineTaskType): string {
     const prefix = TASK_PREFIX[taskType];
     const existingIds = new Set(this.editorNodes.map(node => node.id));
@@ -1476,6 +1596,17 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     }
 
     return `${prefix}-${index}`;
+  }
+
+  private generateRepoTaskId(repoName: string): string {
+    const existingIds = new Set(this.editorNodes.map(node => node.id));
+    let index = 1;
+
+    while (existingIds.has(`${repoName}-${index}`)) {
+      index += 1;
+    }
+
+    return `${repoName}-${index}`;
   }
 
   private createEditorId(): string {

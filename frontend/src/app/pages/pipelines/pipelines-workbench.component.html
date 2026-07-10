@@ -70,6 +70,12 @@
                   </button>
 
                   <div class="pipeline-item-actions">
+                    <button mat-icon-button type="button" class="action-btn" matTooltip="Edit pipeline" (click)="openPipeline(pipeline)">
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button type="button" class="action-btn" matTooltip="Duplicate pipeline" (click)="duplicatePipeline(pipeline)">
+                      <mat-icon>content_copy</mat-icon>
+                    </button>
                     <button mat-icon-button type="button" class="action-btn run-btn" matTooltip="Run pipeline" (click)="runSavedPipeline(pipeline.pipelineName)">
                       <mat-icon>play_circle</mat-icon>
                     </button>
@@ -247,7 +253,7 @@
             </div>
           }
 
-          <div class="canvas-stage" #canvasBoard [style.cursor]="panCursor" (pointerdown)="onCanvasPointerDown($event)" (pointermove)="onCanvasPointerMove($event)" (pointerup)="onCanvasPointerUp($event)" (dragover)="onCanvasDragOver($event)" (drop)="onCanvasDrop($event)" (wheel)="onCanvasWheel($event)">
+          <div class="canvas-stage" #canvasBoard [style.cursor]="isDraggingConnection ? 'crosshair' : panCursor" (pointerdown)="onCanvasPointerDown($event)" (pointermove)="onCanvasPointerMove($event)" (pointerup)="onCanvasPointerUp($event)" (dragover)="onCanvasDragOver($event)" (drop)="onCanvasDrop($event)" (wheel)="onCanvasWheel($event)" (mousemove)="onConnectionDragMove($event)" (mouseup)="onConnectionDragEnd($event)">
             @if (pendingConnectionSource; as source) {
               <div class="connect-banner"><mat-icon>north_east</mat-icon> Connecting from <strong>{{ source.id }}</strong> <button mat-button (click)="clearPendingConnection()">Cancel</button></div>
             }
@@ -258,20 +264,24 @@
                 @for (edge of smartEdges; track edge.key) {
                   <path [attr.d]="edge.path" class="edge-path" [class.edge-active]="pendingConnectionSourceEditorId === edge.sourceEditorId"/>
                 }
+                @if (isDraggingConnection && dragLineFrom && dragLineTo) {
+                  <path [attr.d]="'M' + dragLineFrom.x + ',' + dragLineFrom.y + ' L' + dragLineTo.x + ',' + dragLineTo.y" class="edge-path drag-line" />
+                }
               </svg>
 
               @for (task of editorNodes; track task.editorId) {
-                <article class="pipeline-node" [class.selected]="selectedTask()?.editorId === task.editorId" [class.connect-source]="pendingConnectionSourceEditorId === task.editorId" cdkDrag [cdkDragBoundary]="'.canvas-zoom-layer'" [cdkDragFreeDragPosition]="task.position" (cdkDragEnded)="onNodeDragEnded(task, $event)" (click)="selectTask(task, $event)">
-                  <button type="button" class="port port-top" (click)="onPortClick(task.editorId, $event)"></button>
-                  <button type="button" class="port port-right" (click)="onPortClick(task.editorId, $event)"></button>
-                  <button type="button" class="port port-bottom" (click)="onPortClick(task.editorId, $event)"></button>
-                  <button type="button" class="port port-left" (click)="onPortClick(task.editorId, $event)"></button>
+                <article class="pipeline-node" [attr.data-editor-id]="task.editorId" [class.selected]="selectedTask()?.editorId === task.editorId" [class.connect-source]="pendingConnectionSourceEditorId === task.editorId" [class.node-incomplete]="isTaskIncomplete(task)" cdkDrag [cdkDragBoundary]="'.canvas-zoom-layer'" [cdkDragFreeDragPosition]="task.position" (cdkDragEnded)="onNodeDragEnded(task, $event)" (click)="selectTask(task, $event)">
+                  <button type="button" class="port port-top" (mousedown)="onPortDragStart(task.editorId, $event)" (click)="onPortClick(task.editorId, $event)"></button>
+                  <button type="button" class="port port-right" (mousedown)="onPortDragStart(task.editorId, $event)" (click)="onPortClick(task.editorId, $event)"></button>
+                  <button type="button" class="port port-bottom" (mousedown)="onPortDragStart(task.editorId, $event)" (click)="onPortClick(task.editorId, $event)"></button>
+                  <button type="button" class="port port-left" (mousedown)="onPortDragStart(task.editorId, $event)" (click)="onPortClick(task.editorId, $event)"></button>
                   <header class="node-header">
                     <div class="node-type-pill node-drag-handle" cdkDragHandle><mat-icon>{{ taskIcon(task.taskType) }}</mat-icon> {{ taskLabel(task.taskType) }}</div>
                     <div class="node-actions">
                       <button mat-icon-button type="button" class="inline-icon-btn node-config-btn" (pointerdown)="$event.stopPropagation()" (click)="selectTask(task, $event)" matTooltip="Configure task">
                         <mat-icon>tune</mat-icon>
                       </button>
+                      <button mat-icon-button type="button" class="inline-icon-btn" (pointerdown)="$event.stopPropagation()" (click)="duplicateTask(task, $event)" matTooltip="Duplicate"><mat-icon>content_copy</mat-icon></button>
                       <button mat-icon-button type="button" class="inline-icon-btn" (pointerdown)="$event.stopPropagation()" (click)="deleteTask(task.editorId, $event)" matTooltip="Delete"><mat-icon>delete_outline</mat-icon></button>
                     </div>
                   </header>
@@ -318,28 +328,24 @@
                 </mat-form-field>
               }
 
-              <mat-form-field appearance="outline"><mat-label>Task id</mat-label><input matInput [ngModel]="task.id" (ngModelChange)="updateTaskId(task.editorId, $event)"></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Task id</mat-label><input matInput required [ngModel]="task.id" (ngModelChange)="updateTaskId(task.editorId, $event)"></mat-form-field>
               <mat-form-field appearance="outline"><mat-label>Provider</mat-label>
-                <mat-select [(ngModel)]="task.devOpsServiceFactory">
+                <mat-select required [(ngModel)]="task.devOpsServiceFactory">
                   @for (provider of providerOptions; track provider) { <mat-option [value]="provider">{{ providerLabel(provider) }}</mat-option> }
                 </mat-select>
               </mat-form-field>
               @switch (task.taskType) {
                 @case ('BuildTask') {
-                  <mat-form-field appearance="outline"><mat-label>Branch</mat-label><input matInput [(ngModel)]="task.branch"></mat-form-field>
-                  <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
-                  <mat-form-field appearance="outline"><mat-label>Definition id</mat-label><input matInput [(ngModel)]="task.definitionId"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>Branch</mat-label><input matInput required [(ngModel)]="task.branch"></mat-form-field>
                 }
                 @case ('DeploymentTask') {
                   <mat-form-field appearance="outline"><mat-label>Build ref</mat-label>
-                    <mat-select [(ngModel)]="task.buildTaskId">
+                    <mat-select required [(ngModel)]="task.buildTaskId">
                       @for (bt of buildTaskOptions(task); track bt.editorId) { <mat-option [value]="bt.id">{{ bt.id }}</mat-option> }
                     </mat-select>
                   </mat-form-field>
-                  <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
-                  <mat-form-field appearance="outline"><mat-label>Definition id</mat-label><input matInput [(ngModel)]="task.definitionId"></mat-form-field>
                   <mat-form-field appearance="outline"><mat-label>Environment</mat-label>
-                    <mat-select [(ngModel)]="task.environment">
+                    <mat-select required [(ngModel)]="task.environment">
                       @for (environment of environmentOptions(task); track environment) { <mat-option [value]="environment">{{ environment }}</mat-option> }
                     </mat-select>
                   </mat-form-field>
@@ -351,14 +357,12 @@
                   </div>
                 }
                 @case ('GitTask') {
-                  <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
-                  <mat-form-field appearance="outline"><mat-label>Source branch</mat-label><input matInput [(ngModel)]="task.sourceBranch"></mat-form-field>
-                  <mat-form-field appearance="outline"><mat-label>New branch name</mat-label><input matInput [(ngModel)]="task.branch"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>Source branch</mat-label><input matInput required [(ngModel)]="task.sourceBranch"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>New branch name</mat-label><input matInput required [(ngModel)]="task.branch"></mat-form-field>
                 }
                 @case ('PrTask') {
-                  <mat-form-field appearance="outline"><mat-label>Repository</mat-label><input matInput [(ngModel)]="task.repoName"></mat-form-field>
-                  <mat-form-field appearance="outline"><mat-label>Source branch</mat-label><input matInput [(ngModel)]="task.fromBranch"></mat-form-field>
-                  <mat-form-field appearance="outline"><mat-label>Target branch</mat-label><input matInput [(ngModel)]="task.targetBranch"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>Source branch</mat-label><input matInput required [(ngModel)]="task.fromBranch"></mat-form-field>
+                  <mat-form-field appearance="outline"><mat-label>Target branch</mat-label><input matInput required [(ngModel)]="task.targetBranch"></mat-form-field>
                 }
               }
               <div class="drawer-section">
