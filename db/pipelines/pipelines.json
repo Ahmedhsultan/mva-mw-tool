@@ -1,18 +1,4 @@
 [ {
-  "pipelineName" : "pipeline-2",
-  "pipelineStructure" : {
-    "tasks" : [ {
-      "id" : "pr-1",
-      "taskType" : "PrTask",
-      "devOpsServiceFactory" : "azure",
-      "conditions" : [ ],
-      "nextTaskIds" : [ ],
-      "fromBranch" : "23",
-      "targetBranch" : "2r23",
-      "repoName" : "mvax-api"
-    } ]
-  }
-}, {
   "pipelineName" : "Release 10.83",
   "pipelineStructure" : {
     "tasks" : [ {
