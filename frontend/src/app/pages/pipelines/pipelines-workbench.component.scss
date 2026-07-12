@@ -129,12 +129,14 @@
 
 .saved-pipeline-item {
   display: flex;
+  position: relative;
   align-items: center;
   gap: 4px;
   padding: 4px;
   border: 1px solid rgba(120, 146, 185, 0.14);
   background: rgba(255, 255, 255, 0.52);
   border-radius: 18px;
+  overflow: hidden;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 
   &:hover {
@@ -150,6 +152,10 @@
   background: rgba(255, 255, 255, 0.82);
 }
 
+.saved-pipeline-item.is-busy {
+  background: rgba(255, 255, 255, 0.76);
+}
+
 .saved-pipeline-main {
   all: unset;
   cursor: pointer;
@@ -160,6 +166,10 @@
   min-width: 0;
   padding: 10px 8px 10px 10px;
   border-radius: 14px;
+
+  &:disabled {
+    cursor: default;
+  }
 }
 
 .pipeline-item-icon {
@@ -218,6 +228,38 @@
   gap: 2px;
   flex: none;
   padding-right: 6px;
+}
+
+.saved-pipeline-item.is-busy .saved-pipeline-main,
+.saved-pipeline-item.is-busy .pipeline-item-actions {
+  opacity: 0.4;
+}
+
+.pipeline-item-blocker {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.74);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--mva-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pipeline-item-blocker .modern-loader {
+  width: 40px;
+  height: 40px;
+}
+
+.pipeline-item-blocker .loader-ring {
+  width: 22px;
+  height: 22px;
+  border-width: 2px;
 }
 
 .action-btn {

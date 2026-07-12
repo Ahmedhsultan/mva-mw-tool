@@ -189,6 +189,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   isLoadingRuns = false;
   isSavingPipeline = false;
   isRunningPipeline = false;
+  deletingPipelineName = '';
   pipelinesError = '';
   runsError = '';
   canvasZoom = 1;
@@ -550,6 +551,10 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   deletePipeline(pipelineName: string): void {
+    if (this.deletingPipelineName === pipelineName) {
+      return;
+    }
+
     if (!confirm(`Delete pipeline "${pipelineName}"?`)) {
       return;
     }
@@ -560,7 +565,14 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.deletingPipelineName = pipelineName;
+
     this.apiService.deletePipeline(storage.provider, storage.repoId, storage.branch, pipelineName)
+      .pipe(finalize(() => {
+        if (this.deletingPipelineName === pipelineName) {
+          this.deletingPipelineName = '';
+        }
+      }))
       .subscribe({
         next: () => {
           this.showMessage(`Pipeline "${pipelineName}" deleted.`, 'success-snackbar');
