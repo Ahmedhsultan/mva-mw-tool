@@ -4,6 +4,10 @@ Middleware Administration Console — a professional admin tool for managing bui
 
 ## Prerequisites
 
+- **Docker Desktop** or **Docker Engine + Docker Compose**
+
+### For local development only
+
 - **Java 21** (for backend)
 - **Maven 3.8+** (for backend)
 - **Node.js 22+** (for frontend)
@@ -15,10 +19,45 @@ Middleware Administration Console — a professional admin tool for managing bui
 mva-mw-tool/
 ├── backend/          # Spring Boot 3.3.x REST API (Java 21)
 ├── frontend/         # Angular 22 + Angular Material UI
+├── docker-compose.yml
 └── README.md
 ```
 
-## Quick Start
+## Run With Docker
+
+Start the full app from the project root:
+
+```bash
+docker compose up --build
+```
+
+This starts:
+
+- **Frontend** on `http://localhost:4200`
+- **Backend API** on `http://localhost:8080`
+
+The frontend container serves the Angular app with Nginx and proxies all `/api` requests to the backend container, so no extra frontend API configuration is needed.
+
+### Stop the containers
+
+```bash
+docker compose down
+```
+
+### Rebuild after code changes
+
+```bash
+docker compose up --build
+```
+
+### Useful Docker files
+
+- `docker-compose.yml` — runs frontend and backend together
+- `backend/Dockerfile` — builds the Spring Boot jar and runs it on Java 21
+- `frontend/Dockerfile` — builds the Angular app and serves it with Nginx
+- `frontend/nginx.conf` — SPA routing plus `/api` reverse proxy to the backend
+
+## Local Quick Start
 
 ### Run both backend and frontend together
 

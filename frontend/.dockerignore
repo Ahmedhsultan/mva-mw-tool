@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.angular/
+.vscode/
+.git/
+.DS_Store
+README.md
