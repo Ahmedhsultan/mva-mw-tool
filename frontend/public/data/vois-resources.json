@@ -1,0 +1,314 @@
+[
+  {
+    "label": "Access Requests – AWS Membership",
+    "url": "https://vodafone.sharepoint.com/sites/TDO-UAM/Lists/Request%20%20AWS%20Membership%20Request/NewForm.aspx",
+    "type": "link",
+    "category": "Access & Requests",
+    "description": "SharePoint form to request AWS membership access",
+    "id": "a3e18110-8f23-4855-99b2-8b74759ffe0c"
+  },
+  {
+    "label": "ONE-UAM – Raise Requests",
+    "url": "https://oneuam.vodafone.com/rc/one-rc/requests/templates%20oneUAM",
+    "type": "link",
+    "category": "Access & Requests",
+    "description": "Vodafone unified access management — submit access requests",
+    "id": "90d839c9-e61b-4fee-abe1-6af995a8adc3"
+  },
+  {
+    "label": "AWS Accounts",
+    "url": "https://myapps.microsoft.com/signin/78f5464b-e016-4fdb-9478-ba285b87fb8e?tenantId=68283f3b-8487-4c86-adb3-a5228f18b893",
+    "type": "link",
+    "category": "Cloud & AWS",
+    "description": "Sign in to AWS accounts via Microsoft MyApps",
+    "id": "9e469eb7-6e14-4c9c-aa76-73be58b85624"
+  },
+  {
+    "label": "Cloud Engineering – Home Page",
+    "url": "https://dx-team-services.vf-cep.engineering.vodafone.com/9f2fb151-e7b7-4b2e-ab9c-2c17d1db61d7",
+    "type": "link",
+    "category": "Cloud & AWS",
+    "description": "Cloud Engineering team services home page",
+    "id": "3dbf50e3-2533-40a8-8cd2-8b055be70ad9"
+  },
+  {
+    "label": "Cloud Engineering – Whitelist",
+    "url": "https://dx-team-services.vf-cep.engineering.vodafone.com/9f2fb151-e7b7-4b2e-ab9c-2c17d1db61d7/wfh/b22d8d86-2617-4bd8-99e9-0a2c250f26d6",
+    "type": "link",
+    "category": "Cloud & AWS",
+    "description": "IP whitelist management for Cloud Engineering environments",
+    "id": "17991ea1-7e09-4c26-b396-3a31d1fb2007"
+  },
+  {
+    "label": "Cloud Engineering (Bastion) – int1 / qc1 / qc2 & lower",
+    "url": "https://dx-team-services.vf-cep.engineering.vodafone.com/9f2fb151-e7b7-4b2e-ab9c-2c17d1db61d7/wfh/a33d1c35-b9da-4c17-a959-4bfa1f6ac4c1",
+    "type": "link",
+    "category": "Cloud & AWS",
+    "description": "Bastion access for int1, qc1, qc2 and lower environments",
+    "id": "b3765ea3-a849-483c-b030-9107a6fa9cc4"
+  },
+  {
+    "label": "Cloud Engineering (Bastion) – PAT1",
+    "url": "https://dx-pat-team-services.vf-cep.engineering.vodafone.com/",
+    "type": "link",
+    "category": "Cloud & AWS",
+    "description": "Bastion access for PAT1 environment",
+    "id": "cc9f7d6b-4eef-479f-a6c9-0a6d9769fdff"
+  },
+  {
+    "label": "Cloud Engineering (Bastion) – PAT2 & PAT3",
+    "url": "https://dx-ode-team-services.vf-cep.engineering.vodafone.com/",
+    "type": "link",
+    "category": "Cloud & AWS",
+    "description": "Bastion access for PAT2 and PAT3 environments",
+    "id": "529d6d8a-808d-4ec2-bd33-6df8a4b5d1b2"
+  },
+  {
+    "label": "Contentful – Content Entries",
+    "url": "https://app.contentful.com/spaces/gbnnsauqav4t/views/entries?searchText=&contentTypeId=&contentTypeIds=&displayedFieldIds=contentType&displayedFieldIds=updatedAt&displayedFieldIds=author&order.fieldId=updatedAt&order.direction=descending&filters=",
+    "type": "link",
+    "category": "Content & CMS",
+    "description": "Contentful CMS — browse and manage content entries",
+    "id": "8929b709-76a2-4475-aba4-26cec61f46ad"
+  },
+  {
+    "label": "Figma",
+    "url": "https://www.figma.com/design/ydrwPHKRLcMn1wTgGZ7C7x/MVA---Trade-in-Part-2--Xchange?node-id=6447-36224&p=f&t=HafrtsjUNBnWmKKZ-0",
+    "type": "link",
+    "category": "Development",
+    "description": "MVA Trade-in Part 2 / Xchange design file",
+    "id": "1e2b155a-4781-4564-95dd-eea1a8846b33"
+  },
+  {
+    "label": "LaunchDarkly",
+    "url": "https://app.launchdarkly.com",
+    "type": "link",
+    "category": "Development",
+    "description": "Feature flag management",
+    "id": "519b1dec-8d7c-4dca-901d-66ccf43c163d"
+  },
+  {
+    "label": "Swagger – mvax-api",
+    "url": "https://mvax.dx-int1-common.digital.vodafoneaws.co.uk/app/swagger-ui/index.html#/",
+    "type": "link",
+    "category": "Development",
+    "description": "Interactive API docs for mvax-api on int1",
+    "id": "8dd77f6c-293e-4748-aea6-78e1c8e1dc39"
+  },
+  {
+    "label": "Web Login – int1",
+    "url": "https://login-int1.dx-idm.vodafone.co.uk/login?ReturnUrl=%2Fconnect%2Fauthorize%2Fcallback%3Fclient_id%3Dmva-int1%26redirect_uri%3Dhttps%253A%252F%252Fmvax.vodafone.co.uk%252Fapp%252FdxidmCallback%26response_type%3Dcode%26scope%3Dopenid%2520vf-profile%2520vf-contact%2520vf-account%2520vf-subscription",
+    "type": "link",
+    "category": "Development",
+    "description": "VFID login page for int1 environment",
+    "id": "d1cc7800-6933-4b82-9ad6-5d2b3cd3b077"
+  },
+  {
+    "label": "Acronym Library",
+    "url": "https://vodafone.sharepoint.com/teams/vbapps/AcronymLibrary/SitePages/dist/index.aspx",
+    "type": "link",
+    "category": "Documentation",
+    "description": "Vodafone business acronym reference library",
+    "id": "1f37d196-1fd9-474b-a816-538ea08ba977"
+  },
+  {
+    "label": "Confluence – Locust PACE Setup",
+    "url": "https://confluence.sp.vodafone.com/pages/viewpage.action?spaceKey=AFUMV&title=PACE+Environment+Setup",
+    "type": "link",
+    "category": "Documentation",
+    "description": "Step-by-step PACE environment setup guide using Locust",
+    "id": "488fb905-49ec-4fbc-87e7-7ddd834860c3"
+  },
+  {
+    "label": "Confluence – MVAX Architecture & Onboarding",
+    "url": "https://confluence.sp.vodafone.com/display/AFUMV/MVAX+Architecture+Code+Onboarding",
+    "type": "link",
+    "category": "Documentation",
+    "description": "Architecture overview and onboarding guide for new team members",
+    "id": "d6c722dc-a2e8-4d41-bbf1-7b2f39c905bc"
+  },
+  {
+    "label": "Confluence – Run PAT2 BAU",
+    "url": "https://confluence.sp.vodafone.com/pages/viewpage.action?spaceKey=AFUMV&title=Pace+testing+using+PAT2",
+    "type": "link",
+    "category": "Documentation",
+    "description": "How to run PACE testing using PAT2",
+    "id": "ee0ba19c-7147-441f-bb0c-5cc9e7b83aa5"
+  },
+  {
+    "label": "Confluence – Types of Users",
+    "url": "https://confluence.sp.vodafone.com/display/AFUMV/Types+of+Users",
+    "type": "link",
+    "category": "Documentation",
+    "description": "Overview of different user types in MVAX",
+    "id": "fc4b81e7-c4c3-40fe-b3b9-7efd828c63b7"
+  },
+  {
+    "label": "Teams Structure",
+    "url": "https://dev.azure.com/vfuk-digital/Digital/_wiki/wikis/Digital%20X.wiki/2184/Team-Structure-and-contacts?anchor=core-engineering%3A-order-and-payments",
+    "type": "link",
+    "category": "Documentation",
+    "description": "Azure DevOps wiki: team structure and contacts for Core Engineering (Order & Payments)",
+    "id": "22b1391a-2c8c-415a-89ed-dd26fb3a7d05"
+  },
+  {
+    "label": "Environment Schedule Sheet",
+    "url": "https://vodafone.sharepoint.com/:x:/r/sites/MVAUK/_layouts/15/Doc.aspx?sourcedoc=%7B4853B7F9-845D-4440-879D-1071A16F5E15%7D&file=MVA%20Environment%20schedule%20.xlsx&action=default&mobileredirect=true",
+    "type": "file",
+    "category": "Environment",
+    "description": "MVA environment booking schedule spreadsheet",
+    "id": "68f78db2-64a3-48f8-b573-ef57ddcb035a"
+  },
+  {
+    "label": "Environment Status & Reservation",
+    "url": "https://scaling-dashboard.digital.vodafoneaws.co.uk/",
+    "type": "link",
+    "category": "Environment",
+    "description": "Check environment availability and reserve slots (open Cloud Engineering Bastion link first)",
+    "id": "e91ba6ce-1ea2-48f6-85ba-62ff8b87b5ff"
+  },
+  {
+    "label": "PACE Dashboard",
+    "url": "https://pace-reporting-dashboard.digital.vodafoneaws.co.uk/#/",
+    "type": "link",
+    "category": "Environment",
+    "description": "Performance and capacity engineering reporting dashboard",
+    "id": "ebd5f3c0-efb7-430c-add0-e799dda4f85d"
+  },
+  {
+    "label": "Attendance Lookup",
+    "url": "https://apps.powerapps.com/play/e/30974ecd-6eb0-e491-8432-cfb9b0dcb849/a/bd7036d7-2812-4cd8-8e13-b1ee5a47c8a8?tenantId=68283f3b-8487-4c86-adb3-a5228f18b893",
+    "type": "link",
+    "category": "HR & People",
+    "description": "View and manage attendance records",
+    "id": "3578a92d-878a-445c-bc43-da0aaddf8b85"
+  },
+  {
+    "label": "Team_Vacations.xlsx",
+    "url": "https://apps.powerapps.com/play/e/default-68283f3b-8487-4c86-adb3-a5228f18b893/a/c0267a83-f06a-4223-9557-bf6fc69f663e",
+    "type": "file",
+    "category": "HR & People",
+    "description": "Team vacation schedule spreadsheet",
+    "id": "fd4ed937-c8cd-4521-bc82-a226258ea01d"
+  },
+  {
+    "label": "Training Tool",
+    "url": "https://apps.powerapps.com/play/e/default-68283f3b-8487-4c86-adb3-a5228f18b893/a/b9ef3de9-1de0-4f80-816e-e2c9976037f1?tenantId=68283f3b-8487-4c86-adb3-a5228f18b893",
+    "type": "link",
+    "category": "HR & People",
+    "description": "Quarterly training tracker — Q1: Apr–Jun, Q2: Jul–Sep, Q3: Oct–Dec, Q4: Jan–Mar",
+    "id": "595e2ee4-6bcc-4caa-90a3-e477f78c4e66"
+  },
+  {
+    "label": "VOIS Benefits",
+    "url": "https://voiseghrportal.vodafone.com/benefits",
+    "type": "link",
+    "category": "HR & People",
+    "description": "Offers and medical insurance (requires VPN)",
+    "id": "7ca5e678-7fe1-44df-99cd-cf6e59382887"
+  },
+  {
+    "label": "VOIS Facilities",
+    "url": "https://vodafone.sharepoint.com/sites/VOISEGFacilitiesoperation",
+    "type": "link",
+    "category": "HR & People",
+    "description": "GYM subscription, PlayStation reservations, and meditation room bookings",
+    "id": "e2686d36-ee73-4fa5-8e6d-03f05181d0f8"
+  },
+  {
+    "label": "DataDog – Containers",
+    "url": "https://app.datadoghq.com/containers?_gl=1%2A63fe2t%2A_gcl_au%2AMzc1MDgyNTU3LjE3NTgxMTMzMTM.%2A_ga%2AMTM4MTMyMTMwNy4xNzU4MTEzMzE0%2A_ga_KN80RDFSQK%2AczE3NTgxMTMzMTYkbzEkZzAkdDE3NTgxMTMzMTYkajYwJGwwJGgxMDI0MDM4MTE.%2A_fplc%2AcUJ1Y2ZES3JoQW1iZmUyeXhyWkxpTTQ0RUhPRGFyaHdtUkYzTXZDdU9TJTJGbGw4OTJMSEtRZE95cEczVFlFTCUyRlpDdDd1SG9rdDF3VzdJTCUyRlNBQVNJYTN5azFTNlBHdHg5NmpCSE5penVrVXJXeHhmS3gzS3hYZlgxWWtYTCUyQkElM0QlM0Q.&selectedTopGraph=timeseries",
+    "type": "link",
+    "category": "Monitoring",
+    "description": "DataDog container view for runtime inspection",
+    "id": "0888c218-1611-442a-ae35-7d8cbd6d52fa"
+  },
+  {
+    "label": "DataDog – Logs & APM",
+    "url": "https://app.datadoghq.com/dashboard/cb7-pwh-78t?refresh_mode=sliding&from_ts=1741197275552&to_ts=1741200875552&live=true",
+    "type": "link",
+    "category": "Monitoring",
+    "description": "Main DataDog dashboard for logs and application performance monitoring",
+    "id": "a29008ba-6f8e-4ccc-87be-a6a6b3433d40"
+  },
+  {
+    "label": "PagerDuty – Production Incidents",
+    "url": "https://vfuk.pagerduty.com/incidents",
+    "type": "link",
+    "category": "Monitoring",
+    "description": "Active production incidents and on-call management",
+    "id": "34dbaac0-e78b-4663-8e90-377836250e7a"
+  },
+  {
+    "label": "Splunk Executer",
+    "url": "https://dublin.opsanalytics.vodafone.com/en-US/app/vf_uk_consumer_test/til_log_extractor?form.field4=*&form.field3.earliest=-24h%40h&form.field3.latest=now",
+    "type": "link",
+    "category": "Monitoring",
+    "description": "Splunk log extractor for UK consumer test (last 24 hours)",
+    "id": "3afcbbc9-df31-47bd-a065-96f0fcfe85a0"
+  },
+  {
+    "label": "MVAX MW Tool - User Guide",
+    "url": "https://dev.azure.com/vfuk-digital/Digital/_wiki/wikis/Digital%20X.wiki/38818/User-Guide",
+    "description": "This tool gether all MVAX-MW resources and tools",
+    "type": "link",
+    "category": "MVAX MW Tool",
+    "id": "8aa950e6-5755-406b-85b1-279d0766b50b"
+  },
+  {
+    "label": "Access Requests",
+    "url": "https://confluence.sp.vodafone.com/display/AFUMV/Access+Requests",
+    "type": "link",
+    "category": "Onboarding",
+    "description": "Request AWS account membership and environment access for new joiners",
+    "id": "4efd3fc0-0064-4959-adf9-a78c8ee623d4"
+  },
+  {
+    "label": "Code Repositories",
+    "url": "https://confluence.sp.vodafone.com/display/AFUMV/MVAX+Architecture+Code+Onboarding#MVAXArchitectureCodeOnboarding-Coderepositories:",
+    "type": "link",
+    "category": "Onboarding",
+    "description": "Azure DevOps — browse all MVAX source code repositories",
+    "id": "872bddff-557f-45f1-84cf-7469c992648b"
+  },
+  {
+    "label": "Development Environment Setup",
+    "url": "https://confluence.sp.vodafone.com/display/AFUMV/Set-up+Environment",
+    "type": "link",
+    "category": "Onboarding",
+    "description": "Step-by-step guide to set up your local development environment",
+    "id": "3467496e-4458-4342-b9cb-66f504fc0ab3"
+  },
+  {
+    "label": "MVA UK Business Walkthrough",
+    "url": "https://vodafone.sharepoint.com/sites/MVAUK/Shared%20Documents/Forms/AllItems.aspx?id=%2fsites%2fMVAUK%2fShared+Documents%2fGeneral%2fOnboarding%2fBusiness+Walkthroughs&viewid=3f5174ff-679f-48f1-b280-7aa772588c9f",
+    "type": "link",
+    "category": "Onboarding",
+    "description": "High-level business walkthrough for MVA UK — great starting point for new joiners",
+    "id": "48d4f855-3331-4a2f-a151-1c1ff240e09e"
+  },
+  {
+    "label": "MVAX Architecture & Code Onboarding",
+    "url": "https://confluence.sp.vodafone.com/display/AFUMV/MVAX+Architecture+Code+Onboarding",
+    "type": "link",
+    "category": "Onboarding",
+    "description": "Confluence page covering MVAX architecture, codebase structure, and onboarding steps",
+    "id": "c022cd10-9af8-4540-8acd-a7a09a79c2c5"
+  },
+  {
+    "label": "MVAX Onboarding Assistant",
+    "url": "https://m365.cloud.microsoft/apps/?templatedAppId=9e2962b8-7eae-4124-86f3-1799090725e1&templateInstanceId=247b2b9c-97be-43fd-8d8e-59a07b15dc6a&environment=Default-68283f3b-8487-4c86-adb3-a5228f18b893&source=embedded-builder",
+    "type": "link",
+    "category": "Onboarding",
+    "description": "GitHub Copilot-powered MVAX onboarding agent — ask it anything about the codebase",
+    "id": "de33a6ea-2e09-40c2-b186-5734d599672e"
+  },
+  {
+    "label": "MVAX Sessions – MW Onboarding",
+    "url": "https://vodafone.sharepoint.com/sites/MVAUK/Shared%20Documents/Forms/AllItems.aspx?id=%2fsites%2fMVAUK%2fShared+Documents%2fGeneral%2fOnboarding%2fTechnical+Walkthroughs%2fMW+onboarding&viewid=3f5174ff-679f-48f1-b280-7aa772588c9f",
+    "type": "link",
+    "category": "Onboarding",
+    "description": "Recorded onboarding sessions for the MW team",
+    "id": "3725d47c-5f45-4789-9032-53d1edabd73e"
+  }
+]
