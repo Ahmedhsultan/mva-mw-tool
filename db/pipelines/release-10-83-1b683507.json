@@ -1,0 +1,171 @@
+{
+  "pipelineName" : "Release 10.83",
+  "pipelineStructure" : {
+    "tasks" : [ {
+      "id" : "git-1",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ ],
+      "nextTaskIds" : [ "pr-1" ],
+      "repoName" : "mvax-api",
+      "branch" : "release/primary/10.83",
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "git-3",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ ],
+      "nextTaskIds" : [ "pr-3" ],
+      "repoName" : "mvax-upgrades",
+      "branch" : "release/primary/10.83",
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "git-4",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ ],
+      "nextTaskIds" : [ "pr-4" ],
+      "repoName" : "mvax-plan-services",
+      "branch" : "release/primary/10.83",
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "git-5",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ ],
+      "nextTaskIds" : [ "pr-5" ],
+      "repoName" : "mvax-common",
+      "branch" : "primary/10.83",
+      "sourceBranch" : "develop"
+    }, {
+      "id" : "git-2",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ ],
+      "nextTaskIds" : [ "pr-2" ],
+      "repoName" : "mvax-authentication",
+      "branch" : "release/primary/10.83",
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "pr-4",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "git-4",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "build-4" ],
+      "fromBranch" : "release/primary/10.83",
+      "targetBranch" : "master",
+      "repoName" : "mvax-plan-services"
+    }, {
+      "id" : "pr-5",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "git-5",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "build-5" ],
+      "fromBranch" : "release/primary/10.83",
+      "targetBranch" : "master",
+      "repoName" : "mvax-common"
+    }, {
+      "id" : "pr-3",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "git-3",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "build-3" ],
+      "fromBranch" : "release/primary/10.83",
+      "targetBranch" : "master",
+      "repoName" : "mvax-upgrades"
+    }, {
+      "id" : "pr-1",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "git-1",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "build-1" ],
+      "fromBranch" : "release/primary/10.83",
+      "targetBranch" : "master",
+      "repoName" : "mvax-api"
+    }, {
+      "id" : "pr-2",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "git-2",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "build-2" ],
+      "fromBranch" : "release/primary/10.83",
+      "targetBranch" : "master",
+      "repoName" : "mvax-authentication"
+    }, {
+      "id" : "build-1",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "pr-1",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "branch" : "release/primary/10.83",
+      "repoName" : "mvax-api",
+      "definitionId" : "997"
+    }, {
+      "id" : "build-3",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "pr-3",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "branch" : "release/primary/10.83",
+      "repoName" : "mvax-upgrades",
+      "definitionId" : "7912"
+    }, {
+      "id" : "build-2",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "pr-2",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "branch" : "release/primary/10.83",
+      "repoName" : "mvax-authentication",
+      "definitionId" : "3768"
+    }, {
+      "id" : "build-4",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "pr-4",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "branch" : "release/primary/10.83",
+      "repoName" : "mvax-plan-services",
+      "definitionId" : "5021"
+    }, {
+      "id" : "build-5",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "pr-5",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "branch" : "primary/10.83",
+      "repoName" : "mvax-common",
+      "definitionId" : "3794"
+    } ]
+  }
+}
