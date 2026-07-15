@@ -1,0 +1,9 @@
+{
+  "id" : "62865d8c-62ce-4935-aac5-227c6b06f840",
+  "label" : "Test Data Token Generator Pipeline",
+  "description" : "The pipeline for all testing data that used in BDD test with the loa1 and loa3 tokens",
+  "url" : "https://dev.azure.com/vfuk-digital/Digital/_library?itemType=VariableGroups&view=VariableGroupView&variableGroupId=57506&path=mva-testing-tokens",
+  "type" : "link",
+  "category" : "BDD",
+  "isCustom" : true
+}
