@@ -1,4 +1,4 @@
-[ {
+{
   "pipelineName" : "Release 10.83",
   "pipelineStructure" : {
     "tasks" : [ {
@@ -168,4 +168,4 @@
       "definitionId" : "3794"
     } ]
   }
-} ]
+}
