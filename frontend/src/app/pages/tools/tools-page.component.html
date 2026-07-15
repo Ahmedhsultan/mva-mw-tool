@@ -87,9 +87,26 @@
                   {{ preset.label }}
                 </button>
               }
+              <button type="button" class="loa-toggle-btn loa-edit-btn" [class.active]="showKeyEditor" title="Edit key values" (click)="toggleKeyEditor()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+              </button>
             </div>
             <button type="button" class="primary-action" (click)="decryptToken()">Decrypt</button>
           </div>
+
+          @if (showKeyEditor) {
+            <div class="loa-key-editor">
+              <label class="loa-key-field">
+                <span>Active key</span>
+                <input type="text" [(ngModel)]="activeKey" placeholder="Base64 key" spellcheck="false" autocomplete="off" />
+              </label>
+              <label class="loa-key-field">
+                <span>Inactive key</span>
+                <input type="text" [(ngModel)]="inactiveKey" placeholder="Base64 key" spellcheck="false" autocomplete="off" />
+              </label>
+              <button type="button" class="secondary-action" (click)="saveCustomKeys()">Save</button>
+            </div>
+          }
         </div>
       </div>
     </section>

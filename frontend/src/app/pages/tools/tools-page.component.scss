@@ -392,9 +392,61 @@
   }
 }
 
+.loa-edit-btn {
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loa-key-editor {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(248, 250, 252, 0.7);
+  border: 1px solid var(--mva-field-border);
+}
+
+.loa-key-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+
+  span {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--mva-text-muted);
+  }
+
+  input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--mva-field-border);
+    border-radius: 12px;
+    background: var(--mva-field-bg);
+    color: var(--mva-text);
+    font: 12px/1.4 'Source Code Pro', 'Fira Code', monospace;
+
+    &:focus {
+      outline: none;
+      border-color: var(--mva-accent-strong);
+    }
+  }
+}
+
 @media (max-width: 720px) {
   .loa-textarea-row {
     grid-template-columns: 1fr;
+  }
+
+  .loa-key-editor {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 

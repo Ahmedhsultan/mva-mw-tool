@@ -30,6 +30,7 @@ export class ToolsPageComponent {
   decryptError = '';
   decryptSuccess = '';
   selectedPreset = '';
+  showKeyEditor = false;
   private keysLoaded = false;
 
   readonly keyPresets: { value: string; label: string; activeKey: string; inactiveKey: string }[] = [
@@ -82,12 +83,31 @@ export class ToolsPageComponent {
       this.activeKey = preset.activeKey;
       this.inactiveKey = preset.inactiveKey;
       this.keysLoaded = true;
+      this.showKeyEditor = false;
       localStorage.setItem('mva_loa_keystore', JSON.stringify({
         activeKey: preset.activeKey,
         inactiveKey: preset.inactiveKey,
         preset: value
       }));
     }
+  }
+
+  toggleKeyEditor(): void {
+    this.showKeyEditor = !this.showKeyEditor;
+  }
+
+  saveCustomKeys(): void {
+    this.selectedPreset = '';
+    this.keysLoaded = true;
+    localStorage.setItem('mva_loa_keystore', JSON.stringify({
+      activeKey: this.activeKey.trim(),
+      inactiveKey: this.inactiveKey.trim(),
+      preset: ''
+    }));
+    this.showKeyEditor = false;
+    this.decryptSuccess = 'Keys saved.';
+    this.decryptError = '';
+    setTimeout(() => this.decryptSuccess = '', 3000);
   }
 
   async decryptToken(): Promise<void> {
