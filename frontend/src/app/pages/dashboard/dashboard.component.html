@@ -32,7 +32,11 @@
       </button>
 
       <div class="user-pill" [matMenuTriggerFor]="userMenu">
-        <div class="user-avatar">{{ authService.displayName()?.charAt(0)?.toUpperCase() }}</div>
+        @if (authService.avatarUrl()) {
+          <img class="user-avatar-img" [src]="authService.avatarUrl()" [alt]="authService.displayName()" referrerpolicy="no-referrer">
+        } @else {
+          <div class="user-avatar">{{ authService.displayName()?.charAt(0)?.toUpperCase() }}</div>
+        }
         <span class="user-name">{{ authService.displayName() }}</span>
         <mat-icon class="chevron">expand_more</mat-icon>
       </div>

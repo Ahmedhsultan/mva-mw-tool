@@ -9,12 +9,14 @@ export class AuthService {
   private readonly _isAuthenticated = signal(this.hasStoredSession());
   private readonly _provider = signal<DevOpsProvider>(this.getStoredProvider());
   private readonly _displayName = signal(sessionStorage.getItem('mva_displayName') || '');
+  private readonly _avatarUrl = signal(sessionStorage.getItem('mva_avatarUrl') || '');
   private readonly _organization = signal(sessionStorage.getItem('mva_organization') || '');
   private readonly _project = signal(sessionStorage.getItem('mva_project') || '');
 
   readonly isAuthenticated = this._isAuthenticated.asReadonly();
   readonly provider = this._provider.asReadonly();
   readonly displayName = this._displayName.asReadonly();
+  readonly avatarUrl = this._avatarUrl.asReadonly();
   readonly organization = this._organization.asReadonly();
   readonly project = this._project.asReadonly();
 
@@ -38,8 +40,10 @@ export class AuthService {
           });
           this.updateProvider(provider);
           sessionStorage.setItem('mva_displayName', response.displayName || '');
+          sessionStorage.setItem('mva_avatarUrl', response.avatarUrl || '');
           this._isAuthenticated.set(true);
           this._displayName.set(response.displayName || '');
+          this._avatarUrl.set(response.avatarUrl || '');
         }
       }),
       catchError(err => {
@@ -54,9 +58,13 @@ export class AuthService {
     sessionStorage.removeItem('mva_organization');
     sessionStorage.removeItem('mva_project');
     sessionStorage.removeItem('mva_displayName');
+    sessionStorage.removeItem('mva_avatarUrl');
     sessionStorage.removeItem('mva_provider');
     sessionStorage.removeItem('mva_dbRepoId');
     sessionStorage.removeItem('mva_dbBranch');
+    sessionStorage.removeItem('mva_resourcesRepoId');
+    sessionStorage.removeItem('mva_resourcesBranch');
+    sessionStorage.removeItem('mva_resourcesProvider');
     sessionStorage.removeItem('mva_overview_provider');
     sessionStorage.removeItem('mva_builds_provider');
     sessionStorage.removeItem('mva_deployments_provider');
@@ -87,6 +95,9 @@ export class AuthService {
       environments: [],
       dbRepoId: sessionStorage.getItem('mva_dbRepoId') || '',
       dbBranch: sessionStorage.getItem('mva_dbBranch') || 'main',
+      resourcesRepoId: sessionStorage.getItem('mva_resourcesRepoId') || '',
+      resourcesBranch: sessionStorage.getItem('mva_resourcesBranch') || 'main',
+      resourcesProvider: (sessionStorage.getItem('mva_resourcesProvider') as DevOpsProvider) || 'azure',
       tabProviders: this.getTabProviders()
     };
   }
@@ -151,6 +162,18 @@ export class AuthService {
 
   updateDbBranch(branch: string): void {
     sessionStorage.setItem('mva_dbBranch', branch);
+  }
+
+  updateResourcesRepoId(repoId: string): void {
+    sessionStorage.setItem('mva_resourcesRepoId', repoId);
+  }
+
+  updateResourcesBranch(branch: string): void {
+    sessionStorage.setItem('mva_resourcesBranch', branch);
+  }
+
+  updateResourcesProvider(provider: DevOpsProvider): void {
+    sessionStorage.setItem('mva_resourcesProvider', provider);
   }
 
   getTabProviders(): AppTabProviders {

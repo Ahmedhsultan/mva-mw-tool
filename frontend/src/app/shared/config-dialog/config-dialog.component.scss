@@ -276,6 +276,32 @@
   animation: config-spin 0.75s linear infinite;
 }
 
+.config-source-section {
+  padding: 18px;
+  margin-bottom: 16px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.54);
+  border: 1px solid rgba(126, 149, 185, 0.16);
+}
+
+.config-source-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.config-source-field {
+  flex: 1;
+
+  &.branch-field {
+    max-width: 180px;
+  }
+
+  &.provider-field {
+    max-width: 200px;
+  }
+}
+
 .config-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

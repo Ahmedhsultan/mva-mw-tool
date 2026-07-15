@@ -139,6 +139,14 @@
     font-weight: 800;
   }
 
+  .user-avatar-img {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(126, 149, 185, 0.2);
+  }
+
   .user-name {
     font-size: 13px;
     font-weight: 700;

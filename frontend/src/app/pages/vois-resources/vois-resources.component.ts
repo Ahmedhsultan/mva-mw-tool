@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subscription, TimeoutError } from 'rxjs';
 import { VoisResource } from './vois-resource.model';
@@ -26,6 +26,7 @@ const FILE_ICON_MAP: Record<string, string> = {
 })
 export class VoisResourcesComponent implements OnInit, OnDestroy {
   private readonly resourceStore = inject(VoisResourceStoreService);
+  private readonly cdr = inject(ChangeDetectorRef);
   private subscription?: Subscription;
 
   searchQuery = '';
@@ -45,7 +46,9 @@ export class VoisResourcesComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.subscription = this.resourceStore.resources$.subscribe((resources) => {
+      console.log('[Resources] subscription fired, count:', resources.length);
       this.allResources = resources;
+      this.cdr.detectChanges();
     });
 
     void this.loadResources();
@@ -155,14 +158,18 @@ export class VoisResourcesComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.loadingMessage = 'Loading resources from the backend...';
     this.errorMessage = '';
+    this.cdr.detectChanges();
 
     try {
       await this.resourceStore.loadResources();
+      console.log('[Resources] loadResources completed, allResources:', this.allResources.length);
     } catch (error) {
+      console.error('[Resources] loadResources error:', error);
       this.errorMessage = this.describeError(error, 'Could not load resources from the backend.');
     } finally {
       this.loading = false;
       this.loadingMessage = '';
+      this.cdr.detectChanges();
     }
   }
 
@@ -170,6 +177,7 @@ export class VoisResourcesComponent implements OnInit, OnDestroy {
     this.saving = true;
     this.loadingMessage = message;
     this.errorMessage = '';
+    this.cdr.detectChanges();
 
     try {
       await action();
@@ -180,6 +188,7 @@ export class VoisResourcesComponent implements OnInit, OnDestroy {
     } finally {
       this.saving = false;
       this.loadingMessage = '';
+      this.cdr.detectChanges();
     }
   }
 
@@ -191,6 +200,10 @@ export class VoisResourcesComponent implements OnInit, OnDestroy {
     if (error instanceof HttpErrorResponse) {
       if (typeof error.error === 'string' && error.error.trim()) {
         return error.error;
+      }
+
+      if (error.error && typeof error.error.error === 'string' && error.error.error.trim()) {
+        return error.error.error;
       }
 
       if (error.error && typeof error.error.message === 'string' && error.error.message.trim()) {

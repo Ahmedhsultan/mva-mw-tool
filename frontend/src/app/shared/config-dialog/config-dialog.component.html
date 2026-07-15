@@ -157,6 +157,73 @@
             </div>
           }
 
+          <section class="config-source-section">
+            <div class="section-header">
+              <h3>Config Source</h3>
+            </div>
+            <p class="repo-help">Repository and branch where configuration data (environments, repo profiles) is stored.</p>
+            <div class="config-source-row">
+              <mat-form-field appearance="outline" class="config-source-field">
+                <mat-label>Config Repository</mat-label>
+                <mat-icon matPrefix>source</mat-icon>
+                <input matInput [(ngModel)]="dbRepoId"
+                       [disabled]="isConfigBusy()"
+                       placeholder="e.g. mva-mw-tool"
+                       autocomplete="off"
+                       (blur)="onDbRepoIdChange()">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="config-source-field branch-field">
+                <mat-label>Branch</mat-label>
+                <mat-icon matPrefix>account_tree</mat-icon>
+                <input matInput [(ngModel)]="dbBranch"
+                       [disabled]="isConfigBusy()"
+                       placeholder="main"
+                       autocomplete="off"
+                       (blur)="onDbRepoIdChange()">
+              </mat-form-field>
+            </div>
+          </section>
+
+          <section class="config-source-section">
+            <div class="section-header">
+              <h3>Resources Source</h3>
+            </div>
+            <p class="repo-help">Repository and branch where VOIS resources data is stored (e.g. MVAX-MW-Tools).</p>
+            <div class="config-source-row">
+              <mat-form-field appearance="outline" class="config-source-field">
+                <mat-label>Resources Repository</mat-label>
+                <mat-icon matPrefix>inventory_2</mat-icon>
+                <input matInput [(ngModel)]="resourcesRepoId"
+                       [disabled]="isConfigBusy()"
+                       placeholder="e.g. MVAX-MW-Tools"
+                       autocomplete="off"
+                       (blur)="onResourcesRepoChange()">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="config-source-field branch-field">
+                <mat-label>Branch</mat-label>
+                <mat-icon matPrefix>account_tree</mat-icon>
+                <input matInput [(ngModel)]="resourcesBranch"
+                       [disabled]="isConfigBusy()"
+                       placeholder="main"
+                       autocomplete="off"
+                       (blur)="onResourcesRepoChange()">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="config-source-field provider-field">
+                <mat-label>Provider</mat-label>
+                <mat-icon matPrefix>cloud</mat-icon>
+                <mat-select [(ngModel)]="resourcesProvider"
+                            [disabled]="isConfigBusy()"
+                            (ngModelChange)="onResourcesRepoChange()">
+                  <mat-option value="azure">Azure DevOps</mat-option>
+                  <mat-option value="github">GitHub</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+          </section>
+
           <div class="config-grid">
             <section class="config-section">
               <div class="section-header">

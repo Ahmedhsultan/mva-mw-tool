@@ -19,15 +19,11 @@
     </div>
   </section>
 
-  @if (loadingMessage) {
+  @if (loading) {
     <section class="status-card mva-card status-card--loading">
       <div class="status-card-copy">
-        <span class="status-kicker">Sync in progress</span>
-        <strong>{{ loadingMessage }}</strong>
-        <p>We are reaching the configured remote repository and shaping the catalog for this page.</p>
-      </div>
-      <div class="status-meter" aria-hidden="true">
-        <span></span>
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <strong>Loading resources...</strong>
       </div>
     </section>
   }
@@ -44,26 +40,6 @@
     </section>
   }
 
-  @if (loading && resources.length === 0) {
-    <section class="loading-shell">
-      <article class="loading-card mva-card">
-        <div class="loading-copy">
-          <span class="section-kicker">Loading</span>
-          <h3>Preparing the resources catalog</h3>
-          <p>Fetching remote files from the configured repository and grouping them by category.</p>
-        </div>
-        <div class="loading-pulse" aria-hidden="true"></div>
-      </article>
-
-      <article class="loading-list mva-card" aria-hidden="true">
-        <div class="loading-list-header"></div>
-        <div class="loading-item"></div>
-        <div class="loading-item"></div>
-        <div class="loading-item"></div>
-        <div class="loading-item short"></div>
-      </article>
-    </section>
-  } @else {
     <div class="search-shell mva-card">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5" />
@@ -175,7 +151,6 @@
       }
       </div>
     }
-  }
 
   @if (showAddModal) {
     <div class="modal-backdrop" (click)="closeAddModal()">

@@ -10,6 +10,7 @@ import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Base64;
+import java.util.List;
 
 public class AzureAuthService implements AuthService {
 
@@ -50,12 +51,18 @@ public class AzureAuthService implements AuthService {
                     displayName = body.path("authorizedUser")
                             .path("providerDisplayName").asText("User");
                 }
-                return new AuthResponse(true, displayName, email);
+                String userId = body.path("authenticatedUser")
+                        .path("id").asText("");
+                String avatarUrl = "";
+                if (!userId.isEmpty()) {
+                    avatarUrl = fetchAvatarDataUrl(userId);
+                }
+                return new AuthResponse(true, displayName, email, avatarUrl);
             }
-            return new AuthResponse(false, null, null);
+            return new AuthResponse(false, null, null, null);
         } catch (Exception e) {
             log.error("Azure auth validation failed: {} - {}", e.getClass().getSimpleName(), e.getMessage());
-            return new AuthResponse(false, null, null);
+            return new AuthResponse(false, null, null, null);
         }
     }
 
@@ -65,5 +72,39 @@ public class AzureAuthService implements AuthService {
         headers.set("Authorization", "Basic " + credentials);
         headers.setContentType(MediaType.APPLICATION_JSON);
         return headers;
+    }
+
+    private String fetchAvatarDataUrl(String userId) {
+        String avatarEndpoint = String.format(
+            "https://dev.azure.com/%s/_api/_common/identityImage?id=%s&size=2",
+            organization,
+            userId
+        );
+
+        try {
+            HttpHeaders headers = createHeaders(pat);
+            headers.setAccept(List.of(MediaType.IMAGE_PNG, MediaType.ALL));
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<byte[]> response = restTemplate.exchange(
+                avatarEndpoint,
+                HttpMethod.GET,
+                entity,
+                byte[].class
+            );
+
+            byte[] body = response.getBody();
+            if (body == null || body.length == 0) {
+                return "";
+            }
+
+            MediaType contentType = response.getHeaders().getContentType();
+            String mediaType = contentType != null ? contentType.toString() : MediaType.IMAGE_PNG_VALUE;
+            String base64Image = Base64.getEncoder().encodeToString(body);
+            return "data:" + mediaType + ";base64," + base64Image;
+        } catch (Exception exception) {
+            log.warn("Azure avatar fetch failed: {} - {}", exception.getClass().getSimpleName(), exception.getMessage());
+            return "";
+        }
     }
 }

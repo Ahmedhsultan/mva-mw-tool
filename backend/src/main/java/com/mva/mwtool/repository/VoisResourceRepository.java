@@ -58,11 +58,15 @@ public class VoisResourceRepository {
                 .map(filePath -> readRemoteResource(context, resolvedRepoId, resolvedBranch, filePath))
                 .collect(Collectors.toCollection(ArrayList::new));
 
+            if (resources.isEmpty()) {
+                throw missingResources(resolvedRepoId, resolvedBranch);
+            }
+
             resources.sort(RESOURCE_ORDER);
             return resources;
         } catch (HttpClientErrorException exception) {
             if (exception.getStatusCode() == HttpStatus.NOT_FOUND) {
-                return new ArrayList<>();
+                throw missingResources(requireRepoId(repoId), resolveBranch(branch));
             }
             throw new IllegalArgumentException("Could not load resource catalog: " + exception.getStatusText(), exception);
         } catch (Exception exception) {
@@ -193,6 +197,14 @@ public class VoisResourceRepository {
 
     private String resourceFilePath(String resourceId) {
         return RESOURCES_DIRECTORY_PATH + "/" + resourceId.trim() + ".json";
+    }
+
+    private IllegalArgumentException missingResources(String repoId, String branch) {
+        return new IllegalArgumentException(
+            "No resource files were found under " + RESOURCES_DIRECTORY_PATH
+                + " in repo '" + repoId + "' on branch '" + branch + "'. "
+                + "Update Workspace settings so the config repo points to a repository that contains the resources dataset."
+        );
     }
 
     private static boolean hasText(String value) {

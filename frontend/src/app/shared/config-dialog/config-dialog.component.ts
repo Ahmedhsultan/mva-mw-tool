@@ -65,6 +65,9 @@ export class ConfigDialogComponent implements OnInit {
   newRepositoryType: RepoProfileType = 'service';
   dbRepoId = '';
   dbBranch = 'main';
+  resourcesRepoId = '';
+  resourcesBranch = 'main';
+  resourcesProvider: DevOpsProvider = 'azure';
   configLoaded = false;
   loadError = '';
   repoProfilesDirty = false;
@@ -88,7 +91,11 @@ export class ConfigDialogComponent implements OnInit {
     this.applyProviderSettings(this.authService.getProviderSettings(this.provider));
     this.dbRepoId = this.resolveDbRepoId(config.dbRepoId);
     this.dbBranch = config.dbBranch.trim() || 'main';
+    this.resourcesRepoId = config.resourcesRepoId || 'MVAX-MW-Tools';
+    this.resourcesBranch = config.resourcesBranch || 'main';
+    this.resourcesProvider = config.resourcesProvider || 'azure';
     this.persistConfigSource(this.dbRepoId, this.dbBranch);
+    this.persistResourcesSource();
 
     this.loadConfig();
   }
@@ -296,6 +303,17 @@ export class ConfigDialogComponent implements OnInit {
     this.dialogRef.close();
   }
 
+  onDbRepoIdChange(): void {
+    const resolvedRepoId = this.resolveDbRepoId(this.dbRepoId);
+    const resolvedBranch = this.dbBranch.trim() || 'main';
+    this.persistConfigSource(resolvedRepoId, resolvedBranch);
+    this.loadConfig();
+  }
+
+  onResourcesRepoChange(): void {
+    this.persistResourcesSource();
+  }
+
   private loadConfig(): void {
     const repoId = this.resolveDbRepoId(this.dbRepoId);
     const branch = this.dbBranch.trim() || 'main';
@@ -409,6 +427,12 @@ export class ConfigDialogComponent implements OnInit {
   private persistConfigSource(repoId: string, branch: string): void {
     this.authService.updateDbRepoId(repoId.trim());
     this.authService.updateDbBranch(branch.trim() || 'main');
+  }
+
+  private persistResourcesSource(): void {
+    this.authService.updateResourcesRepoId(this.resourcesRepoId.trim());
+    this.authService.updateResourcesBranch(this.resourcesBranch.trim() || 'main');
+    this.authService.updateResourcesProvider(this.resourcesProvider);
   }
 
   private resolveDbRepoId(repoId: string): string {

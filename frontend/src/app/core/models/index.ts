@@ -25,6 +25,7 @@ export interface AuthResponse {
   valid: boolean;
   displayName: string;
   email: string;
+  avatarUrl: string;
 }
 
 export interface BuildDto {
@@ -191,5 +192,8 @@ export interface DevOpsConfig {
   environments: string[];
   dbRepoId: string;
   dbBranch: string;
+  resourcesRepoId: string;
+  resourcesBranch: string;
+  resourcesProvider: DevOpsProvider;
   tabProviders: AppTabProviders;
 }

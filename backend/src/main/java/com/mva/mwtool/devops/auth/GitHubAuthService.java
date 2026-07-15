@@ -32,11 +32,12 @@ public class GitHubAuthService implements AuthService {
             if (body != null) {
                 String displayName = body.path("name").asText(body.path("login").asText());
                 String email = body.path("email").asText("");
-                return new AuthResponse(true, displayName, email);
+                String avatarUrl = body.path("avatar_url").asText("");
+                return new AuthResponse(true, displayName, email, avatarUrl);
             }
-            return new AuthResponse(false, null, null);
+            return new AuthResponse(false, null, null, null);
         } catch (HttpClientErrorException.Unauthorized e) {
-            return new AuthResponse(false, null, null);
+            return new AuthResponse(false, null, null, null);
         }
     }
 

@@ -39,7 +39,20 @@ export class DashboardComponent {
   constructor(
     public authService: AuthService,
     private dialog: MatDialog
-  ) {}
+  ) {
+    this.refreshAvatarIfMissing();
+  }
+
+  private refreshAvatarIfMissing(): void {
+    if (this.authService.isAuthenticated() && !this.authService.avatarUrl()) {
+      const provider = this.authService.provider();
+      const settings = this.authService.getProviderSettings(provider);
+      if (settings.pat) {
+        this.authService.validateToken(provider, settings.pat, settings.organization, settings.project)
+          .subscribe();
+      }
+    }
+  }
 
   openConfig(): void {
     this.dialog.open(ConfigDialogComponent, {
