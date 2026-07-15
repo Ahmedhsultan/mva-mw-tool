@@ -62,9 +62,6 @@ export class AuthService {
     sessionStorage.removeItem('mva_provider');
     sessionStorage.removeItem('mva_dbRepoId');
     sessionStorage.removeItem('mva_dbBranch');
-    sessionStorage.removeItem('mva_resourcesRepoId');
-    sessionStorage.removeItem('mva_resourcesBranch');
-    sessionStorage.removeItem('mva_resourcesProvider');
     sessionStorage.removeItem('mva_overview_provider');
     sessionStorage.removeItem('mva_builds_provider');
     sessionStorage.removeItem('mva_deployments_provider');
@@ -95,9 +92,6 @@ export class AuthService {
       environments: [],
       dbRepoId: sessionStorage.getItem('mva_dbRepoId') || '',
       dbBranch: sessionStorage.getItem('mva_dbBranch') || 'main',
-      resourcesRepoId: sessionStorage.getItem('mva_resourcesRepoId') || '',
-      resourcesBranch: sessionStorage.getItem('mva_resourcesBranch') || 'main',
-      resourcesProvider: (sessionStorage.getItem('mva_resourcesProvider') as DevOpsProvider) || 'azure',
       tabProviders: this.getTabProviders()
     };
   }
@@ -162,18 +156,6 @@ export class AuthService {
 
   updateDbBranch(branch: string): void {
     sessionStorage.setItem('mva_dbBranch', branch);
-  }
-
-  updateResourcesRepoId(repoId: string): void {
-    sessionStorage.setItem('mva_resourcesRepoId', repoId);
-  }
-
-  updateResourcesBranch(branch: string): void {
-    sessionStorage.setItem('mva_resourcesBranch', branch);
-  }
-
-  updateResourcesProvider(provider: DevOpsProvider): void {
-    sessionStorage.setItem('mva_resourcesProvider', provider);
   }
 
   getTabProviders(): AppTabProviders {

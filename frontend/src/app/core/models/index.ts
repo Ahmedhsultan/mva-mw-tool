@@ -192,8 +192,5 @@ export interface DevOpsConfig {
   environments: string[];
   dbRepoId: string;
   dbBranch: string;
-  resourcesRepoId: string;
-  resourcesBranch: string;
-  resourcesProvider: DevOpsProvider;
   tabProviders: AppTabProviders;
 }

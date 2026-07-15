@@ -50,13 +50,13 @@ export class VoisResourceStoreService {
 
   private requestOptions(): { headers: HttpHeaders; params: HttpParams } {
     const config = this.authService.getConfig();
-    const provider = config.resourcesProvider || 'azure';
+    const provider = config.tabProviders.config;
     const settings = this.authService.getProviderSettings(provider);
-    const repoId = (config.resourcesRepoId || '').trim();
-    const branch = (config.resourcesBranch || 'main').trim() || 'main';
+    const repoId = (config.dbRepoId || '').trim();
+    const branch = (config.dbBranch || 'main').trim() || 'main';
 
     if (!repoId) {
-      throw new Error('Resources repository is not configured. Open Configuration and set the Resources Source repository.');
+      throw new Error('Config repository is not configured. Open Configuration and set a repository in the Repos & Environments tab.');
     }
 
     if (!settings.pat.trim()) {
