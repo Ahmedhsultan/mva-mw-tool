@@ -1,0 +1,8 @@
+{
+  "label": "MVAX Onboarding Assistant",
+  "url": "https://m365.cloud.microsoft/apps/?templatedAppId=9e2962b8-7eae-4124-86f3-1799090725e1&templateInstanceId=247b2b9c-97be-43fd-8d8e-59a07b15dc6a&environment=Default-68283f3b-8487-4c86-adb3-a5228f18b893&source=embedded-builder",
+  "type": "link",
+  "category": "Onboarding",
+  "description": "GitHub Copilot-powered MVAX onboarding agent \u2014 ask it anything about the codebase",
+  "id": "de33a6ea-2e09-40c2-b186-5734d599672e"
+}

@@ -1,0 +1,8 @@
+{
+  "label": "DataDog \u2013 Logs & APM",
+  "url": "https://app.datadoghq.com/dashboard/cb7-pwh-78t?refresh_mode=sliding&from_ts=1741197275552&to_ts=1741200875552&live=true",
+  "type": "link",
+  "category": "Monitoring",
+  "description": "Main DataDog dashboard for logs and application performance monitoring",
+  "id": "a29008ba-6f8e-4ccc-87be-a6a6b3433d40"
+}

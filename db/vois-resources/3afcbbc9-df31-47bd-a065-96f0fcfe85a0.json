@@ -1,0 +1,8 @@
+{
+  "label": "Splunk Executer",
+  "url": "https://dublin.opsanalytics.vodafone.com/en-US/app/vf_uk_consumer_test/til_log_extractor?form.field4=*&form.field3.earliest=-24h%40h&form.field3.latest=now",
+  "type": "link",
+  "category": "Monitoring",
+  "description": "Splunk log extractor for UK consumer test (last 24 hours)",
+  "id": "3afcbbc9-df31-47bd-a065-96f0fcfe85a0"
+}

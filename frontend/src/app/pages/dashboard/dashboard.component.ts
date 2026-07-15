@@ -11,6 +11,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { DevOpsProvider } from '../../core/models';
 import { ConfigDialogComponent } from '../../shared/config-dialog/config-dialog.component';
 import { PipelinesWorkbenchComponent } from '../pipelines/pipelines-workbench.component';
+import { ToolsPageComponent } from '../tools/tools-page.component';
+import { VoisResourcesComponent } from '../vois-resources/vois-resources.component';
 
 @Component({
   selector: 'app-dashboard',
@@ -24,7 +26,9 @@ import { PipelinesWorkbenchComponent } from '../pipelines/pipelines-workbench.co
     MatDialogModule,
     MatTooltipModule,
     MatMenuModule,
-    PipelinesWorkbenchComponent
+    PipelinesWorkbenchComponent,
+    ToolsPageComponent,
+    VoisResourcesComponent
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
@@ -62,11 +66,11 @@ export class DashboardComponent {
     return provider === 'github' ? 'code' : 'cloud';
   }
 
-  tabOrganization(tab: 'overview' | 'pipelines'): string {
+  tabOrganization(tab: 'overview' | 'pipelines' | 'config'): string {
     return this.authService.getProviderSettings(this.authService.getTabProvider(tab)).organization || 'No organization';
   }
 
-  tabProject(tab: 'overview' | 'pipelines'): string {
+  tabProject(tab: 'overview' | 'pipelines' | 'config'): string {
     const provider = this.authService.getTabProvider(tab);
     const fallback = provider === 'github' ? 'No workspace' : 'No project';
     return this.authService.getProviderSettings(provider).project || fallback;
@@ -84,9 +88,13 @@ export class DashboardComponent {
     this.authService.logout();
   }
 
-  private activeTabKey(): 'overview' | 'pipelines' {
+  private activeTabKey(): 'overview' | 'pipelines' | 'config' {
     if (this.selectedTabIndex === 1) {
       return 'pipelines';
+    }
+
+    if (this.selectedTabIndex >= 2) {
+      return 'config';
     }
 
     return 'overview';

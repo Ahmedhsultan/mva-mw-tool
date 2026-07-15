@@ -1,0 +1,8 @@
+{
+  "label": "Environment Status & Reservation",
+  "url": "https://scaling-dashboard.digital.vodafoneaws.co.uk/",
+  "type": "link",
+  "category": "Environment",
+  "description": "Check environment availability and reserve slots (open Cloud Engineering Bastion link first)",
+  "id": "e91ba6ce-1ea2-48f6-85ba-62ff8b87b5ff"
+}

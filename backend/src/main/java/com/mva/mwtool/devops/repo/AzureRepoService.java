@@ -49,6 +49,35 @@ public class AzureRepoService implements RepoService {
     }
 
     @Override
+    public List<String> listFilePaths(String repoId, String directoryPath, String branch) {
+        String url = String.format(
+                "%s/%s/%s/_apis/git/repositories/%s/items?scopePath=%s&versionDescriptor.version=%s" +
+                        "&versionDescriptor.versionType=branch&recursionLevel=OneLevel&includeContentMetadata=true&api-version=%s",
+                BASE_URL, organization, project, repoId, directoryPath, branch, API_VERSION);
+
+        HttpEntity<Void> entity = new HttpEntity<>(AzureAuthService.createHeaders(pat));
+        ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, entity, JsonNode.class);
+
+        JsonNode body = response.getBody();
+        List<String> filePaths = new ArrayList<>();
+
+        if (body == null || !body.has("value")) {
+            return filePaths;
+        }
+
+        for (JsonNode item : body.path("value")) {
+            if (!item.path("isFolder").asBoolean(false)) {
+                String path = item.path("path").asText();
+                if (path != null && !path.isBlank()) {
+                    filePaths.add(path.startsWith("/") ? path.substring(1) : path);
+                }
+            }
+        }
+
+        return filePaths;
+    }
+
+    @Override
     public void pushFile(String repoId, String filePath, String branch, String content, String commitMessage) {
         String currentCommitId = getCurrentCommitId(repoId, branch);
         String changeType = fileExists(repoId, filePath, branch) ? "edit" : "add";
@@ -74,6 +103,39 @@ public class AzureRepoService implements RepoService {
         newContent.put("content", content);
         newContent.put("contentType", "rawtext");
         change.put("newContent", newContent);
+
+        Map<String, Object> commit = new HashMap<>();
+        commit.put("comment", commitMessage);
+        commit.put("changes", List.of(change));
+        requestBody.put("commits", List.of(commit));
+
+        HttpHeaders headers = AzureAuthService.createHeaders(pat);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        restTemplate.exchange(url, HttpMethod.POST, entity, JsonNode.class);
+    }
+
+    @Override
+    public void deleteFile(String repoId, String filePath, String branch, String commitMessage) {
+        String currentCommitId = getCurrentCommitId(repoId, branch);
+
+        String url = String.format("%s/%s/%s/_apis/git/repositories/%s/pushes?api-version=%s",
+                BASE_URL, organization, project, repoId, API_VERSION);
+
+        String branchRef = branch.startsWith("refs/") ? branch : "refs/heads/" + branch;
+
+        Map<String, Object> requestBody = new HashMap<>();
+
+        Map<String, Object> refUpdate = new HashMap<>();
+        refUpdate.put("name", branchRef);
+        refUpdate.put("oldObjectId", currentCommitId);
+        requestBody.put("refUpdates", List.of(refUpdate));
+
+        Map<String, Object> change = new HashMap<>();
+        change.put("changeType", "delete");
+        Map<String, String> item = new HashMap<>();
+        item.put("path", filePath);
+        change.put("item", item);
 
         Map<String, Object> commit = new HashMap<>();
         commit.put("comment", commitMessage);

@@ -1,0 +1,131 @@
+<div class="tools-page">
+  <section class="hero-panel mva-card">
+    <div class="hero-copy">
+      <span class="section-kicker">Tools</span>
+      <h2>Workflow helpers</h2>
+      <p>
+        Imported tool assets from the source project, presented with the MVA-MW-Tool visual language so the experience
+        stays consistent with the rest of the workspace.
+      </p>
+    </div>
+
+    <div class="hero-summary">
+      <div class="summary-tile">
+        <strong>3</strong>
+        <span>Imported helpers</span>
+      </div>
+      <div class="summary-tile">
+        <strong>1</strong>
+        <span>Downloadable extension bundle</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="tools-grid">
+    <section class="tool-card mva-card">
+      <div class="tool-icon token-icon">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          <circle cx="12" cy="16" r="1" />
+        </svg>
+      </div>
+
+      <div class="tool-body">
+        <h3>DXIDM Token Generator</h3>
+        <p class="tool-description">
+          The source project includes a DXIDM token generator. This workspace keeps the flow visible,
+          but the action remains disabled until a safe backend adapter is configured with local secrets.
+        </p>
+
+        <div class="token-form">
+          <div class="token-row">
+            <label>
+              <span>MSISDN</span>
+              <input type="text" placeholder="e.g. 447700900000" [(ngModel)]="msisdn" />
+            </label>
+
+            <label class="fixed-width">
+              <span>Server</span>
+              <select [(ngModel)]="server">
+                @for (item of servers; track item.value) {
+                  <option [value]="item.value">{{ item.label }}</option>
+                }
+              </select>
+            </label>
+          </div>
+
+          <div class="token-row compact-row">
+            <div class="loa-toggle">
+              <button type="button" [class.active]="loaLevel === 'LOA1'" (click)="loaLevel = 'LOA1'">LOA1</button>
+              <button type="button" [class.active]="loaLevel === 'LOA3'" (click)="loaLevel = 'LOA3'">LOA3</button>
+            </div>
+
+            <button type="button" class="primary-action" disabled>
+              Backend setup required
+            </button>
+          </div>
+        </div>
+
+        <div class="tool-note">
+          To enable this here, wire a backend endpoint that reads its secrets from local environment variables.
+        </div>
+      </div>
+    </section>
+
+    <section class="tool-card mva-card">
+      <div class="tool-icon">
+        <img src="assets/cloudwatch-log-extractor/icon.png" alt="MVAX Log to cURL" width="38" height="38" />
+      </div>
+
+      <div class="tool-body">
+        <h3>MVAX Log to cURL</h3>
+        <p class="tool-description">
+          Chrome extension that reads an MVAX audit log from the clipboard on CloudWatch pages and prepares a cURL command.
+        </p>
+
+        <div class="actions">
+          <button type="button" class="primary-action" (click)="downloadExtension()">Download Extension (.zip)</button>
+          <button type="button" class="secondary-action" (click)="toggleHelp()">
+            {{ showExtensionHelp ? 'Hide Help' : 'How to Use' }}
+          </button>
+        </div>
+
+        @if (showExtensionHelp) {
+          <div class="help-panel">
+            <video class="help-video" src="assets/cloudwatch-log-extractor/help-video.mov" controls preload="metadata" playsinline>
+              Your browser does not support the video tag.
+            </video>
+            <p>
+              Copy the MVAX audit log entry, then use the floating <strong>Log to cURL</strong> button on the CloudWatch page.
+            </p>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="tool-card mva-card">
+      <div class="tool-icon vf-icon">
+        <img src="assets/vodafone-digitalx-icon.png" alt="VodafoneThree DigitalX" width="38" height="38" />
+      </div>
+
+      <div class="tool-body">
+        <h3>VodafoneThree DigitalX</h3>
+        <p class="tool-description">
+          Chrome extension maintained by the DigitalX team, available directly from the Chrome Web Store.
+        </p>
+
+        <div class="actions">
+          <a
+            class="primary-action link-action"
+            href="https://chromewebstore.google.com/detail/vodafonethree-digitalx/kidkgmkhibmmahkcajlaobnjadmojdld"
+            target="_blank"
+            rel="noopener"
+          >
+            Install from Chrome Web Store
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

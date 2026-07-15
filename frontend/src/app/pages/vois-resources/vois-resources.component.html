@@ -1,0 +1,242 @@
+<div class="resources-page">
+  <section class="hero-panel mva-card">
+    <div class="hero-copy">
+      <span class="section-kicker">Resources</span>
+      <h2>Shared links and files</h2>
+      <p>
+        Imported from the MVAX-MW-Tools dataset and served through the local MVA-MW-Tool backend,
+        with custom additions stored separately so the seeded catalog stays intact.
+      </p>
+    </div>
+
+    <div class="hero-actions">
+      <button type="button" class="primary-action" [disabled]="loading || saving" (click)="openAddModal()">
+        Add Resource
+      </button>
+      <button type="button" class="ghost-action" [disabled]="loading || saving" (click)="retryLoadResources()">
+        Refresh
+      </button>
+    </div>
+  </section>
+
+  @if (loadingMessage) {
+    <section class="status-card mva-card status-card--loading">
+      <div class="status-card-copy">
+        <span class="status-kicker">Sync in progress</span>
+        <strong>{{ loadingMessage }}</strong>
+        <p>We are reaching the configured remote repository and shaping the catalog for this page.</p>
+      </div>
+      <div class="status-meter" aria-hidden="true">
+        <span></span>
+      </div>
+    </section>
+  }
+
+  @if (errorMessage) {
+    <section class="status-card mva-card status-card--error">
+      <div>
+        <strong>Backend request failed</strong>
+        <p>{{ errorMessage }}</p>
+      </div>
+      <button type="button" class="ghost-action" [disabled]="loading || saving" (click)="retryLoadResources()">
+        Retry
+      </button>
+    </section>
+  }
+
+  @if (loading && resources.length === 0) {
+    <section class="loading-shell">
+      <article class="loading-card mva-card">
+        <div class="loading-copy">
+          <span class="section-kicker">Loading</span>
+          <h3>Preparing the resources catalog</h3>
+          <p>Fetching remote files from the configured repository and grouping them by category.</p>
+        </div>
+        <div class="loading-pulse" aria-hidden="true"></div>
+      </article>
+
+      <article class="loading-list mva-card" aria-hidden="true">
+        <div class="loading-list-header"></div>
+        <div class="loading-item"></div>
+        <div class="loading-item"></div>
+        <div class="loading-item"></div>
+        <div class="loading-item short"></div>
+      </article>
+    </section>
+  } @else {
+    <div class="search-shell mva-card">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5" />
+        <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+      </svg>
+
+      <input
+        type="text"
+        placeholder="Search links and files..."
+        [(ngModel)]="searchQuery"
+        name="resourceSearch"
+      />
+
+      @if (searchQuery) {
+        <button type="button" class="clear-button" (click)="searchQuery = ''">Clear</button>
+      }
+    </div>
+
+    @if (resources.length === 0) {
+      <section class="state-card mva-card">
+        <h3>No resources available</h3>
+        <p>The backend returned an empty dataset. You can still add custom entries.</p>
+      </section>
+    } @else if (filteredResources.length === 0) {
+      <section class="state-card mva-card">
+        <h3>No results for "{{ searchQuery }}"</h3>
+        <p>Try a different search term.</p>
+      </section>
+    } @else {
+      <div class="category-stack">
+      @for (category of categories; track category) {
+        <section class="category-card mva-card">
+          <div class="category-header">
+            <span>{{ category }}</span>
+            <strong>{{ resourcesByCategory(category).length }}</strong>
+          </div>
+
+          <div class="resource-list">
+            @for (resource of resourcesByCategory(category); track trackById($index, resource)) {
+              <a
+                class="resource-item"
+                [class.file-resource]="resource.type === 'file'"
+                [class.disabled-resource]="!resource.url"
+                [href]="resource.url || null"
+                [attr.target]="resource.url ? '_blank' : null"
+                rel="noopener noreferrer"
+              >
+                <span class="resource-icon">
+                  @if (resource.type === 'link') {
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M6.5 9.5a3.5 3.5 0 005 0l2-2a3.5 3.5 0 00-5-5l-1 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                      <path d="M9.5 6.5a3.5 3.5 0 00-5 0l-2 2a3.5 3.5 0 005 5l1-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                    </svg>
+                  } @else if (getFileIcon(resource.label) === 'spreadsheet') {
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <rect x="2" y="2" width="12" height="12" rx="2" stroke="#15803d" stroke-width="1.4" />
+                      <path d="M2 6h12M6 6v8" stroke="#15803d" stroke-width="1.2" />
+                    </svg>
+                  } @else if (getFileIcon(resource.label) === 'pdf') {
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <rect x="2" y="1" width="12" height="14" rx="2" stroke="#dc2626" stroke-width="1.4" />
+                      <path d="M5 8h6M5 11h4M5 5h3" stroke="#dc2626" stroke-width="1.2" stroke-linecap="round" />
+                    </svg>
+                  } @else if (getFileIcon(resource.label) === 'doc') {
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <rect x="2" y="1" width="12" height="14" rx="2" stroke="#2563eb" stroke-width="1.4" />
+                      <path d="M5 6h6M5 9h6M5 12h4" stroke="#2563eb" stroke-width="1.2" stroke-linecap="round" />
+                    </svg>
+                  } @else if (getFileIcon(resource.label) === 'ppt') {
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <rect x="2" y="1" width="12" height="14" rx="2" stroke="#c2410c" stroke-width="1.4" />
+                      <path d="M5 5h4a2 2 0 0 1 0 4H5V5z" stroke="#c2410c" stroke-width="1.2" />
+                    </svg>
+                  } @else {
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <rect x="2" y="1" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.4" />
+                      <path d="M5 6h6M5 9h6M5 12h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+                    </svg>
+                  }
+                </span>
+
+                <span class="resource-body">
+                  <span class="resource-label">{{ resource.label }}</span>
+                  @if (resource.description) {
+                    <span class="resource-description">{{ resource.description }}</span>
+                  }
+                </span>
+
+                <span class="resource-actions">
+                  @if (isCustom(resource)) {
+                    <button
+                      type="button"
+                      class="delete-button"
+                      [disabled]="loading || saving"
+                      (click)="deleteCustomResource(resource); $event.preventDefault(); $event.stopPropagation()"
+                    >
+                      Remove
+                    </button>
+                  }
+
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
+              </a>
+            }
+          </div>
+        </section>
+      }
+      </div>
+    }
+  }
+
+  @if (showAddModal) {
+    <div class="modal-backdrop" (click)="closeAddModal()">
+      <div class="modal-panel mva-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Add Resource</h3>
+          <button type="button" class="close-button" (click)="closeAddModal()">Close</button>
+        </div>
+
+        <div class="modal-body">
+          <label>
+            <span>Label *</span>
+            <input type="text" [(ngModel)]="newLabel" placeholder="e.g. Useful runbook" />
+          </label>
+
+          <label>
+            <span>URL</span>
+            <input type="url" [(ngModel)]="newUrl" placeholder="https://..." />
+          </label>
+
+          <label>
+            <span>Description</span>
+            <input type="text" [(ngModel)]="newDescription" placeholder="Short description" />
+          </label>
+
+          <div class="modal-row">
+            <label>
+              <span>Type</span>
+              <select [(ngModel)]="newType">
+                <option value="link">Link</option>
+                <option value="file">File</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Category *</span>
+              <select [(ngModel)]="newCategory">
+                <option value="" disabled>Select category</option>
+                @for (category of allCategoryNames; track category) {
+                  <option [value]="category">{{ category }}</option>
+                }
+                <option value="__new__">+ New category...</option>
+              </select>
+            </label>
+          </div>
+
+          @if (newCategory === '__new__') {
+            <label>
+              <span>New Category Name *</span>
+              <input type="text" [(ngModel)]="newCategoryCustom" placeholder="e.g. QA and Testing" />
+            </label>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="secondary-action" (click)="closeAddModal()">Cancel</button>
+          <button type="button" class="primary-action" [disabled]="!canSaveResource || saving || loading" (click)="saveNewResource()">
+            Add Resource
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

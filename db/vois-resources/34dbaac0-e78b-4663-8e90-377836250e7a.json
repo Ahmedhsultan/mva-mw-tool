@@ -1,0 +1,8 @@
+{
+  "label": "PagerDuty \u2013 Production Incidents",
+  "url": "https://vfuk.pagerduty.com/incidents",
+  "type": "link",
+  "category": "Monitoring",
+  "description": "Active production incidents and on-call management",
+  "id": "34dbaac0-e78b-4663-8e90-377836250e7a"
+}

@@ -1,0 +1,8 @@
+{
+  "label": "Web Login \u2013 int1",
+  "url": "https://login-int1.dx-idm.vodafone.co.uk/login?ReturnUrl=%2Fconnect%2Fauthorize%2Fcallback%3Fclient_id%3Dmva-int1%26redirect_uri%3Dhttps%253A%252F%252Fmvax.vodafone.co.uk%252Fapp%252FdxidmCallback%26response_type%3Dcode%26scope%3Dopenid%2520vf-profile%2520vf-contact%2520vf-account%2520vf-subscription",
+  "type": "link",
+  "category": "Development",
+  "description": "VFID login page for int1 environment",
+  "id": "d1cc7800-6933-4b82-9ad6-5d2b3cd3b077"
+}

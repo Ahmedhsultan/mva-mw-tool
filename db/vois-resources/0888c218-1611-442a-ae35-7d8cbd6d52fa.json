@@ -1,0 +1,8 @@
+{
+  "label": "DataDog \u2013 Containers",
+  "url": "https://app.datadoghq.com/containers?_gl=1%2A63fe2t%2A_gcl_au%2AMzc1MDgyNTU3LjE3NTgxMTMzMTM.%2A_ga%2AMTM4MTMyMTMwNy4xNzU4MTEzMzE0%2A_ga_KN80RDFSQK%2AczE3NTgxMTMzMTYkbzEkZzAkdDE3NTgxMTMzMTYkajYwJGwwJGgxMDI0MDM4MTE.%2A_fplc%2AcUJ1Y2ZES3JoQW1iZmUyeXhyWkxpTTQ0RUhPRGFyaHdtUkYzTXZDdU9TJTJGbGw4OTJMSEtRZE95cEczVFlFTCUyRlpDdDd1SG9rdDF3VzdJTCUyRlNBQVNJYTN5azFTNlBHdHg5NmpCSE5penVrVXJXeHhmS3gzS3hYZlgxWWtYTCUyQkElM0QlM0Q.&selectedTopGraph=timeseries",
+  "type": "link",
+  "category": "Monitoring",
+  "description": "DataDog container view for runtime inspection",
+  "id": "0888c218-1611-442a-ae35-7d8cbd6d52fa"
+}
