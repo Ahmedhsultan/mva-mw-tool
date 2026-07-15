@@ -247,6 +247,159 @@
   background: #0f172a;
 }
 
+/* LOA Token Decryption */
+
+.decrypt-icon {
+  background: rgba(251, 146, 60, 0.12);
+  color: #ea580c;
+}
+
+.loa-tool-card {
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+
+.loa-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.loa-textarea-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.loa-textarea-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.loa-textarea-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.loa-textarea-header span {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--mva-text-muted);
+}
+
+.loa-textarea-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(126, 149, 185, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--mva-text-soft);
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--mva-text);
+  }
+}
+
+.loa-form textarea {
+  width: 100%;
+  min-height: 160px;
+  padding: 12px 14px;
+  border: 1px solid var(--mva-field-border);
+  border-radius: 18px;
+  background: var(--mva-field-bg);
+  color: var(--mva-text);
+  font: 13px/1.6 'Source Code Pro', 'Fira Code', monospace;
+  resize: vertical;
+
+  &:focus {
+    outline: none;
+    border-color: var(--mva-accent-strong);
+  }
+
+  &[readonly] {
+    background: rgba(248, 250, 252, 0.8);
+    color: var(--mva-text-soft);
+  }
+}
+
+.loa-button-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.loa-toast {
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.loa-toast--error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.loa-toast--success {
+  background: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+}
+
+/* LOA Toggle */
+
+.loa-toggle-group {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--mva-field-border);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.loa-toggle-btn {
+  padding: 8px 20px;
+  border: none;
+  background: var(--mva-field-bg);
+  color: var(--mva-text-soft);
+  font: 600 13px/1.4 inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:not(:last-child) {
+    border-right: 1px solid var(--mva-field-border);
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  &.active {
+    background: var(--mva-accent-strong);
+    color: #fff;
+  }
+}
+
+@media (max-width: 720px) {
+  .loa-textarea-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* End LOA */
+
 @media (max-width: 720px) {
   .hero-panel,
   .hero-summary,

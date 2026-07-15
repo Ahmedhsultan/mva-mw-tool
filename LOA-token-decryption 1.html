@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    
+    <!-- Basic
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <meta charset="utf-8">
+    <title>LOA Token Decryption</title>
+    
+    <!-- Mobile Specific Metas
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- FONT
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;600&family=Source+Code+Pro:wght@300;400&display=swap" rel="stylesheet">
+    
+    <!-- CSS
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.css" />
+    
+    <style>
+
+      html {
+        margin-top: 5rem;
+      }
+
+      .page-title {
+        color: #f8f8f8;
+        margin-bottom: 2.5rem;
+      }
+
+      body {
+        background-color: #6d695c;
+        background-image:
+          repeating-linear-gradient(120deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .1) 1px, transparent 1px, transparent 60px),
+          repeating-linear-gradient(60deg, rgba(255, 255, 255, .1), rgba(255, 255, 255, .1) 1px, transparent 1px, transparent 60px),
+          linear-gradient(60deg, rgba(0, 0, 0, .1) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, .1) 75%, rgba(0, 0, 0, .1)),
+          linear-gradient(120deg, rgba(0, 0, 0, .1) 25%, transparent 25%, transparent 75%, rgba(0, 0, 0, .1) 75%, rgba(0, 0, 0, .1));
+        background-size: 70px 120px;
+      }
+
+      form {
+        margin: 0;
+      }
+
+      a {
+        color: #37A0FD;
+      }
+
+      a:hover {
+        color: #238CE9;
+      }
+
+      a:active {
+        color: #4B9FE9;
+      }
+
+      button,
+      .button {
+        font-family: "Raleway", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      }
+
+      button.button-icon {
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        text-decoration: none;
+        cursor: pointer;
+        margin-left: .3rem;
+        margin-bottom: .3rem;
+      }
+
+      .button.button-blue,
+      button.button-blue,
+      input[type="submit"].button-blue,
+      input[type="reset"].button-blue,
+      input[type="button"].button-blue {
+        color: #FFF;
+        background-color: #37A0FD;
+        border-color: #37A0FD;
+      }
+
+      .button.button-blue:hover,
+      button.button-blue:hover,
+      input[type="submit"].button-blue:hover,
+      input[type="reset"].button-blue:hover,
+      input[type="button"].button-blue:hover {
+        color: #FFF;
+        background-color: #238CE9;
+        border-color: #238CE9;
+      }
+
+      .button.button-blue:active,
+      button.button-blue:active,
+      input[type="submit"].button-blue:active,
+      input[type="reset"].button-blue:active,
+      input[type="button"].button-blue:active {
+        color: #FFF;
+        background-color: #4B9FE9;
+        border-color: #4B9FE9;
+      }
+
+      .button.button-plain:active,
+      button.button-plain:active,
+      input[type="submit"].button-plain:active,
+      input[type="reset"].button-plain:active,
+      input[type="button"].button-plain:active {
+        background-color: #eaeaea;
+      }
+
+      .button-panel {
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-end;
+        align-items: center;
+        column-gap: .8em;
+      }
+
+      textarea,
+      textarea:focus {
+        height: 30rem;
+        border: 4px solid #37A0FD;
+        background-color: #f8f8f8;
+        resize: none;
+        font-size: 1.6rem;
+        font-family: 'Source Code Pro', monospace;
+        color: #2f2f2f;
+      }
+
+      input[type="text"] {
+        font-size: 1.4rem;
+        font-family: 'Source Code Pro', monospace;
+        color: #2f2f2f;
+      }
+
+      input[type="text"]:focus {
+        border: 1px solid #37A0FD;
+      }
+
+      .toastr-content {
+        line-height: 2.2rem;
+      }
+
+      ion-icon {
+        font-size: 1.6rem;
+      }
+
+      /* Modal dialog styles */
+      .modal {
+        position: fixed;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.65);
+        visibility: hidden;
+        backface-visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.15s ease-in-out;
+      }
+
+      .modal.modal-open {
+        visibility: visible;
+        backface-visibility: visible;
+        opacity: 1;
+        z-index: 1;
+      }
+
+      .modal .modal-inner {
+        position: relative;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal .modal-inner .modal-content {
+        background-color: white;
+        width: 30em;
+        padding: 1em 1.5em;
+        position: relative;
+        margin: 2em;
+        box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.35);
+      }
+
+      .modal .modal-inner .modal-content .modal-close-icon {
+        position: absolute;
+        right: 1.5em;
+      }
+
+      .modal .modal-inner .modal-content .modal-content-inner {
+        padding-right: 2em;
+      }
+
+      .modal .modal-inner .modal-content .modal-content-inner h1,
+      .modal .modal-inner .modal-content .modal-content-inner h2,
+      .modal .modal-inner .modal-content .modal-content-inner h3,
+      .modal .modal-inner .modal-content .modal-content-inner h4,
+      .modal .modal-inner .modal-content .modal-content-inner h5,
+      .modal .modal-inner .modal-content .modal-content-inner h6 {
+        margin-bottom: 1em;
+      }
+
+      .modal .modal-inner .modal-content .modal-content-inner p {
+        margin-bottom: 1em;
+      }
+
+      .modal .modal-inner .modal-content .modal-buttons-seperator {
+        margin: 1.5em 0;
+        margin-top: 0;
+      }
+
+      .modal .modal-inner .modal-content .modal-buttons {
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-end;
+        align-items: center;
+        margin-top: 2rem;
+      }
+
+      .modal .modal-inner .modal-content .modal-buttons button {
+        margin-left: 1em;
+      }
+
+      .modal .modal-inner .modal-content .modal-buttons button:first-child {
+        margin-left: 0;
+      }
+    </style>
+
+    <!-- JavaScript
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.4/toastr.min.js"></script>
+    
+    <script>
+
+      toastr.options = {
+          positionClass: 'toast-top-right',
+          preventDuplicates: true,
+          timeOut: 3000,
+          progressBar: true
+      };
+
+      localforage.config({
+          driver: localforage.LOCALSTORAGE,
+          name: 'MVAX',
+          description: 'A store for AES secret keys.'
+      });
+
+      function decryptToken(encryptedToken, secretKey) {
+          
+          // convert key from Base64 format to
+          // a WordArray object (an array of 4-byte words)
+          const key = CryptoJS.enc.Base64.parse(secretKey);
+
+          // convert token from Base64 format to
+          // a WordArray object (having the form: 'iv|ciphertext')
+          const cipherTextWithIv = CryptoJS.enc.Base64.parse(encryptedToken);
+          
+          // using a 16-byte iv
+          const iv_len = 16;
+          
+          // extract iv
+          const iv = CryptoJS.lib.WordArray.create(
+            cipherTextWithIv.words.slice(0, iv_len / 4));
+          
+          // a WordArray object
+          const decryptedToken = CryptoJS.AES.decrypt({
+              ciphertext: CryptoJS.lib.WordArray.create(
+                cipherTextWithIv.words.slice(iv_len / 4))
+          }, key, {
+              iv: iv
+          });
+          
+          // failing decryption of some malformed encrypted tokens that fail 'silently'
+          if (decryptedToken.toString() === '') {
+              throw new Error('Malformed data');
+          }
+
+          return decryptedToken.toString(CryptoJS.enc.Utf8);
+      }
+
+      $(function() {
+
+          $(':text, textarea').each(function() {
+
+              let textInput = $(this);
+
+              textInput.siblings(':button.clear-text').click(() => {
+                  textInput.val('');
+                  textInput.focus();
+              });
+
+              new ClipboardJS(textInput.siblings(':button.copy-text')[0], {
+                  target: function(trigger) {
+                      return textInput[0];
+                  },
+              });
+          });
+
+          /* Modal dialog display behavior
+          –––––––––––––––––––––––––––––––––––––––––––––––––– */
+
+          // set open modal behavior
+          $('.open-modal').click(() => {
+
+              localforage.getItem('keystore').then(keystore => {
+
+                  $('.modal').toggleClass('modal-open');
+
+                  if ($.isEmptyObject(keystore)) {
+                      $('#activeKey').val('');
+                      $('#inactiveKey').val('');
+                      return;
+                  }
+
+                  $('#activeKey').val(keystore.activeKey);
+                  $('#inactiveKey').val(keystore.inactiveKey);
+              
+              }).catch(error => {
+
+                  console.log(error);
+                  toastr.error(`<div class="toastr-content">
+                    Failed to load key(s) from Local Storage.</div>`);
+              });
+          });
+
+          // set close modal behavior
+          $('.close-modal').each(function() {
+              $(this).click(() => {
+                  $('.modal').toggleClass('modal-open');
+              });
+          });
+          
+          // close modal if clicked outside content area
+          $('.modal-inner').click(() => {
+              $('.modal').toggleClass('modal-open');
+          });
+          
+          // prevent modal inner from closing parent when clicked
+          $('.modal-content').click(e => {
+              e.stopPropagation();
+          });
+          
+          /* Modal dialog action behavior
+          –––––––––––––––––––––––––––––––––––––––––––––––––– */
+          
+          // stop form from submitting when a button is pressed
+          $('form').on('submit', e => e.preventDefault());
+          
+          $('#save').click(() => {
+              
+              const keystore = {
+                  activeKey: $('#activeKey').val().trim(),
+                  inactiveKey: $('#inactiveKey').val().trim()
+              };
+
+              localforage.setItem('keystore', keystore).then(() => {
+                  toastr.success(`<div class="toastr-content">
+                    Saved key(s) to Local Storage.</div>`);
+              
+              }).catch(error => {
+
+                  console.log(error);
+                  toastr.error(`<div class="toastr-content">
+                    Failed to save key(s) to Local Storage.</div>`);
+              });;
+          });
+          
+          /* Main page behavior
+          –––––––––––––––––––––––––––––––––––––––––––––––––– */
+
+          $('#decryptToken').click(() => {
+              
+              let encryptedToken = $('#encryptedToken').val().trim();
+              if (encryptedToken === '') {
+                  return;
+              }
+
+              localforage.getItem('keystore').then(keystore => {
+
+                  if ($.isEmptyObject(keystore)
+                    || (keystore.activeKey === "" && keystore.inactiveKey === "")) {
+                      toastr.warning(`<div class="toastr-content">
+                        Add secret key(s) to proceed with decryption.</div>`);
+                      return;
+                  }
+
+                  let decryptedToken;
+
+                  try {
+                      // 1st Attempt: decryption with active key
+                      decryptedToken = decryptToken(encryptedToken, keystore.activeKey);
+                  } catch (error) {
+                      // 2nd Attempt: decryption with inactive key
+                      decryptedToken = decryptToken(encryptedToken, keystore.inactiveKey);
+                  }
+
+                  $('#decryptedToken').val(decryptedToken);
+                  toastr.success('<div class="toastr-content">Decryption succeeded.</div>');
+              
+              }).catch(error => {
+
+                  $('#decryptedToken').val('');
+                  console.log(error);
+                  toastr.error('<div class="toastr-content">Decryption failed.</div>');
+              });
+          });
+      });
+
+    </script>
+
+  </head>
+
+  <body>
+
+    <!-- Main page layout
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <div class="container u-max-full-width">
+      <div class="row">
+        <div class="twelve columns">
+          <h3 class="page-title">LOA Token Decryption</h3>
+        </div>
+      </div>
+      <div class="row">
+        <div class="six columns">
+          <button class="button-blue button-icon copy-text u-pull-right">
+            <ion-icon name="copy-sharp"></ion-icon>
+          </button>
+          <button class="button-blue button-icon clear-text u-pull-right">
+            <ion-icon name="trash-sharp"></ion-icon>
+          </button>
+          <textarea id="encryptedToken" class="u-full-width" placeholder="Enter AES encrypted token in Base64 format" autofocus spellcheck="false"></textarea>
+        </div>
+        <div class="six columns">
+          <button class="button-blue copy-text button-icon u-pull-right">
+            <ion-icon name="copy-sharp"></ion-icon>
+          </button>
+          <button class="button-blue clear-text button-icon u-pull-right">
+            <ion-icon name="trash-sharp"></ion-icon>
+          </button>
+          <textarea id="decryptedToken" class="u-full-width" placeholder="Decrypted token" readonly spellcheck="false"></textarea>
+        </div>
+      </div>
+      <div class="row">
+        <div class="twelve columns button-panel">
+          <button class="button-blue open-modal">Manage secret keys</button>
+          <button id="decryptToken" class="button-blue">Decrypt</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal dialog layout
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <div class="modal">
+      <div class="modal-inner">
+        <div class="modal-content">
+          <div class="modal-close-icon">
+            <a href="javascript:void(0)" class="close-modal">
+              <ion-icon name="close"></ion-icon>
+            </a>
+          </div>
+          <div class="modal-content-inner">
+            <h4>Secret Keys</h4>
+          </div>
+          <form spellcheck="false">
+            <div>
+              <button class="button-plain button-icon copy-text u-pull-right">
+                <ion-icon name="copy-sharp"></ion-icon>
+              </button>
+              <button class="button-plain button-icon clear-text u-pull-right">
+                <ion-icon name="trash-sharp"></ion-icon>
+              </button>
+              <label for="activeKey">Active key</label>
+              <input id="activeKey" class="u-full-width" type="text" placeholder="Enter key in Base64 format">
+            </div>
+            <div>
+              <button class="button-plain button-icon copy-text u-pull-right">
+                <ion-icon name="copy-sharp"></ion-icon>
+              </button>
+              <button class="button-plain button-icon clear-text u-pull-right">
+                <ion-icon name="trash-sharp"></ion-icon>
+              </button>
+              <label for="inactiveKey">Inactive key</label>
+              <input id="inactiveKey" class="u-full-width" type="text" placeholder="Enter key in Base64 format">
+            </div>
+            <div class="modal-buttons">
+              <button id="cancel" class="button-plain close-modal" type="submit">Cancel</button>
+              <button id="save" class="button-blue close-modal" type="submit">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </body>
+
+</html>

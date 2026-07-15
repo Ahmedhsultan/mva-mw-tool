@@ -11,7 +11,7 @@
 
     <div class="hero-summary">
       <div class="summary-tile">
-        <strong>3</strong>
+        <strong>4</strong>
         <span>Imported helpers</span>
       </div>
       <div class="summary-tile">
@@ -22,6 +22,78 @@
   </section>
 
   <div class="tools-grid">
+    <section class="tool-card mva-card loa-tool-card">
+      <div class="tool-icon decrypt-icon">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+          <circle cx="12" cy="16" r="1" />
+        </svg>
+      </div>
+
+      <div class="tool-body">
+        <h3>LOA Token Decryption</h3>
+        <p class="tool-description">
+          Decrypt AES-encrypted LOA tokens using stored secret keys. Paste the encrypted Base64 token and click Decrypt.
+        </p>
+
+        <div class="loa-form">
+          <div class="loa-textarea-row">
+            <div class="loa-textarea-group">
+              <div class="loa-textarea-header">
+                <span>Encrypted Token</span>
+                <div class="loa-textarea-actions">
+                  <button type="button" class="icon-action" title="Copy" (click)="copyToClipboard(encryptedToken)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  </button>
+                  <button type="button" class="icon-action" title="Clear" (click)="clearEncryptedToken()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              </div>
+              <textarea [(ngModel)]="encryptedToken" placeholder="Paste AES encrypted token (Base64)" spellcheck="false"></textarea>
+            </div>
+
+            <div class="loa-textarea-group">
+              <div class="loa-textarea-header">
+                <span>Decrypted Token</span>
+                <div class="loa-textarea-actions">
+                  <button type="button" class="icon-action" title="Copy" (click)="copyToClipboard(decryptedToken)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  </button>
+                  <button type="button" class="icon-action" title="Clear" (click)="clearDecryptedToken()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </div>
+              </div>
+              <textarea [ngModel]="decryptedToken" readonly placeholder="Decrypted output" spellcheck="false"></textarea>
+            </div>
+          </div>
+
+          @if (decryptError) {
+            <div class="loa-toast loa-toast--error">{{ decryptError }}</div>
+          }
+          @if (decryptSuccess) {
+            <div class="loa-toast loa-toast--success">{{ decryptSuccess }}</div>
+          }
+
+          <div class="loa-button-row">
+            <div class="loa-toggle-group">
+              @for (preset of keyPresets; track preset.value) {
+                <button type="button"
+                  class="loa-toggle-btn"
+                  [class.active]="selectedPreset === preset.value"
+                  (click)="applyPreset(preset.value)">
+                  {{ preset.label }}
+                </button>
+              }
+            </div>
+            <button type="button" class="primary-action" (click)="decryptToken()">Decrypt</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="tool-card mva-card">
       <div class="tool-icon token-icon">
         <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
