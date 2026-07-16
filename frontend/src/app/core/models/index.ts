@@ -6,11 +6,9 @@ export interface ProviderSettings {
   project: string;
 }
 
-export type AppTabKey = 'overview' | 'pipelines' | 'config';
+export type AppTabKey = 'config';
 
 export interface AppTabProviders {
-  overview: DevOpsProvider;
-  pipelines: DevOpsProvider;
   config: DevOpsProvider;
 }
 

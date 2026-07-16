@@ -1120,7 +1120,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   private createEditorTask(taskType: PipelineTaskType, position: Point): EditorPipelineTaskNode {
-    const provider = this.authService.getTabProvider('pipelines');
+    const provider = this.authService.getTabProvider('config');
 
     return {
       editorId: this.createEditorId(),

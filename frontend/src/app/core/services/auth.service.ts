@@ -67,6 +67,7 @@ export class AuthService {
     sessionStorage.removeItem('mva_deployments_provider');
     sessionStorage.removeItem('mva_pipelines_provider');
     sessionStorage.removeItem('mva_config_provider');
+    sessionStorage.removeItem('mva_configDone');
     this._isAuthenticated.set(false);
     this._provider.set('azure');
     this._displayName.set('');
@@ -161,8 +162,6 @@ export class AuthService {
   getTabProviders(): AppTabProviders {
     const fallback = this.getStoredProvider();
     return {
-      overview: this.getStoredTabProvider('overview', fallback),
-      pipelines: this.getStoredTabProvider('pipelines', fallback),
       config: this.getStoredTabProvider('config', fallback)
     };
   }

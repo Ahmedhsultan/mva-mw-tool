@@ -8,7 +8,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '../../core/services/auth.service';
-import { DevOpsProvider } from '../../core/models';
+import { AppTabKey, DevOpsProvider } from '../../core/models';
 import { ConfigDialogComponent } from '../../shared/config-dialog/config-dialog.component';
 import { PipelinesWorkbenchComponent } from '../pipelines/pipelines-workbench.component';
 import { ToolsPageComponent } from '../tools/tools-page.component';
@@ -41,6 +41,15 @@ export class DashboardComponent {
     private dialog: MatDialog
   ) {
     this.refreshAvatarIfMissing();
+    this.openConfigIfFirstLogin();
+  }
+
+  private openConfigIfFirstLogin(): void {
+    if (!sessionStorage.getItem('mva_configDone')) {
+      sessionStorage.setItem('mva_configDone', '1');
+      // Delay slightly so the dashboard renders first
+      setTimeout(() => this.openConfig(), 300);
+    }
   }
 
   private refreshAvatarIfMissing(): void {
@@ -79,11 +88,11 @@ export class DashboardComponent {
     return provider === 'github' ? 'code' : 'cloud';
   }
 
-  tabOrganization(tab: 'overview' | 'pipelines' | 'config'): string {
+  tabOrganization(tab: AppTabKey): string {
     return this.authService.getProviderSettings(this.authService.getTabProvider(tab)).organization || 'No organization';
   }
 
-  tabProject(tab: 'overview' | 'pipelines' | 'config'): string {
+  tabProject(tab: AppTabKey): string {
     const provider = this.authService.getTabProvider(tab);
     const fallback = provider === 'github' ? 'No workspace' : 'No project';
     return this.authService.getProviderSettings(provider).project || fallback;
@@ -101,15 +110,7 @@ export class DashboardComponent {
     this.authService.logout();
   }
 
-  private activeTabKey(): 'overview' | 'pipelines' | 'config' {
-    if (this.selectedTabIndex === 1) {
-      return 'pipelines';
-    }
-
-    if (this.selectedTabIndex >= 2) {
-      return 'config';
-    }
-
-    return 'overview';
+  private activeTabKey(): AppTabKey {
+    return 'config';
   }
 }

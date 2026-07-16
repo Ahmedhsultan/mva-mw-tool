@@ -44,10 +44,8 @@ export class ConfigDialogComponent implements OnInit {
 
   provider: DevOpsProvider = 'azure';
   configProvider: DevOpsProvider = 'azure';
-  appTabs: AppTabKey[] = ['overview', 'pipelines', 'config'];
+  appTabs: AppTabKey[] = ['config'];
   tabProviders: AppTabProviders = {
-    overview: 'azure',
-    pipelines: 'azure',
     config: 'azure'
   };
   organization = '';
@@ -137,14 +135,7 @@ export class ConfigDialogComponent implements OnInit {
   }
 
   tabLabel(tab: AppTabKey): string {
-    switch (tab) {
-      case 'overview':
-        return 'Overview';
-      case 'pipelines':
-        return 'Pipelines';
-      default:
-        return 'Config';
-    }
+    return 'Config';
   }
 
   setProvider(provider: DevOpsProvider): void {

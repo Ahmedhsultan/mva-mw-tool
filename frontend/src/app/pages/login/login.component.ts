@@ -8,8 +8,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { AuthService } from '../../core/services/auth.service';
-import { DevOpsProvider, ProviderSettings } from '../../core/models';
+import { ProviderSettings } from '../../core/models';
+import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -22,17 +24,28 @@ import { DevOpsProvider, ProviderSettings } from '../../core/models';
     MatButtonModule,
     MatIconModule,
     MatProgressBarModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatCheckboxModule
   ],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss'
 })
 export class LoginComponent {
-  provider: DevOpsProvider;
-  pat = '';
-  organization = '';
-  project = '';
-  hidePassword = signal(true);
+  // Azure fields
+  azureOrganization = '';
+  azureProject = '';
+  azurePat = '';
+  hideAzurePassword = signal(true);
+  azureValid = signal<boolean | null>(null);
+
+  // GitHub fields
+  githubOrganization = '';
+  githubProject = '';
+  githubPat = '';
+  hideGithubPassword = signal(true);
+  githubValid = signal<boolean | null>(null);
+
+  rememberMe = false;
   loading = signal(false);
 
   constructor(
@@ -40,73 +53,43 @@ export class LoginComponent {
     private router: Router,
     private snackBar: MatSnackBar
   ) {
-    const config = this.authService.getConfig();
-    this.provider = config.provider;
-    this.applyProviderSettings(this.authService.getProviderSettings(this.provider));
-  }
+    // Load saved credentials from localStorage if remembered
+    const saved = localStorage.getItem('mva_remember');
+    if (saved) {
+      try {
+        const creds = JSON.parse(saved);
+        this.azureOrganization = creds.azureOrganization || '';
+        this.azureProject = creds.azureProject || '';
+        this.azurePat = creds.azurePat || '';
+        this.githubOrganization = creds.githubOrganization || '';
+        this.githubProject = creds.githubProject || '';
+        this.githubPat = creds.githubPat || '';
+        this.rememberMe = true;
+      } catch { /* ignore */ }
+    } else {
+      const azureSettings = this.authService.getProviderSettings('azure');
+      this.azureOrganization = azureSettings.organization;
+      this.azureProject = azureSettings.project;
+      this.azurePat = azureSettings.pat;
 
-  selectProvider(provider: DevOpsProvider): void {
-    this.provider = provider;
-    this.applyProviderSettings(this.authService.getProviderSettings(provider));
-  }
-
-  isProviderSelected(provider: DevOpsProvider): boolean {
-    return this.provider === provider;
-  }
-
-  providerLabel(): string {
-    return this.provider === 'github' ? 'GitHub' : 'Azure DevOps';
-  }
-
-  organizationLabel(): string {
-    return this.provider === 'github' ? 'Owner / Organization' : 'Organization';
-  }
-
-  organizationPlaceholder(): string {
-    return this.provider === 'github' ? 'my-org-or-user' : 'my-org';
-  }
-
-  projectLabel(): string {
-    return this.provider === 'github' ? 'Project / Workspace' : 'Project';
-  }
-
-  projectPlaceholder(): string {
-    return this.provider === 'github' ? 'optional-workspace' : 'my-project';
-  }
-
-  tokenLabel(): string {
-    return this.provider === 'github' ? 'GitHub Token' : 'Personal Access Token';
-  }
-
-  tokenPlaceholder(): string {
-    return this.provider === 'github' ? 'Paste your GitHub token' : 'Paste your PAT here';
-  }
-
-  providerHelpUrl(): string {
-    return this.provider === 'github'
-      ? 'https://github.com/settings/tokens'
-      : 'https://dev.azure.com';
-  }
-
-  providerHelpText(): string {
-    return this.provider === 'github'
-      ? 'Need a token? Create one in GitHub Settings → Developer settings → Personal access tokens.'
-      : 'Need a PAT? Create one in Azure DevOps from User Settings → Personal Access Tokens.';
-  }
-
-  private applyProviderSettings(settings: ProviderSettings): void {
-    this.organization = settings.organization;
-    this.project = settings.project;
-    this.pat = settings.pat;
-  }
-
-  togglePasswordVisibility(): void {
-    this.hidePassword.update(v => !v);
+      const githubSettings = this.authService.getProviderSettings('github');
+      this.githubOrganization = githubSettings.organization;
+      this.githubProject = githubSettings.project;
+      this.githubPat = githubSettings.pat;
+    }
   }
 
   login(): void {
-    if (!this.pat || !this.organization || (this.provider === 'azure' && !this.project)) {
-      this.snackBar.open('Please fill in all fields', 'Close', {
+    if (!this.azurePat || !this.azureOrganization || !this.azureProject) {
+      this.snackBar.open('Please fill in all Azure DevOps fields', 'Close', {
+        duration: 3000,
+        panelClass: 'error-snackbar'
+      });
+      return;
+    }
+
+    if (!this.githubPat || !this.githubOrganization) {
+      this.snackBar.open('Please fill in all GitHub fields', 'Close', {
         duration: 3000,
         panelClass: 'error-snackbar'
       });
@@ -114,29 +97,60 @@ export class LoginComponent {
     }
 
     this.loading.set(true);
-    this.authService.validateToken(this.provider, this.pat, this.organization, this.project).subscribe({
-      next: (response) => {
+    this.azureValid.set(null);
+    this.githubValid.set(null);
+
+    const azure$ = this.authService.validateToken('azure', this.azurePat, this.azureOrganization, this.azureProject);
+    const github$ = this.authService.validateToken('github', this.githubPat, this.githubOrganization, this.githubProject);
+
+    forkJoin({ azure: azure$, github: github$ }).subscribe({
+      next: ({ azure, github }) => {
         this.loading.set(false);
-        if (response.valid) {
-          this.snackBar.open(`Welcome, ${response.displayName}!`, 'Close', {
-            duration: 3000,
-            panelClass: 'success-snackbar'
+        this.azureValid.set(azure.valid);
+        this.githubValid.set(github.valid);
+
+        if (!azure.valid && !github.valid) {
+          this.snackBar.open('Both tokens are invalid. Please check your credentials.', 'Close', {
+            duration: 5000, panelClass: 'error-snackbar'
+          });
+        } else if (!azure.valid) {
+          this.snackBar.open('Azure DevOps token is invalid.', 'Close', {
+            duration: 5000, panelClass: 'error-snackbar'
+          });
+        } else if (!github.valid) {
+          this.snackBar.open('GitHub token is invalid.', 'Close', {
+            duration: 5000, panelClass: 'error-snackbar'
+          });
+        } else {
+          // Both valid
+          this.persistRememberMe();
+          this.snackBar.open(`Welcome, ${azure.displayName}!`, 'Close', {
+            duration: 3000, panelClass: 'success-snackbar'
           });
           this.router.navigate(['/dashboard']);
-        } else {
-          this.snackBar.open('Invalid PAT token. Please check and try again.', 'Close', {
-            duration: 5000,
-            panelClass: 'error-snackbar'
-          });
         }
       },
       error: () => {
         this.loading.set(false);
         this.snackBar.open('Connection error. Please try again.', 'Close', {
-          duration: 5000,
-          panelClass: 'error-snackbar'
+          duration: 5000, panelClass: 'error-snackbar'
         });
       }
     });
+  }
+
+  private persistRememberMe(): void {
+    if (this.rememberMe) {
+      localStorage.setItem('mva_remember', JSON.stringify({
+        azureOrganization: this.azureOrganization.trim(),
+        azureProject: this.azureProject.trim(),
+        azurePat: this.azurePat.trim(),
+        githubOrganization: this.githubOrganization.trim(),
+        githubProject: this.githubProject.trim(),
+        githubPat: this.githubPat.trim()
+      }));
+    } else {
+      localStorage.removeItem('mva_remember');
+    }
   }
 }

@@ -3,7 +3,11 @@
     <div class="login-intro">
       <div class="brand-lockup">
         <div class="brand-icon">
-            <mat-icon>dashboard</mat-icon>
+            <svg width="38" height="38" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+              <g transform="translate(6,6)" fill="#1d4ed8" stroke="#1d4ed8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94L6.73 20.2a2 2 0 0 1-2.83 0l-.1-.1a2 2 0 0 1 0-2.83l6.73-6.73a6 6 0 0 1 7.94-7.94L14.7 6.3z"/>
+              </g>
+            </svg>
         </div>
 
         <div class="brand-copy">
@@ -43,58 +47,107 @@
 
       <div class="card-header">
         <h2>Sign in</h2>
-        <p>Choose Azure DevOps or GitHub, then enter your access details.</p>
+        <p>Enter your credentials for both providers to get started.</p>
       </div>
 
       <form (ngSubmit)="login()" class="login-form">
-        <div class="provider-switch">
-          <button mat-stroked-button type="button"
-                  class="provider-option"
-                  [class.active]="isProviderSelected('azure')"
-                  (click)="selectProvider('azure')">
+        <div class="provider-section">
+          <div class="provider-section-header">
             <mat-icon>cloud</mat-icon>
-            Azure DevOps
-          </button>
+            <h3>Azure DevOps</h3>
+            @if (azureValid() === true) {
+              <mat-icon class="status-ok">check_circle</mat-icon>
+            }
+            @if (azureValid() === false) {
+              <mat-icon class="status-fail">error</mat-icon>
+            }
+          </div>
 
-          <button mat-stroked-button type="button"
-                  class="provider-option"
-                  [class.active]="isProviderSelected('github')"
-                  (click)="selectProvider('github')">
-            <mat-icon>code</mat-icon>
-            GitHub
-          </button>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Organization</mat-label>
+            <mat-icon matPrefix>business</mat-icon>
+            <input matInput [(ngModel)]="azureOrganization" name="azureOrg"
+                   placeholder="my-org" required autocomplete="organization">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Project</mat-label>
+            <mat-icon matPrefix>folder_open</mat-icon>
+            <input matInput [(ngModel)]="azureProject" name="azureProject"
+                   placeholder="my-project" required autocomplete="off">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Personal Access Token</mat-label>
+            <mat-icon matPrefix>key</mat-icon>
+            <input matInput [(ngModel)]="azurePat" name="azurePat"
+                   [type]="hideAzurePassword() ? 'password' : 'text'"
+                   placeholder="Paste your PAT here" required autocomplete="off">
+            <button mat-icon-button matSuffix type="button"
+                    (click)="hideAzurePassword.set(!hideAzurePassword())">
+              <mat-icon>{{ hideAzurePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+          </mat-form-field>
         </div>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>{{ organizationLabel() }}</mat-label>
-          <mat-icon matPrefix>business</mat-icon>
-          <input matInput [(ngModel)]="organization" name="organization"
-                 [placeholder]="organizationPlaceholder()" required autocomplete="organization">
-        </mat-form-field>
+        <div class="provider-divider"></div>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>{{ projectLabel() }}</mat-label>
-          <mat-icon matPrefix>folder_open</mat-icon>
-          <input matInput [(ngModel)]="project" name="project"
-                 [placeholder]="projectPlaceholder()" [required]="provider === 'azure'" autocomplete="off">
-        </mat-form-field>
+        <div class="provider-section">
+          <div class="provider-section-header">
+            <mat-icon>code</mat-icon>
+            <h3>GitHub</h3>
+            @if (githubValid() === true) {
+              <mat-icon class="status-ok">check_circle</mat-icon>
+            }
+            @if (githubValid() === false) {
+              <mat-icon class="status-fail">error</mat-icon>
+            }
+          </div>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>{{ tokenLabel() }}</mat-label>
-          <mat-icon matPrefix>key</mat-icon>
-          <input matInput [(ngModel)]="pat" name="pat"
-                 [type]="hidePassword() ? 'password' : 'text'"
-                 [placeholder]="tokenPlaceholder()" required autocomplete="off">
-          <button mat-icon-button matSuffix type="button"
-                  (click)="togglePasswordVisibility()">
-            <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
-          </button>
-        </mat-form-field>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Owner / Organization</mat-label>
+            <mat-icon matPrefix>business</mat-icon>
+            <input matInput [(ngModel)]="githubOrganization" name="githubOrg"
+                   placeholder="my-org-or-user" required autocomplete="organization">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Project / Workspace</mat-label>
+            <mat-icon matPrefix>folder_open</mat-icon>
+            <input matInput [(ngModel)]="githubProject" name="githubProject"
+                   placeholder="optional-workspace" autocomplete="off">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>GitHub Token</mat-label>
+            <mat-icon matPrefix>key</mat-icon>
+            <input matInput [(ngModel)]="githubPat" name="githubPat"
+                   [type]="hideGithubPassword() ? 'password' : 'text'"
+                   placeholder="Paste your GitHub token" required autocomplete="off">
+            <button mat-icon-button matSuffix type="button"
+                    (click)="hideGithubPassword.set(!hideGithubPassword())">
+              <mat-icon>{{ hideGithubPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+          </mat-form-field>
+        </div>
+
+        <div class="remember-row">
+          <mat-checkbox [(ngModel)]="rememberMe" name="rememberMe" color="primary">
+            Remember me
+          </mat-checkbox>
+        </div>
 
         <button mat-flat-button color="primary" type="submit"
                 class="login-button" [disabled]="loading()">
-          <mat-icon>arrow_forward</mat-icon>
-          Continue to workspace
+          <span class="btn-content">
+            @if (loading()) {
+              <span class="login-spinner"></span>
+              Validating...
+            } @else {
+              <mat-icon>arrow_forward</mat-icon>
+              Continue to workspace
+            }
+          </span>
         </button>
       </form>
 
@@ -102,11 +155,6 @@
         <mat-icon>lock</mat-icon>
         <span>Stored in the current session only.</span>
       </div>
-
-      <p class="footer-text">
-        {{ providerHelpText() }}
-        <a [href]="providerHelpUrl()" target="_blank" rel="noopener">Open provider settings</a>
-      </p>
     </mat-card>
   </section>
 </div>
