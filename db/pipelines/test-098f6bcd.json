@@ -1,0 +1,29 @@
+{
+  "pipelineName" : "test",
+  "pipelineStructure" : {
+    "tasks" : [ {
+      "id" : "build-1",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ ],
+      "nextTaskIds" : [ "deploy-1" ],
+      "branch" : "release/develop",
+      "repoName" : "mvax-plan-services",
+      "definitionId" : "5021"
+    }, {
+      "id" : "deploy-1",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "build-1",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "build-1",
+      "repoName" : "mvax-plan-services",
+      "definitionId" : "2067",
+      "environment" : "int1-common",
+      "description" : ""
+    } ]
+  }
+}
