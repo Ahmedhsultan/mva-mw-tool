@@ -6,7 +6,7 @@
       "taskType" : "GitTask",
       "devOpsServiceFactory" : "azure",
       "conditions" : [ ],
-      "nextTaskIds" : [ "pr-1" ],
+      "nextTaskIds" : [ "API PR" ],
       "repoName" : "mvax-api",
       "branch" : "release/primary/10.83",
       "sourceBranch" : "release/develop"
@@ -15,7 +15,7 @@
       "taskType" : "GitTask",
       "devOpsServiceFactory" : "azure",
       "conditions" : [ ],
-      "nextTaskIds" : [ "pr-3" ],
+      "nextTaskIds" : [ "Upgrades PR" ],
       "repoName" : "mvax-upgrades",
       "branch" : "release/primary/10.83",
       "sourceBranch" : "release/develop"
@@ -24,7 +24,7 @@
       "taskType" : "GitTask",
       "devOpsServiceFactory" : "azure",
       "conditions" : [ ],
-      "nextTaskIds" : [ "pr-4" ],
+      "nextTaskIds" : [ "Common PR" ],
       "repoName" : "mvax-plan-services",
       "branch" : "release/primary/10.83",
       "sourceBranch" : "release/develop"
@@ -33,7 +33,7 @@
       "taskType" : "GitTask",
       "devOpsServiceFactory" : "azure",
       "conditions" : [ ],
-      "nextTaskIds" : [ "pr-5" ],
+      "nextTaskIds" : [ "Common PR" ],
       "repoName" : "mvax-common",
       "branch" : "primary/10.83",
       "sourceBranch" : "develop"
@@ -42,12 +42,12 @@
       "taskType" : "GitTask",
       "devOpsServiceFactory" : "azure",
       "conditions" : [ ],
-      "nextTaskIds" : [ "pr-2" ],
+      "nextTaskIds" : [ "Auth PR" ],
       "repoName" : "mvax-authentication",
       "branch" : "release/primary/10.83",
       "sourceBranch" : "release/develop"
     }, {
-      "id" : "pr-4",
+      "id" : "Plan PR",
       "taskType" : "PrTask",
       "devOpsServiceFactory" : "azure",
       "conditions" : [ {
@@ -59,11 +59,14 @@
       "targetBranch" : "master",
       "repoName" : "mvax-plan-services"
     }, {
-      "id" : "pr-5",
+      "id" : "Common PR",
       "taskType" : "PrTask",
       "devOpsServiceFactory" : "azure",
       "conditions" : [ {
         "taskId" : "git-5",
+        "status" : "SUCCEEDED"
+      }, {
+        "taskId" : "git-4",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ "build-5" ],
@@ -71,7 +74,7 @@
       "targetBranch" : "master",
       "repoName" : "mvax-common"
     }, {
-      "id" : "pr-3",
+      "id" : "Upgrades PR",
       "taskType" : "PrTask",
       "devOpsServiceFactory" : "azure",
       "conditions" : [ {
@@ -83,7 +86,7 @@
       "targetBranch" : "master",
       "repoName" : "mvax-upgrades"
     }, {
-      "id" : "pr-1",
+      "id" : "API PR",
       "taskType" : "PrTask",
       "devOpsServiceFactory" : "azure",
       "conditions" : [ {
@@ -95,7 +98,7 @@
       "targetBranch" : "master",
       "repoName" : "mvax-api"
     }, {
-      "id" : "pr-2",
+      "id" : "Auth PR",
       "taskType" : "PrTask",
       "devOpsServiceFactory" : "azure",
       "conditions" : [ {
@@ -111,7 +114,7 @@
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "azure",
       "conditions" : [ {
-        "taskId" : "pr-1",
+        "taskId" : "API PR",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
@@ -123,7 +126,7 @@
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "azure",
       "conditions" : [ {
-        "taskId" : "pr-3",
+        "taskId" : "Upgrades PR",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
@@ -135,7 +138,7 @@
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "azure",
       "conditions" : [ {
-        "taskId" : "pr-2",
+        "taskId" : "Auth PR",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
@@ -147,7 +150,10 @@
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "azure",
       "conditions" : [ {
-        "taskId" : "pr-4",
+        "taskId" : "Common PR",
+        "status" : "SUCCEEDED"
+      }, {
+        "taskId" : "Plan PR",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
@@ -159,7 +165,7 @@
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "azure",
       "conditions" : [ {
-        "taskId" : "pr-5",
+        "taskId" : "Common PR",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
