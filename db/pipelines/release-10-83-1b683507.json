@@ -70,7 +70,7 @@
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ "build-5" ],
-      "fromBranch" : "release/primary/10.83",
+      "fromBranch" : "primary/10.83",
       "targetBranch" : "master",
       "repoName" : "mvax-common"
     }, {
