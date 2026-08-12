@@ -14,7 +14,7 @@
       "buildTaskId" : "build-1",
       "repoName" : "mvax-offers",
       "definitionId" : "2102",
-      "environment" : "dev1-common",
+      "environment" : "dev1",
       "description" : ""
     }, {
       "id" : "build-1",

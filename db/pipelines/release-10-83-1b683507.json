@@ -4,7 +4,7 @@
     "tasks" : [ {
       "id" : "git-6",
       "taskType" : "GitTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ ],
       "nextTaskIds" : [ "Billing PR" ],
@@ -14,7 +14,7 @@
     }, {
       "id" : "git-1",
       "taskType" : "GitTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ ],
       "nextTaskIds" : [ "API PR" ],
@@ -24,7 +24,7 @@
     }, {
       "id" : "git-3",
       "taskType" : "GitTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ ],
       "nextTaskIds" : [ "Upgrades PR" ],
@@ -34,7 +34,7 @@
     }, {
       "id" : "git-4",
       "taskType" : "GitTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ ],
       "nextTaskIds" : [ "Common PR" ],
@@ -44,7 +44,7 @@
     }, {
       "id" : "git-5",
       "taskType" : "GitTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ ],
       "nextTaskIds" : [ "Common PR" ],
@@ -54,7 +54,7 @@
     }, {
       "id" : "git-2",
       "taskType" : "GitTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ ],
       "nextTaskIds" : [ "Auth PR" ],
@@ -64,7 +64,7 @@
     }, {
       "id" : "Billing PR",
       "taskType" : "PrTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "git-6",
@@ -77,7 +77,7 @@
     }, {
       "id" : "Common PR",
       "taskType" : "PrTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "git-5",
@@ -93,7 +93,7 @@
     }, {
       "id" : "Upgrades PR",
       "taskType" : "PrTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "git-3",
@@ -106,7 +106,7 @@
     }, {
       "id" : "API PR",
       "taskType" : "PrTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "git-1",
@@ -119,7 +119,7 @@
     }, {
       "id" : "Auth PR",
       "taskType" : "PrTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "git-2",
@@ -132,7 +132,7 @@
     }, {
       "id" : "Plan Build",
       "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "Common PR",
@@ -148,7 +148,7 @@
     }, {
       "id" : "API Build",
       "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "API PR",
@@ -161,7 +161,7 @@
     }, {
       "id" : "Upgrades Build",
       "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "Upgrades PR",
@@ -174,7 +174,7 @@
     }, {
       "id" : "Auth Build",
       "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "Auth PR",
@@ -187,7 +187,7 @@
     }, {
       "id" : "Common Build",
       "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "Common PR",
@@ -200,7 +200,7 @@
     }, {
       "id" : "Billing Build",
       "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "Billing PR",
@@ -213,7 +213,7 @@
     }, {
       "id" : "Plan PR",
       "taskType" : "PrTask",
-      "devOpsServiceFactory" : "azure",
+      "devOpsServiceFactory" : "Azure DevOps",
       "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "git-4",

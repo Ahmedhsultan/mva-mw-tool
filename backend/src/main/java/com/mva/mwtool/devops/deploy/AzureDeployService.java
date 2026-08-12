@@ -205,21 +205,18 @@ public class AzureDeployService implements DeployService {
             JsonNode data = response.getBody();
             if (data == null || !data.has("value")) return 0;
 
-            // Collect approvals matching the target environment
+            // Collect approvals matching the target environment exactly
             List<JsonNode> pending = new ArrayList<>();
             for (JsonNode a : data.get("value")) {
                 String envName = a.path("releaseEnvironment").path("name").asText("");
-                if (envName.toLowerCase().contains(environmentName.toLowerCase())) {
+                if (envName.equalsIgnoreCase(environmentName)) {
                     pending.add(a);
                 }
             }
-            // Fallback: approve all pending if none matched
             if (pending.isEmpty()) {
-                for (JsonNode a : data.get("value")) {
-                    pending.add(a);
-                }
+                log.warn("No pending approvals matched environment '{}' on release #{}", environmentName, releaseId);
+                return 0;
             }
-            if (pending.isEmpty()) return 0;
 
             int approved = 0;
             HttpHeaders headers = AzureAuthService.createHeaders(pat);
@@ -322,40 +319,22 @@ public class AzureDeployService implements DeployService {
         return statusNode.asText("notStarted");
     }
 
-    // ── Environment lookup (partial, case-insensitive, bidirectional) ───
+    // ── Environment lookup (exact, case-insensitive) ─────────────────────
 
     private JsonNode findEnvironment(JsonNode environments, String targetEnvironment) {
         if (targetEnvironment != null && !targetEnvironment.isBlank()) {
             String targetLower = targetEnvironment.toLowerCase();
 
-            // 1. Exact match
             for (JsonNode env : environments) {
                 if (targetLower.equals(env.path("name").asText("").toLowerCase())) {
                     return env;
                 }
             }
-
-            // 2. Best bidirectional partial match — prefer longest env name
-            //    e.g. target "int1-common" matches env "int1" (target contains env name)
-            //    e.g. target "int" matches env "int1" (env name contains target)
-            JsonNode bestMatch = null;
-            int bestLength = 0;
+            List<String> available = new ArrayList<>();
             for (JsonNode env : environments) {
-                String envName = env.path("name").asText("").toLowerCase();
-                if (envName.contains(targetLower) || targetLower.contains(envName)) {
-                    if (envName.length() > bestLength) {
-                        bestMatch = env;
-                        bestLength = envName.length();
-                    }
-                }
+                available.add(env.path("name").asText(""));
             }
-            if (bestMatch != null) {
-                log.info("Environment '{}' matched to '{}' (bidirectional partial)", targetEnvironment,
-                        bestMatch.path("name").asText());
-                return bestMatch;
-            }
-
-            log.warn("No environment matched for '{}', falling back to first", targetEnvironment);
+            throw new IllegalArgumentException("Environment '" + targetEnvironment + "' not found. Available environments: " + available);
         }
         return environments.get(0);
     }
