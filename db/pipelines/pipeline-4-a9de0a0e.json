@@ -4,7 +4,7 @@
     "tasks" : [ {
       "id" : "pr-1",
       "taskType" : "PrTask",
-      "devOpsServiceFactory" : "GitHub",
+      "devOpsServiceFactory" : "GitHub VOIS",
       "conditions" : [ ],
       "nextTaskIds" : [ ],
       "fromBranch" : "release/develop",
@@ -13,7 +13,7 @@
     }, {
       "id" : "git-1",
       "taskType" : "GitTask",
-      "devOpsServiceFactory" : "GitHub",
+      "devOpsServiceFactory" : "GitHub VOIS",
       "conditions" : [ ],
       "nextTaskIds" : [ ],
       "repoName" : "mvax-offers",
