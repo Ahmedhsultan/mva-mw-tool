@@ -15,7 +15,6 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { finalize } from 'rxjs';
 import {
-  Connector,
   DevOpsProvider,
   PipelineCondition,
   PipelineDto,
@@ -172,7 +171,6 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   pipelines: PipelineDto[] = [];
   pipelineRuns: PipelineRunDto[] = [];
   editorNodes: EditorPipelineTaskNode[] = [];
-  connectors: Connector[] = [];
 
   workbenchTabIndex = 0;
   isBuilderWindowOpen = false;
@@ -274,14 +272,9 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   refreshWorkspace(): void {
-    this.loadConnectors();
     this.loadPipelines();
     this.loadPipelineRuns();
     this.loadTaskCatalog();
-  }
-
-  private loadConnectors(): void {
-    this.connectors = this.authService.getConnectors();
   }
 
   startNewPipeline(openBuilderWindow = true): void {
@@ -847,33 +840,6 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     return this.editorNodes.filter(node => node.taskType === 'BuildTask' && node.editorId !== currentTask.editorId);
   }
 
-  availableConnectors(task: EditorPipelineTaskNode): Connector[] {
-    return this.connectors;
-  }
-
-  connectorLabel(connector: Connector): string {
-    return `${connector.name} (${this.providerLabel(connector.provider)})`;
-  }
-
-  onTaskConnectorChanged(task: EditorPipelineTaskNode, connectorId: string): void {
-    task.connectorId = connectorId;
-    const connector = this.connectors.find(conn => conn.id === connectorId);
-    if (connector) {
-      task.devOpsServiceFactory = connector.provider;
-    }
-    this.loadEnvironmentsForTask(task);
-  }
-
-  onTaskProviderChanged(task: EditorPipelineTaskNode, provider: DevOpsProvider): void {
-    task.devOpsServiceFactory = provider;
-    if (task.connectorId) {
-      const connector = this.connectors.find(conn => conn.id === task.connectorId);
-      if (!connector || connector.provider !== provider) {
-        task.connectorId = '';
-      }
-    }
-  }
-
   conditionTaskOptions(currentTask: EditorPipelineTaskNode): EditorPipelineTaskNode[] {
     return this.editorNodes.filter(node => node.editorId !== currentTask.editorId);
   }
@@ -1257,25 +1223,6 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
         if (repoProfile.deploymentDefinitionId.trim()) task.definitionId = repoProfile.deploymentDefinitionId.trim();
         break;
     }
-    this.loadEnvironmentsForTask(task);
-  }
-
-  private loadEnvironmentsForTask(task: EditorPipelineTaskNode): void {
-    if (!task || !task.definitionId?.trim()) return;
-    const provider = (this.connectors.find(c => c.id === task.connectorId)?.provider) || task.devOpsServiceFactory;
-    const connectorId = task.connectorId || undefined;
-
-    this.apiService.listDefinitionEnvironments(provider, task.definitionId.trim(), connectorId)
-      .subscribe({
-        next: (envs) => {
-          if (envs && envs.length) {
-            this.configuredEnvironments = [...envs];
-          }
-        },
-        error: (err) => {
-          this.showMessage('Could not load definition environments.', 'error-snackbar');
-        }
-      });
   }
 
   private profileRepoName(repoProfile: RepoProfile): string {
@@ -1319,7 +1266,6 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       id: task.id,
       taskType: task.taskType,
       devOpsServiceFactory: task.devOpsServiceFactory,
-      connectorId: task.connectorId || '',
       conditions: (task.conditions || []).map(condition => ({ ...condition })),
       nextTaskIds: [...(task.nextTaskIds || [])],
       branch: task.branch || '',
@@ -1421,7 +1367,6 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       id: node.id.trim(),
       taskType: node.taskType,
       devOpsServiceFactory: node.devOpsServiceFactory,
-      connectorId: node.connectorId?.trim() || '',
       conditions: node.conditions.map(condition => ({
         taskId: condition.taskId.trim(),
         status: condition.status
@@ -1585,9 +1530,6 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   private openTaskConfig(task: EditorPipelineTaskNode | null, event?: Event): void {
     event?.stopPropagation();
     this.selectedTask.set(task);
-    if (task) {
-      this.loadEnvironmentsForTask(task);
-    }
   }
 
   private focusValidationIssue(issue: ValidationIssue): void {
@@ -1630,7 +1572,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     const messages: string[] = [];
 
     for (const provider of providers) {
-      const credentials = this.authService.getProviderConfigSettings(provider);
+      const credentials = this.authService.getProviderSettings(provider);
       if (!credentials.pat.trim()) {
         messages.push(`${this.providerLabel(provider)} token is required to run this pipeline.`);
       }
@@ -1649,11 +1591,11 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     const payload: PipelineRunCredentials = {};
 
     if (providers.includes('azure')) {
-      payload.azure = this.toRunCredential(this.authService.getProviderConfigSettings('azure'));
+      payload.azure = this.toRunCredential(this.authService.getProviderSettings('azure'));
     }
 
     if (providers.includes('github')) {
-      payload.github = this.toRunCredential(this.authService.getProviderConfigSettings('github'));
+      payload.github = this.toRunCredential(this.authService.getProviderSettings('github'));
     }
 
     return payload;

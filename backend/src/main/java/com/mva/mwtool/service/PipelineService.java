@@ -67,7 +67,6 @@ public class PipelineService {
         Pipeline pipeline = pipelineRepository.findPipeline(pat, provider, organization, project, repoId, branch, pipelineName)
             .orElseThrow(() -> new IllegalArgumentException("Pipeline not found: " + pipelineName));
 
-        // Use run-time credentials as provided. GitHub task repoName values are applied per task inside TaskGraphBuilder.
         PipelineGraph graph = TaskGraphBuilder.build(pipeline.getPipelineStructure(), devOpsServiceFactory, devOpsCredentials);
 
         PipelineRunsRepo.getPipelineRuns().add(graph);

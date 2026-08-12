@@ -64,31 +64,10 @@ export class ApiService {
     });
   }
 
-  listDefinitionEnvironments(provider: string, definitionId: string, connectorId?: string): Observable<string[]> {
-    let headers = this.authHeaders(provider);
-    let params = this.baseParams(provider);
-
-    if (connectorId) {
-      const connector = this.authService.getConnector(connectorId);
-      if (connector) {
-        headers = new HttpHeaders({ 'X-PAT': connector.pat });
-        params = new HttpParams()
-          .set('provider', provider)
-          .set('organization', connector.organization || '')
-          .set('project', connector.project || '');
-      }
-    }
-
-    return this.http.get<string[]>(`/api/deploys/definitions/${encodeURIComponent(definitionId)}/environments`, {
-      headers,
-      params
-    });
-  }
-
   // ---- Config ----
 
   getConfigData(provider: string, repoId?: string, branch?: string): Observable<ConfigDataFile> {
-    let params = this.configBaseParams(provider);
+    let params = this.baseParams(provider);
 
     if (repoId?.trim()) {
       params = params.set('repoId', repoId.trim());
@@ -99,29 +78,16 @@ export class ApiService {
     }
 
     return this.http.get<ConfigDataFile>('/api/config', {
-      headers: this.configAuthHeaders(provider),
+      headers: this.authHeaders(provider),
       params
     });
   }
 
   saveConfigData(provider: string, request: ConfigDataRequest): Observable<void> {
     return this.http.put<void>('/api/config', request, {
-      headers: this.configAuthHeaders(provider),
-      params: this.configBaseParams(provider)
+      headers: this.authHeaders(provider),
+      params: this.baseParams(provider)
     });
-  }
-
-  private configAuthHeaders(provider: string): HttpHeaders {
-    const settings = this.authService.getProviderConfigSettings(provider as 'azure' | 'github');
-    return new HttpHeaders({ 'X-PAT': settings.pat });
-  }
-
-  private configBaseParams(provider: string): HttpParams {
-    const settings = this.authService.getProviderConfigSettings(provider as 'azure' | 'github');
-    return new HttpParams()
-      .set('provider', provider)
-      .set('organization', settings.organization)
-      .set('project', settings.project);
   }
 
   // ---- Repo ----
@@ -145,35 +111,35 @@ export class ApiService {
   // ---- Pipelines ----
 
   getPipelines(provider: string, repoId: string, branch: string): Observable<PipelineDto[]> {
-    const params = this.configBaseParams(provider)
+    const params = this.baseParams(provider)
       .set('repoId', repoId)
       .set('branch', branch);
 
     return this.http.get<PipelineDto[]>('/api/pipelines', {
-      headers: this.configAuthHeaders(provider),
+      headers: this.authHeaders(provider),
       params
     });
   }
 
   createPipeline(provider: string, repoId: string, branch: string, pipelineName: string, payload: PipelinePayload): Observable<boolean> {
-    const params = this.configBaseParams(provider)
+    const params = this.baseParams(provider)
       .set('repoId', repoId)
       .set('branch', branch)
       .set('pipelineName', pipelineName);
 
     return this.http.post<boolean>('/api/pipelines', payload, {
-      headers: this.configAuthHeaders(provider),
+      headers: this.authHeaders(provider),
       params
     });
   }
 
   deletePipeline(provider: string, repoId: string, branch: string, pipelineName: string): Observable<boolean> {
-    const params = this.configBaseParams(provider)
+    const params = this.baseParams(provider)
       .set('repoId', repoId)
       .set('branch', branch);
 
     return this.http.delete<boolean>(`/api/pipelines/${encodeURIComponent(pipelineName)}`, {
-      headers: this.configAuthHeaders(provider),
+      headers: this.authHeaders(provider),
       params
     });
   }
@@ -183,12 +149,12 @@ export class ApiService {
   }
 
   runPipeline(provider: string, repoId: string, branch: string, pipelineName: string, credentials: PipelineRunCredentials): Observable<boolean> {
-    const params = this.configBaseParams(provider)
+    const params = this.baseParams(provider)
       .set('repoId', repoId)
       .set('branch', branch);
 
     return this.http.post<boolean>(`/api/pipelines/${encodeURIComponent(pipelineName)}/run`, credentials, {
-      headers: this.configAuthHeaders(provider),
+      headers: this.authHeaders(provider),
       params
     });
   }

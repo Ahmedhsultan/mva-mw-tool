@@ -10,7 +10,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { AuthService } from '../../core/services/auth.service';
-import { Connector } from '../../core/models';
+import { ProviderSettings } from '../../core/models';
 import { forkJoin } from 'rxjs';
 
 @Component({
@@ -74,8 +74,7 @@ export class LoginComponent {
 
       const githubSettings = this.authService.getProviderSettings('github');
       this.githubOrganization = githubSettings.organization;
-      // GitHub connectors do not use a project value; keep project empty
-      this.githubProject = '';
+      this.githubProject = githubSettings.project;
       this.githubPat = githubSettings.pat;
     }
   }
@@ -102,7 +101,7 @@ export class LoginComponent {
     this.githubValid.set(null);
 
     const azure$ = this.authService.validateToken('azure', this.azurePat, this.azureOrganization, this.azureProject);
-    const github$ = this.authService.validateToken('github', this.githubPat, this.githubOrganization, '');
+    const github$ = this.authService.validateToken('github', this.githubPat, this.githubOrganization, this.githubProject);
 
     forkJoin({ azure: azure$, github: github$ }).subscribe({
       next: ({ azure, github }) => {
@@ -125,7 +124,6 @@ export class LoginComponent {
         } else {
           // Both valid
           this.persistRememberMe();
-          this.saveLoginConnectors();
           this.snackBar.open(`Welcome, ${azure.displayName}!`, 'Close', {
             duration: 3000, panelClass: 'success-snackbar'
           });
@@ -148,49 +146,11 @@ export class LoginComponent {
         azureProject: this.azureProject.trim(),
         azurePat: this.azurePat.trim(),
         githubOrganization: this.githubOrganization.trim(),
+        githubProject: this.githubProject.trim(),
         githubPat: this.githubPat.trim()
       }));
     } else {
       localStorage.removeItem('mva_remember');
     }
-  }
-
-  private saveLoginConnectors(): void {
-    const connectors: Connector[] = [];
-    const existing = this.authService.getConfig().connectors || [];
-
-    const azureConnector: Connector = {
-      id: this.normalizeConnectorId('azure', this.azureOrganization, this.azureProject),
-      name: 'Azure login',
-      provider: 'azure',
-      pat: this.azurePat.trim(),
-      organization: this.azureOrganization.trim(),
-      project: this.azureProject.trim()
-    };
-
-    const githubConnector: Connector = {
-      id: this.normalizeConnectorId('github', this.githubOrganization, ''),
-      name: 'GitHub login',
-      provider: 'github',
-      pat: this.githubPat.trim(),
-      organization: this.githubOrganization.trim(),
-      project: ''
-    };
-
-    const filtered = existing.filter(connector => connector.id !== azureConnector.id && connector.id !== githubConnector.id);
-    connectors.push(...filtered, azureConnector, githubConnector);
-    this.authService.saveConnectors(connectors);
-
-    const config = this.authService.getConfig();
-    if (!config.configConnectorId) {
-      const preferredConfigProvider = config.provider === 'github' ? githubConnector : azureConnector;
-      this.authService.updateConfigConnectorId(preferredConfigProvider.id);
-    }
-  }
-
-  private normalizeConnectorId(provider: string, organization: string, project: string): string {
-    const safeOrg = organization.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const safeProject = project.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    return `${provider}-login-${safeOrg}${safeProject ? `-${safeProject}` : ''}`;
   }
 }

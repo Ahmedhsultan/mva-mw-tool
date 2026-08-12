@@ -6,7 +6,6 @@ import com.mva.mwtool.dto.DevOpsCredentials;
 import com.mva.mwtool.dto.PrDto;
 import com.mva.mwtool.dto.RepoFileDto;
 import org.springframework.http.*;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
@@ -30,30 +29,10 @@ public class GitHubRepoService implements RepoService {
         this.organization = credentials.getOrganization("github");
     }
 
-    private String[] parseRepoId(String repoId) {
-        if (repoId == null || repoId.isBlank()) {
-            throw new IllegalArgumentException("repoId is required for GitHub operations");
-        }
-        String normalized = repoId.trim();
-        if (normalized.contains("/")) {
-            return normalized.split("/", 2);
-        }
-        return new String[] { organization, normalized };
-    }
-
-    private String normalizeBranch(String branch) {
-        if (branch == null) return "";
-        if (branch.startsWith("refs/heads/")) {
-            return branch.substring("refs/heads/".length());
-        }
-        return branch;
-    }
-
     @Override
     public RepoFileDto pullFile(String repoId, String filePath, String branch) {
-        String[] repo = parseRepoId(repoId);
         String url = String.format("%s/repos/%s/%s/contents/%s?ref=%s",
-                BASE_URL, repo[0], repo[1], filePath, branch);
+                BASE_URL, organization, repoId, filePath, branch);
 
         HttpEntity<Void> entity = new HttpEntity<>(GitHubAuthService.createHeaders(pat));
         ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, entity, JsonNode.class);
@@ -73,9 +52,8 @@ public class GitHubRepoService implements RepoService {
 
     @Override
     public List<String> listFilePaths(String repoId, String directoryPath, String branch) {
-        String[] repo = parseRepoId(repoId);
         String url = String.format("%s/repos/%s/%s/contents/%s?ref=%s",
-                BASE_URL, repo[0], repo[1], directoryPath, branch);
+                BASE_URL, organization, repoId, directoryPath, branch);
 
         HttpEntity<Void> entity = new HttpEntity<>(GitHubAuthService.createHeaders(pat));
         ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, entity, JsonNode.class);
@@ -105,9 +83,8 @@ public class GitHubRepoService implements RepoService {
 
     @Override
     public void pushFile(String repoId, String filePath, String branch, String content, String commitMessage) {
-        String[] repo = parseRepoId(repoId);
         String url = String.format("%s/repos/%s/%s/contents/%s",
-                BASE_URL, repo[0], repo[1], filePath);
+                BASE_URL, organization, repoId, filePath);
 
         String sha = getCurrentFileSha(repoId, filePath, branch);
 
@@ -132,9 +109,8 @@ public class GitHubRepoService implements RepoService {
             throw new IllegalArgumentException("Could not resolve current file version");
         }
 
-        String[] repo = parseRepoId(repoId);
         String url = String.format("%s/repos/%s/%s/contents/%s",
-                BASE_URL, repo[0], repo[1], filePath);
+                BASE_URL, organization, repoId, filePath);
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("message", commitMessage);
@@ -150,9 +126,8 @@ public class GitHubRepoService implements RepoService {
 
     private String getCurrentFileSha(String repoId, String filePath, String branch) {
         try {
-            String[] repo = parseRepoId(repoId);
             String url = String.format("%s/repos/%s/%s/contents/%s?ref=%s",
-                    BASE_URL, repo[0], repo[1], filePath, branch);
+                    BASE_URL, organization, repoId, filePath, branch);
             HttpEntity<Void> entity = new HttpEntity<>(GitHubAuthService.createHeaders(pat));
             ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, entity, JsonNode.class);
             JsonNode body = response.getBody();
@@ -166,57 +141,43 @@ public class GitHubRepoService implements RepoService {
 
     @Override
     public PrDto createPullRequest(String repoId, String sourceBranch, String targetBranch, String title, String description) {
-        String[] repo = parseRepoId(repoId);
-        String url = String.format("%s/repos/%s/%s/pulls", BASE_URL, repo[0], repo[1]);
-
-        // GitHub expects simple branch names for head/base (not full ref names like refs/heads/feature)
-        String head = normalizeBranch(sourceBranch);
-        String base = normalizeBranch(targetBranch);
+        String url = String.format("%s/repos/%s/%s/pulls", BASE_URL, organization, repoId);
 
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("head", head);
-        requestBody.put("base", base);
+        requestBody.put("head", sourceBranch);
+        requestBody.put("base", targetBranch);
         requestBody.put("title", title != null ? title : sourceBranch + " → " + targetBranch);
         requestBody.put("body", description != null ? description : "Created via MVA-MW-Tool");
 
         HttpHeaders headers = GitHubAuthService.createHeaders(pat);
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-        try {
-            ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.POST, entity, JsonNode.class);
-            JsonNode body = response.getBody();
+        ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.POST, entity, JsonNode.class);
+        JsonNode body = response.getBody();
 
-            PrDto dto = new PrDto();
-            if (body != null) {
-                dto.setId(body.path("number").asText());
-                dto.setTitle(body.path("title").asText());
-                dto.setStatus(body.path("state").asText());
-                dto.setUrl(body.path("html_url").asText());
-            }
-            return dto;
-        } catch (HttpClientErrorException ex) {
-            String resp = ex.getResponseBodyAsString();
-            String msg = String.format("GitHub create PR failed: %s %s - url=%s body=%s response=%s",
-                    ex.getStatusCode(), ex.getStatusText(), url, requestBody.toString(), resp);
-            throw new RuntimeException(msg, ex);
+        PrDto dto = new PrDto();
+        if (body != null) {
+            dto.setId(body.path("number").asText());
+            dto.setTitle(body.path("title").asText());
+            dto.setStatus(body.path("state").asText());
+            dto.setUrl(body.path("html_url").asText());
         }
+        return dto;
     }
 
     @Override
     public void createBranch(String repoId, String newBranch, String sourceBranch) {
         // Get the SHA of the source branch
-        String src = normalizeBranch(sourceBranch);
-        String[] repo = parseRepoId(repoId);
         String url = String.format("%s/repos/%s/%s/git/ref/heads/%s",
-            BASE_URL, repo[0], repo[1], src);
+                BASE_URL, organization, repoId, sourceBranch);
         HttpEntity<Void> getEntity = new HttpEntity<>(GitHubAuthService.createHeaders(pat));
         ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, getEntity, JsonNode.class);
         String sha = response.getBody().path("object").path("sha").asText();
 
         // Create the new branch ref
-        String createUrl = String.format("%s/repos/%s/%s/git/refs", BASE_URL, repo[0], repo[1]);
+        String createUrl = String.format("%s/repos/%s/%s/git/refs", BASE_URL, organization, repoId);
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("ref", "refs/heads/" + normalizeBranch(newBranch));
+        requestBody.put("ref", "refs/heads/" + newBranch);
         requestBody.put("sha", sha);
 
         HttpHeaders headers = GitHubAuthService.createHeaders(pat);

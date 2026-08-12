@@ -51,34 +51,7 @@ public class TaskGraphBuilder {
             String provider = node.has("devOpsServiceFactory") ? node.get("devOpsServiceFactory").asText() : null;
             task.setDevOpsProvider(provider);
             if (provider != null) {
-                DevOpsCredentials credsForTask = credentials;
-                // If provider is GitHub and the task has a repoName, prefer that as the repo (project)
-                if ("github".equalsIgnoreCase(provider) && task instanceof com.mva.mwtool.service.pipeline.tasks.Task) {
-                    String repoName = null;
-                    try {
-                        // reflectively attempt to read repoName field if present
-                        var field = task.getClass().getDeclaredField("repoName");
-                        field.setAccessible(true);
-                        Object val = field.get(task);
-                        if (val instanceof String) repoName = ((String) val).trim();
-                    } catch (NoSuchFieldException | IllegalAccessException ignored) {
-                    }
-
-                    if (repoName != null && !repoName.isEmpty()) {
-                        // create a shallow copy of credentials with github.project set to repoName
-                        var originalGithub = credentials.getGithub();
-                        if (originalGithub != null) {
-                            var newGithub = new com.mva.mwtool.dto.GitHubCredentials(
-                                    originalGithub.getPat(),
-                                    originalGithub.getOrganization(),
-                                    repoName
-                            );
-                            credsForTask = new DevOpsCredentials(credentials.getAzure(), newGithub);
-                        }
-                    }
-                }
-
-                DevOpsContext context = devOpsServiceFactory.create(provider, credsForTask);
+                DevOpsContext context = devOpsServiceFactory.create(provider, credentials);
                 task.setDevOpsContext(context);
             }
 

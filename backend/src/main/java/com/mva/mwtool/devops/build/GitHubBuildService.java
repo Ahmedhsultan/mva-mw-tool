@@ -28,22 +28,10 @@ public class GitHubBuildService implements BuildService {
         this.project = credentials.getProject("github");
     }
 
-    private String[] parseRepoId(String repoId) {
-        if (repoId == null || repoId.isBlank()) {
-            throw new IllegalArgumentException("repoId is required for GitHub operations");
-        }
-        String normalized = repoId.trim();
-        if (normalized.contains("/")) {
-            return normalized.split("/", 2);
-        }
-        return new String[] { organization, normalized };
-    }
-
     @Override
     public BuildDto getBuildById(String buildId) {
-        String[] repo = parseRepoId(project);
         String url = String.format("%s/repos/%s/%s/actions/runs/%s",
-                BASE_URL, repo[0], repo[1], buildId);
+                BASE_URL, organization, project, buildId);
 
         HttpEntity<Void> entity = new HttpEntity<>(GitHubAuthService.createHeaders(pat));
         ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, entity, JsonNode.class);
@@ -53,9 +41,8 @@ public class GitHubBuildService implements BuildService {
 
     @Override
     public List<BuildDto> getBuildsByBranchAndRepo(String branch, String repoId) {
-        String[] repo = parseRepoId(repoId);
         String url = String.format("%s/repos/%s/%s/actions/runs?branch=%s",
-                BASE_URL, repo[0], repo[1], branch);
+                BASE_URL, organization, repoId, branch);
 
         HttpEntity<Void> entity = new HttpEntity<>(GitHubAuthService.createHeaders(pat));
         ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, entity, JsonNode.class);
@@ -72,9 +59,8 @@ public class GitHubBuildService implements BuildService {
 
     @Override
     public BuildDto createBuild(String branch, String repoId, String definitionId) {
-        String[] repo = parseRepoId(repoId);
         String url = String.format("%s/repos/%s/%s/actions/workflows/%s/dispatches",
-                BASE_URL, repo[0], repo[1], definitionId);
+                BASE_URL, organization, repoId, definitionId);
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("ref", branch);
@@ -93,9 +79,8 @@ public class GitHubBuildService implements BuildService {
 
     @Override
     public void cancelBuild(String buildId) {
-        String[] repo = parseRepoId(project);
         String url = String.format("%s/repos/%s/%s/actions/runs/%s/cancel",
-                BASE_URL, repo[0], repo[1], buildId);
+                BASE_URL, organization, project, buildId);
 
         HttpHeaders headers = GitHubAuthService.createHeaders(pat);
         HttpEntity<Void> entity = new HttpEntity<>(headers);
