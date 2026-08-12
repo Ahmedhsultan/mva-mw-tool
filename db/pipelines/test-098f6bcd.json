@@ -2,28 +2,28 @@
   "pipelineName" : "test",
   "pipelineStructure" : {
     "tasks" : [ {
+      "id" : "pr-1",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "github",
+      "connectorId" : "github-github-vois-1786532065845",
+      "conditions" : [ ],
+      "nextTaskIds" : [ "build-1" ],
+      "fromBranch" : "release/develop",
+      "targetBranch" : "main",
+      "repoName" : "mvax-native-billing"
+    }, {
       "id" : "build-1",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "azure",
-      "conditions" : [ ],
-      "nextTaskIds" : [ "deploy-1" ],
-      "branch" : "release/develop",
-      "repoName" : "mvax-plan-services",
-      "definitionId" : "5021"
-    }, {
-      "id" : "deploy-1",
-      "taskType" : "DeploymentTask",
-      "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
-        "taskId" : "build-1",
+        "taskId" : "pr-1",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
-      "buildTaskId" : "build-1",
-      "repoName" : "mvax-plan-services",
-      "definitionId" : "2067",
-      "environment" : "int1-common",
-      "description" : ""
+      "branch" : "release/develop",
+      "repoName" : "mvax-native-billing",
+      "definitionId" : "5018"
     } ]
   }
 }
