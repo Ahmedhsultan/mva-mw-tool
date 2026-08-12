@@ -1,0 +1,26 @@
+{
+  "pipelineName" : "pipeline-4",
+  "pipelineStructure" : {
+    "tasks" : [ {
+      "id" : "pr-1",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "github",
+      "connectorId" : "github-github-vois-1786532065845",
+      "conditions" : [ ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "release/develop",
+      "targetBranch" : "main",
+      "repoName" : "mvax-native-billing"
+    }, {
+      "id" : "git-1",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "github",
+      "connectorId" : "github-github-vois-1786532065845",
+      "conditions" : [ ],
+      "nextTaskIds" : [ ],
+      "repoName" : "mvax-offers",
+      "branch" : "test141",
+      "sourceBranch" : "release/develop"
+    } ]
+  }
+}
