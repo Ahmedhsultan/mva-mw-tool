@@ -1,0 +1,9 @@
+{
+  "id" : "373b3b8c-8fb0-4c08-85f0-52670031b299",
+  "label" : "Run Pace Tests",
+  "description" : "All pipelines of Pace tests exist there",
+  "url" : "https://dev.azure.com/vfuk-digital/Digital/_build?definitionScope=%5Cpace%5Cpace-utils",
+  "type" : "link",
+  "category" : "AZURE",
+  "isCustom" : true
+}

@@ -1,0 +1,32 @@
+{
+  "pipelineName" : "Deploy Build",
+  "pipelineStructure" : {
+    "tasks" : [ {
+      "id" : "API",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ ],
+      "nextTaskIds" : [ "API-Deploy" ],
+      "branch" : "release/develop",
+      "repoName" : "mvax-api",
+      "definitionId" : "997"
+    }, {
+      "id" : "API-Deploy",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "azure",
+      "conditions" : [ {
+        "taskId" : "API-Deploy",
+        "status" : "SUCCEEDED"
+      }, {
+        "taskId" : "API",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "API",
+      "repoName" : "mvax-api",
+      "definitionId" : "503",
+      "environment" : "int1-common",
+      "description" : ""
+    } ]
+  }
+}
