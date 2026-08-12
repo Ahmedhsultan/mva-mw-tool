@@ -5,6 +5,8 @@ import com.mva.mwtool.devops.auth.GitHubAuthService;
 import com.mva.mwtool.dto.DevOpsCredentials;
 import com.mva.mwtool.dto.PrDto;
 import com.mva.mwtool.dto.RepoFileDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -17,6 +19,7 @@ import java.util.Map;
 
 public class GitHubRepoService implements RepoService {
 
+    private static final Logger log = LoggerFactory.getLogger(GitHubRepoService.class);
     private static final String BASE_URL = "https://api.github.com";
 
     private final RestTemplate restTemplate;
@@ -27,6 +30,8 @@ public class GitHubRepoService implements RepoService {
         this.restTemplate = restTemplate;
         this.pat = credentials.getPat("github");
         this.organization = credentials.getOrganization("github");
+        log.info("[GitHub] initialized with org='{}', pat starts with='{}'", this.organization,
+                this.pat != null && this.pat.length() > 10 ? this.pat.substring(0, 10) + "..." : "null/empty");
     }
 
     @Override
@@ -142,6 +147,7 @@ public class GitHubRepoService implements RepoService {
     @Override
     public PrDto createPullRequest(String repoId, String sourceBranch, String targetBranch, String title, String description) {
         String url = String.format("%s/repos/%s/%s/pulls", BASE_URL, organization, repoId);
+        log.info("[GitHub] createPullRequest url='{}'", url);
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("head", sourceBranch);
@@ -170,6 +176,7 @@ public class GitHubRepoService implements RepoService {
         // Get the SHA of the source branch
         String url = String.format("%s/repos/%s/%s/git/ref/heads/%s",
                 BASE_URL, organization, repoId, sourceBranch);
+        log.info("[GitHub] createBranch getRef url='{}'", url);
         HttpEntity<Void> getEntity = new HttpEntity<>(GitHubAuthService.createHeaders(pat));
         ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, getEntity, JsonNode.class);
         String sha = response.getBody().path("object").path("sha").asText();

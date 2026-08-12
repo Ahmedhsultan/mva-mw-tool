@@ -46,11 +46,8 @@ public class DeployController {
 
     private DevOpsContext createContext(String provider, String pat, String organization, String project) {
         DevOpsCredentials credentials = new DevOpsCredentials();
-        if ("azure".equalsIgnoreCase(provider)) {
-            credentials.setAzure(new AzureCredentials(pat, organization, project));
-        } else if ("github".equalsIgnoreCase(provider)) {
-            credentials.setGithub(new GitHubCredentials(pat, organization, project));
-        }
+        credentials.setConnectors(java.util.Map.of(provider.toLowerCase(),
+                new ConnectorCredentials(provider.toLowerCase(), pat, organization, project)));
         return factory.create(provider, credentials);
     }
 }

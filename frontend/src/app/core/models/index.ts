@@ -93,6 +93,14 @@ export interface ConfigDataRequest {
   repoProfiles: RepoProfile[];
 }
 
+export interface Connector {
+  name: string;
+  type: DevOpsProvider;
+  pat: string;
+  organization: string;
+  project: string;
+}
+
 export type GitAction = 'PUSH_FILE' | 'CREATE_BRANCH';
 
 export type PipelineTaskType = 'BuildTask' | 'DeploymentTask' | 'ApprovalTask' | 'GitTask' | 'PrTask';
@@ -149,9 +157,15 @@ export interface ProviderCredentials {
   project: string;
 }
 
+export interface ConnectorCredentials {
+  type: DevOpsProvider;
+  pat: string;
+  organization: string;
+  project: string;
+}
+
 export interface PipelineRunCredentials {
-  azure?: ProviderCredentials;
-  github?: ProviderCredentials;
+  connectors?: Record<string, ConnectorCredentials>;
 }
 
 export interface PipelineRunTask {

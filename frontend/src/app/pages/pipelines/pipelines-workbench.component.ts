@@ -15,6 +15,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
 import { finalize } from 'rxjs';
 import {
+  Connector,
+  ConnectorCredentials,
   DevOpsProvider,
   PipelineCondition,
   PipelineDto,
@@ -24,8 +26,7 @@ import {
   PipelineRunDto,
   PipelineTaskNode,
   PipelineTaskStatus,
-  PipelineTaskType,
-  ProviderSettings
+  PipelineTaskType
 } from '../../core/models';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -167,6 +168,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   readonly toolboxTasks = TOOLBOX_TASKS;
   readonly taskStatuses = TASK_STATUS_OPTIONS;
   readonly providerOptions: DevOpsProvider[] = ['azure', 'github'];
+  availableConnectors: Connector[] = [];
 
   pipelines: PipelineDto[] = [];
   pipelineRuns: PipelineRunDto[] = [];
@@ -225,6 +227,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.availableConnectors = this.authService.getConnectors();
     this.startNewPipeline(false);
     this.refreshWorkspace();
   }
@@ -911,6 +914,10 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     return provider === 'github' ? 'GitHub' : 'Azure DevOps';
   }
 
+  connectorTypeLabel(type: DevOpsProvider): string {
+    return type === 'github' ? 'GitHub' : 'Azure DevOps';
+  }
+
   providerIcon(provider: DevOpsProvider): string {
     return provider === 'github' ? 'code' : 'cloud';
   }
@@ -949,8 +956,8 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   pipelineProvidersLabel(pipeline: PipelineDto): string {
-    const providers = this.collectProviders(pipeline.pipelineStructure.tasks || []);
-    return providers.map(provider => this.providerLabel(provider)).join(' + ');
+    const names = this.collectConnectorNames(pipeline.pipelineStructure.tasks || []);
+    return names.join(' + ');
   }
 
   pipelineNameForRun(run: PipelineRunDto): string {
@@ -1120,14 +1127,14 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   private createEditorTask(taskType: PipelineTaskType, position: Point): EditorPipelineTaskNode {
-    const provider = this.authService.getTabProvider('config');
+    const defaultConnector = this.authService.getConfigConnector() || (this.availableConnectors[0]?.name ?? 'azure');
 
     return {
       editorId: this.createEditorId(),
       position,
       id: this.generateTaskId(taskType),
       taskType,
-      devOpsServiceFactory: provider,
+      devOpsServiceFactory: defaultConnector as DevOpsProvider,
       conditions: [],
       nextTaskIds: [],
       branch: '',
@@ -1433,7 +1440,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       }
 
       if (!node.devOpsServiceFactory) {
-        this.pushValidationError(errors, `Task "${id || this.taskLabel(node.taskType)}" is missing a provider.`, node.editorId);
+        this.pushValidationError(errors, `Task "${id || this.taskLabel(node.taskType)}" is missing a connector.`, node.editorId);
       }
 
       this.validateRequiredFields(node, errors);
@@ -1568,19 +1575,27 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     return [...new Set(tasks.map(task => task.devOpsServiceFactory))];
   }
 
+  private collectConnectorNames(tasks: PipelineTaskNode[]): string[] {
+    return [...new Set(tasks.map(task => task.devOpsServiceFactory as string))];
+  }
+
   private validateRunCredentials(providers: DevOpsProvider[]): string[] {
     const messages: string[] = [];
 
-    for (const provider of providers) {
-      const credentials = this.authService.getProviderSettings(provider);
-      if (!credentials.pat.trim()) {
-        messages.push(`${this.providerLabel(provider)} token is required to run this pipeline.`);
+    for (const name of providers) {
+      const connector = this.authService.getConnector(name as string);
+      if (!connector) {
+        messages.push(`Connector "${name}" not found. Configure it in settings.`);
+        continue;
       }
-      if (!credentials.organization.trim()) {
-        messages.push(`${this.providerLabel(provider)} organization is required to run this pipeline.`);
+      if (!connector.pat.trim()) {
+        messages.push(`Connector "${connector.name}" has no token configured.`);
       }
-      if (provider === 'azure' && !credentials.project.trim()) {
-        messages.push(`${this.providerLabel(provider)} project is required to run this pipeline.`);
+      if (!connector.organization.trim()) {
+        messages.push(`Connector "${connector.name}" has no organization configured.`);
+      }
+      if (connector.type === 'azure' && !connector.project.trim()) {
+        messages.push(`Connector "${connector.name}" has no project configured.`);
       }
     }
 
@@ -1588,25 +1603,23 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   private buildRunCredentials(providers: DevOpsProvider[]): PipelineRunCredentials {
-    const payload: PipelineRunCredentials = {};
+    const connectorsMap: Record<string, ConnectorCredentials> = {};
 
-    if (providers.includes('azure')) {
-      payload.azure = this.toRunCredential(this.authService.getProviderSettings('azure'));
+    for (const nameOrProvider of providers) {
+      const connector = this.authService.getConnector(nameOrProvider as string);
+      if (connector) {
+        connectorsMap[connector.name] = {
+          type: connector.type,
+          pat: connector.pat,
+          organization: connector.organization,
+          project: connector.project
+        };
+      }
     }
 
-    if (providers.includes('github')) {
-      payload.github = this.toRunCredential(this.authService.getProviderSettings('github'));
-    }
+    return { connectors: connectorsMap };
 
-    return payload;
-  }
-
-  private toRunCredential(settings: ProviderSettings) {
-    return {
-      pat: settings.pat,
-      organization: settings.organization,
-      project: settings.project
-    };
+    return { connectors: connectorsMap };
   }
 
   private generatePipelineName(): string {

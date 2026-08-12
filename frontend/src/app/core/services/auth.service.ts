@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap, catchError, of } from 'rxjs';
-import { AppTabKey, AppTabProviders, AuthRequest, AuthResponse, DevOpsConfig, DevOpsProvider, ProviderSettings } from '../models';
+import { AppTabKey, AppTabProviders, AuthRequest, AuthResponse, Connector, DevOpsConfig, DevOpsProvider, ProviderSettings } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -68,6 +68,9 @@ export class AuthService {
     sessionStorage.removeItem('mva_pipelines_provider');
     sessionStorage.removeItem('mva_config_provider');
     sessionStorage.removeItem('mva_configDone');
+    sessionStorage.removeItem('mva_connectors');
+    sessionStorage.removeItem('mva_config_connector');
+    sessionStorage.removeItem('mva_config_repoName');
     this._isAuthenticated.set(false);
     this._provider.set('azure');
     this._displayName.set('');
@@ -172,6 +175,36 @@ export class AuthService {
 
   updateTabProvider(tab: AppTabKey, provider: DevOpsProvider): void {
     sessionStorage.setItem(this.tabProviderStorageKey(tab), provider);
+  }
+
+  getConnectors(): Connector[] {
+    const raw = sessionStorage.getItem('mva_connectors');
+    if (!raw) return [];
+    try { return JSON.parse(raw); } catch { return []; }
+  }
+
+  saveConnectors(connectors: Connector[]): void {
+    sessionStorage.setItem('mva_connectors', JSON.stringify(connectors));
+  }
+
+  getConnector(name: string): Connector | undefined {
+    return this.getConnectors().find(c => c.name === name);
+  }
+
+  getConfigConnector(): string {
+    return sessionStorage.getItem('mva_config_connector') || '';
+  }
+
+  setConfigConnector(connectorName: string): void {
+    sessionStorage.setItem('mva_config_connector', connectorName);
+  }
+
+  getConfigRepoName(): string {
+    return sessionStorage.getItem('mva_config_repoName') || '';
+  }
+
+  setConfigRepoName(repoName: string): void {
+    sessionStorage.setItem('mva_config_repoName', repoName);
   }
 
   private hasStoredSession(): boolean {

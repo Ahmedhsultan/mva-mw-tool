@@ -10,7 +10,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { AuthService } from '../../core/services/auth.service';
-import { ProviderSettings } from '../../core/models';
+import { Connector, ProviderSettings } from '../../core/models';
 import { forkJoin } from 'rxjs';
 
 @Component({
@@ -124,6 +124,7 @@ export class LoginComponent {
         } else {
           // Both valid
           this.persistRememberMe();
+          this.seedDefaultConnectors();
           this.snackBar.open(`Welcome, ${azure.displayName}!`, 'Close', {
             duration: 3000, panelClass: 'success-snackbar'
           });
@@ -152,5 +153,28 @@ export class LoginComponent {
     } else {
       localStorage.removeItem('mva_remember');
     }
+  }
+
+  private seedDefaultConnectors(): void {
+    const existing = this.authService.getConnectors();
+    if (existing.length) return;
+
+    const connectors: Connector[] = [
+      {
+        name: 'Azure DevOps',
+        type: 'azure',
+        pat: this.azurePat.trim(),
+        organization: this.azureOrganization.trim(),
+        project: this.azureProject.trim()
+      },
+      {
+        name: 'GitHub',
+        type: 'github',
+        pat: this.githubPat.trim(),
+        organization: this.githubOrganization.trim(),
+        project: ''
+      }
+    ];
+    this.authService.saveConnectors(connectors);
   }
 }

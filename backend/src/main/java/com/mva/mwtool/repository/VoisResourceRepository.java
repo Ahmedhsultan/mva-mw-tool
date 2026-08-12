@@ -4,9 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mva.mwtool.devops.DevOpsContext;
 import com.mva.mwtool.devops.DevOpsServiceFactory;
-import com.mva.mwtool.dto.AzureCredentials;
+import com.mva.mwtool.dto.ConnectorCredentials;
 import com.mva.mwtool.dto.DevOpsCredentials;
-import com.mva.mwtool.dto.GitHubCredentials;
 import com.mva.mwtool.dto.RepoFileDto;
 import com.mva.mwtool.dto.VoisResourceDto;
 import org.springframework.http.HttpStatus;
@@ -171,13 +170,8 @@ public class VoisResourceRepository {
 
     private DevOpsContext createContext(String provider, String pat, String organization, String project) {
         DevOpsCredentials credentials = new DevOpsCredentials();
-
-        if ("azure".equalsIgnoreCase(provider)) {
-            credentials.setAzure(new AzureCredentials(pat, organization, project));
-        } else if ("github".equalsIgnoreCase(provider)) {
-            credentials.setGithub(new GitHubCredentials(pat, organization, project));
-        }
-
+        credentials.setConnectors(java.util.Map.of(provider.toLowerCase(),
+                new ConnectorCredentials(provider.toLowerCase(), pat, organization, project)));
         return factory.create(provider, credentials);
     }
 
