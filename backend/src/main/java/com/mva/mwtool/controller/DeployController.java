@@ -6,6 +6,7 @@ import com.mva.mwtool.dto.*;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/deploys")
@@ -42,6 +43,18 @@ public class DeployController {
                 .createDeploy(request.getBuildId(), request.getDefinitionId(),
                         request.getEnvironment(), request.getDescription());
         return ResponseEntity.ok(deploy);
+    }
+
+    @GetMapping("/definitions/{definitionId}/environments")
+    public ResponseEntity<List<String>> listDefinitionEnvironments(
+            @RequestHeader("X-PAT") String pat,
+            @RequestParam String provider,
+            @RequestParam String organization,
+            @RequestParam String project,
+            @PathVariable String definitionId) {
+        DevOpsContext context = createContext(provider, pat, organization, project);
+        List<String> envs = context.getDeployService().listEnvironments(definitionId);
+        return ResponseEntity.ok(envs);
     }
 
     private DevOpsContext createContext(String provider, String pat, String organization, String project) {

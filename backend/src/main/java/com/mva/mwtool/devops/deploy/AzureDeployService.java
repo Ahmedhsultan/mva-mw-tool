@@ -148,6 +148,19 @@ public class AzureDeployService implements DeployService {
         return mapToDeployDto(releaseNode, environment);
     }
 
+    @Override
+    public java.util.List<String> listEnvironments(String definitionId) {
+        JsonNode releaseDef = fetchReleaseDefinition(definitionId);
+        if (releaseDef == null) return Collections.emptyList();
+        List<String> allEnvNames = new ArrayList<>();
+        if (releaseDef.has("environments") && releaseDef.get("environments").isArray()) {
+            for (JsonNode e : releaseDef.get("environments")) {
+                allEnvNames.add(e.path("name").asText());
+            }
+        }
+        return allEnvNames;
+    }
+
     // ── Release definition ───────────────────────────────────
 
     private JsonNode fetchReleaseDefinition(String definitionId) {

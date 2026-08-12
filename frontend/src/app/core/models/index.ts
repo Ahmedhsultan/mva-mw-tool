@@ -6,6 +6,15 @@ export interface ProviderSettings {
   project: string;
 }
 
+export interface Connector {
+  id: string;
+  name: string;
+  provider: DevOpsProvider;
+  pat: string;
+  organization: string;
+  project: string;
+}
+
 export type AppTabKey = 'config';
 
 export interface AppTabProviders {
@@ -116,6 +125,7 @@ export interface PipelineTaskNode {
   id: string;
   taskType: PipelineTaskType;
   devOpsServiceFactory: DevOpsProvider;
+  connectorId?: string;
   conditions: PipelineCondition[];
   nextTaskIds: string[];
   branch?: string;
@@ -152,6 +162,7 @@ export interface ProviderCredentials {
 export interface PipelineRunCredentials {
   azure?: ProviderCredentials;
   github?: ProviderCredentials;
+  connectors?: Connector[];
 }
 
 export interface PipelineRunTask {
@@ -187,6 +198,8 @@ export interface DevOpsConfig {
   githubProject: string;
   organization: string;
   project: string;
+  connectors: Connector[];
+  configConnectorId: string;
   environments: string[];
   dbRepoId: string;
   dbBranch: string;

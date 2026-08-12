@@ -111,12 +111,7 @@
                    placeholder="my-org-or-user" required autocomplete="organization">
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Project / Workspace</mat-label>
-            <mat-icon matPrefix>folder_open</mat-icon>
-            <input matInput [(ngModel)]="githubProject" name="githubProject"
-                   placeholder="optional-workspace" autocomplete="off">
-          </mat-form-field>
+          <!-- GitHub does not use a project/workspace field; repo is provided per-step -->
 
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>GitHub Token</mat-label>

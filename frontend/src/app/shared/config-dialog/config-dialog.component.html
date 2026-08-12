@@ -24,6 +24,7 @@
 
             <div>
               <h3>Providers For App Tabs</h3>
+              <p class="token-note">Connectors are created automatically after login. Choose which connector should be used to read config for the Config tab.</p>
             </div>
           </div>
 
@@ -52,8 +53,28 @@
                     GitHub
                   </button>
                 </div>
+
+                @if (tab === 'config') {
+                  <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Config connector</mat-label>
+                    <mat-icon matPrefix>link</mat-icon>
+                    <mat-select [(ngModel)]="configConnectorId" (ngModelChange)="selectConfigConnector($event)">
+                      <mat-option value="">Default provider settings</mat-option>
+                      @for (connector of availableConfigConnectors(); track connector.id) {
+                        <mat-option [value]="connector.id">{{ connectorLabel(connector) }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+                }
               </section>
             }
+          </div>
+
+          <div class="panel-footer">
+            <button mat-flat-button color="primary" (click)="saveConnectorSettings()" class="save-btn">
+              <mat-icon>save</mat-icon>
+              Save Connector Selection
+            </button>
           </div>
         </section>
       </div>
@@ -61,77 +82,106 @@
 
     <mat-tab>
       <ng-template mat-tab-label>
-        <mat-icon class="tab-icon">key</mat-icon>
-        PAT Tokens
+        <mat-icon class="tab-icon">link</mat-icon>
+        Connectors
       </ng-template>
 
       <div class="tab-body">
-        <div class="token-stack">
-          <section class="pat-section">
-            <div class="panel-heading">
-              <div class="panel-icon" [class.azure-icon]="provider === 'azure'" [class.github-icon]="provider === 'github'">
-                <mat-icon>{{ provider === 'github' ? 'terminal' : 'cloud_queue' }}</mat-icon>
-              </div>
-
-              <div>
-                <h3>{{ providerLabel() }}</h3>
-              </div>
+        <section class="pat-section">
+          <div class="panel-heading">
+            <div class="panel-icon">
+              <mat-icon>link</mat-icon>
             </div>
-
-            <div class="provider-switch">
-              <button mat-stroked-button type="button"
-                      class="provider-option"
-                      [class.active]="isProviderSelected('azure')"
-                      (click)="setProvider('azure')">
-                <mat-icon>cloud</mat-icon>
-                Azure DevOps
-              </button>
-
-              <button mat-stroked-button type="button"
-                      class="provider-option"
-                      [class.active]="isProviderSelected('github')"
-                      (click)="setProvider('github')">
-                <mat-icon>code</mat-icon>
-                GitHub
-              </button>
+            <div>
+              <h3>Connector Settings</h3>
+              <p class="token-note">Create reusable Azure or GitHub connectors and select one to use for config repository access.</p>
             </div>
+          </div>
 
-            <div class="provider-form">
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ organizationLabel() }}</mat-label>
-                <mat-icon matPrefix>business</mat-icon>
-                <input matInput [(ngModel)]="organization"
-                       [placeholder]="organizationPlaceholder()" autocomplete="off">
-              </mat-form-field>
+          <div class="provider-form">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Connector name</mat-label>
+              <mat-icon matPrefix>badge</mat-icon>
+              <input matInput [(ngModel)]="newConnectorName" placeholder="Connector name" autocomplete="off">
+            </mat-form-field>
 
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ projectLabel() }}</mat-label>
-                <mat-icon matPrefix>folder_open</mat-icon>
-                <input matInput [(ngModel)]="project"
-                       [placeholder]="projectPlaceholder()" autocomplete="off">
-              </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Provider</mat-label>
+              <mat-icon matPrefix>cloud</mat-icon>
+              <mat-select [(ngModel)]="newConnectorProvider">
+                <mat-option value="azure">Azure DevOps</mat-option>
+                <mat-option value="github">GitHub</mat-option>
+              </mat-select>
+            </mat-form-field>
 
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>{{ tokenLabel() }}</mat-label>
-                <mat-icon matPrefix>key</mat-icon>
-                <input matInput [(ngModel)]="token"
-                       [type]="hideToken() ? 'password' : 'text'"
-                       [placeholder]="tokenPlaceholder()" autocomplete="off">
-                <button mat-icon-button matSuffix type="button"
-                        (click)="hideToken.set(!hideToken())">
-                  <mat-icon>{{ hideToken() ? 'visibility_off' : 'visibility' }}</mat-icon>
-                </button>
-              </mat-form-field>
-            </div>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Token</mat-label>
+              <mat-icon matPrefix>vpn_key</mat-icon>
+              <input matInput [(ngModel)]="newConnectorPat" [type]="hideToken() ? 'password' : 'text'" placeholder="Token" autocomplete="off">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Organization</mat-label>
+              <mat-icon matPrefix>business</mat-icon>
+              <input matInput [(ngModel)]="newConnectorOrganization" placeholder="Organization" autocomplete="off">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Project</mat-label>
+              <mat-icon matPrefix>folder_open</mat-icon>
+              <input matInput [(ngModel)]="newConnectorProject" placeholder="Project" autocomplete="off">
+            </mat-form-field>
 
             <div class="panel-footer">
-              <button mat-flat-button color="primary" (click)="saveProviderSettings()" class="save-btn">
-                <mat-icon>save</mat-icon>
-                Save {{ providerLabel() }} Settings
+              <button mat-flat-button color="primary" (click)="addConnector()" [disabled]="!newConnectorName.trim() || !newConnectorPat.trim()" class="save-btn">
+                <mat-icon>add</mat-icon>
+                Add connector
               </button>
             </div>
-          </section>
-        </div>
+          </div>
+
+          <div class="connector-list">
+            @if (connectors.length) {
+              @for (connector of connectors; track connector.id) {
+                <section class="repo-profile-card">
+                  <div class="repo-profile-header">
+                    <div>
+                      <strong>{{ connector.name }}</strong>
+                      <span>{{ providerName(connector.provider) }}</span>
+                    </div>
+                    <button type="button" class="repo-remove-btn" matTooltip="Remove connector" (click)="removeConnector(connectors.indexOf(connector))">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </div>
+
+                  <div class="repo-profile-grid">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Token</mat-label>
+                      <mat-icon matPrefix>vpn_key</mat-icon>
+                      <input matInput [(ngModel)]="connector.pat" (ngModelChange)="updateConnector(connectors.indexOf(connector), 'pat', $event)" autocomplete="off">
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>Organization</mat-label>
+                      <mat-icon matPrefix>business</mat-icon>
+                      <input matInput [(ngModel)]="connector.organization" (ngModelChange)="updateConnector(connectors.indexOf(connector), 'organization', $event)" autocomplete="off">
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                      <mat-label>Project</mat-label>
+                      <mat-icon matPrefix>folder_open</mat-icon>
+                      <input matInput [(ngModel)]="connector.project" (ngModelChange)="updateConnector(connectors.indexOf(connector), 'project', $event)" autocomplete="off">
+                    </mat-form-field>
+                  </div>
+                </section>
+              }
+            } @else {
+              <div class="empty-state">
+                <mat-icon>info_outline</mat-icon>
+                <p>No connectors defined yet.</p>
+              </div>
+            }
+          </div>
+
+        </section>
       </div>
     </mat-tab>
 

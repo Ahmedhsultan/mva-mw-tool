@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -34,6 +34,7 @@ import { VoisResourcesComponent } from '../vois-resources/vois-resources.compone
   styleUrl: './dashboard.component.scss'
 })
 export class DashboardComponent {
+  @ViewChild(PipelinesWorkbenchComponent) private pipelinesWorkbench?: PipelinesWorkbenchComponent;
   selectedTabIndex = 0;
 
   constructor(
@@ -64,11 +65,15 @@ export class DashboardComponent {
   }
 
   openConfig(): void {
-    this.dialog.open(ConfigDialogComponent, {
+    const dialogRef = this.dialog.open(ConfigDialogComponent, {
       width: '960px',
       maxWidth: '96vw',
       maxHeight: '80vh',
       panelClass: 'config-dialog-panel'
+    });
+
+    dialogRef.afterClosed().subscribe(() => {
+      this.pipelinesWorkbench?.refreshWorkspace();
     });
   }
 

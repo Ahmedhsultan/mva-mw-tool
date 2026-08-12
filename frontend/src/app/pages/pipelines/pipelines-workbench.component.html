@@ -341,9 +341,11 @@
               }
 
               <mat-form-field appearance="outline"><mat-label>Task id</mat-label><input matInput required [ngModel]="task.id" (ngModelChange)="updateTaskId(task.editorId, $event)"></mat-form-field>
-              <mat-form-field appearance="outline"><mat-label>Provider</mat-label>
-                <mat-select required [(ngModel)]="task.devOpsServiceFactory">
-                  @for (provider of providerOptions; track provider) { <mat-option [value]="provider">{{ providerLabel(provider) }}</mat-option> }
+              <mat-form-field appearance="outline"><mat-label>Connector</mat-label>
+                <mat-select required [(ngModel)]="task.connectorId" (ngModelChange)="onTaskConnectorChanged(task, $event)">
+                  @for (connector of availableConnectors(task); track connector.id) {
+                    <mat-option [value]="connector.id">{{ connectorLabel(connector) }}</mat-option>
+                  }
                 </mat-select>
               </mat-form-field>
               @switch (task.taskType) {

@@ -16,17 +16,31 @@ public class GitHubDeployService implements DeployService {
     private final RestTemplate restTemplate;
     private final String pat;
     private final String organization;
+    private final String project;
 
     public GitHubDeployService(RestTemplate restTemplate, DevOpsCredentials credentials) {
         this.restTemplate = restTemplate;
         this.pat = credentials.getPat("github");
         this.organization = credentials.getOrganization("github");
+        this.project = credentials.getProject("github");
+    }
+
+    private String[] parseRepoId(String repoId) {
+        if (repoId == null || repoId.isBlank()) {
+            throw new IllegalArgumentException("repoId is required for GitHub deploy operations");
+        }
+        String normalized = repoId.trim();
+        if (normalized.contains("/")) {
+            return normalized.split("/", 2);
+        }
+        return new String[] { organization, normalized };
     }
 
     @Override
     public DeployDto getDeployById(String deployId, String environment) {
+        String[] repo = parseRepoId(project);
         String url = String.format("%s/repos/%s/%s/deployments/%s",
-                BASE_URL, organization, deployId, deployId);
+                BASE_URL, repo[0], repo[1], deployId);
 
         HttpEntity<Void> entity = new HttpEntity<>(GitHubAuthService.createHeaders(pat));
         ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, entity, JsonNode.class);
@@ -36,8 +50,9 @@ public class GitHubDeployService implements DeployService {
 
     @Override
     public DeployDto createDeploy(String buildId, String definitionId, String environment, String description) {
+        String[] repo = parseRepoId(project);
         String url = String.format("%s/repos/%s/%s/deployments",
-                BASE_URL, organization, definitionId);
+                BASE_URL, repo[0], repo[1]);
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("ref", "main");
@@ -64,5 +79,28 @@ public class GitHubDeployService implements DeployService {
         dto.setUrl(node.path("url").asText());
         dto.setArtifacts(List.of(node.path("ref").asText()));
         return dto;
+    }
+
+    @Override
+    public java.util.List<String> listEnvironments(String definitionId) {
+        try {
+            String[] repo = parseRepoId(project);
+            String url = String.format("%s/repos/%s/%s/deployments", BASE_URL, repo[0], repo[1]);
+            HttpEntity<Void> entity = new HttpEntity<>(GitHubAuthService.createHeaders(pat));
+            ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.GET, entity, JsonNode.class);
+
+            JsonNode body = response.getBody();
+            if (body == null || !body.isArray()) return Collections.emptyList();
+
+            Set<String> envs = new LinkedHashSet<>();
+            for (JsonNode item : body) {
+                String env = item.path("environment").asText(null);
+                if (env != null && !env.isEmpty()) envs.add(env);
+            }
+
+            return new ArrayList<>(envs);
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
     }
 }

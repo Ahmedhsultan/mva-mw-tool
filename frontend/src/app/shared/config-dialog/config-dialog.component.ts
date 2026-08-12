@@ -13,7 +13,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { finalize } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
-import { AppTabKey, AppTabProviders, DevOpsProvider, ProviderSettings, RepoProfile, RepoProfileType } from '../../core/models';
+import { AppTabKey, AppTabProviders, Connector, DevOpsProvider, ProviderSettings, RepoProfile, RepoProfileType } from '../../core/models';
 
 interface ConfigCatalogState {
   environments: string[];
@@ -50,7 +50,13 @@ export class ConfigDialogComponent implements OnInit {
   };
   organization = '';
   project = '';
-  token = '';
+  connectors: Connector[] = [];
+  configConnectorId = '';
+  newConnectorName = '';
+  newConnectorProvider: DevOpsProvider = 'azure';
+  newConnectorPat = '';
+  newConnectorOrganization = '';
+  newConnectorProject = '';
   hideToken = signal(true);
   isLoadingConfig = signal(false);
   isSavingConfig = signal(false);
@@ -83,7 +89,9 @@ export class ConfigDialogComponent implements OnInit {
     this.tabProviders = config.tabProviders;
     this.configProvider = this.tabProviders.config;
     this.provider = this.configProvider;
-    this.applyProviderSettings(this.authService.getProviderSettings(this.provider));
+    this.connectors = config.connectors || [];
+    this.configConnectorId = config.configConnectorId || '';
+    this.applyProviderSettings(this.authService.getProviderConfigSettings(this.provider));
     this.dbRepoId = this.resolveDbRepoId(config.dbRepoId);
     this.dbBranch = config.dbBranch.trim() || 'main';
     this.persistConfigSource(this.dbRepoId, this.dbBranch);
@@ -91,20 +99,94 @@ export class ConfigDialogComponent implements OnInit {
     this.loadConfig();
   }
 
-  saveProviderSettings(): void {
-    this.authService.updateProviderSettings(this.provider, {
-      pat: this.token,
-      organization: this.organization.trim(),
-      project: this.project.trim()
-    });
+  saveConnectorSettings(): void {
+    this.authService.saveConnectors(this.connectors);
+    this.authService.updateConfigConnectorId(this.configConnectorId);
 
-    this.snackBar.open(`${this.providerLabel()} settings updated`, 'Close', {
+    this.snackBar.open('Connector settings updated', 'Close', {
       duration: 2000,
       panelClass: 'success-snackbar'
     });
 
     if (this.dbRepoId.trim()) {
       this.loadConfig();
+    }
+  }
+
+  addConnector(): void {
+    const name = this.newConnectorName.trim();
+    if (!name) {
+      return;
+    }
+    if (this.connectors.some(connector => connector.name.toLowerCase() === name.toLowerCase())) {
+      this.snackBar.open('Connector name already exists', 'Close', {
+        duration: 2500,
+        panelClass: 'error-snackbar'
+      });
+      return;
+    }
+
+    const newConnector: Connector = {
+      id: `${this.newConnectorProvider}-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`,
+      name,
+      provider: this.newConnectorProvider,
+      pat: this.newConnectorPat.trim(),
+      organization: this.newConnectorOrganization.trim(),
+      project: this.newConnectorProject.trim()
+    };
+
+    this.connectors = [...this.connectors, newConnector];
+    this.authService.saveConnectors(this.connectors);
+
+    if (!this.configConnectorId) {
+      this.configConnectorId = newConnector.id;
+      this.authService.updateConfigConnectorId(this.configConnectorId);
+    }
+
+    this.newConnectorName = '';
+    this.newConnectorPat = '';
+    this.newConnectorOrganization = '';
+    this.newConnectorProject = '';
+    this.newConnectorProvider = 'azure';
+  }
+
+  removeConnector(index: number): void {
+    const connector = this.connectors[index];
+    if (!connector) {
+      return;
+    }
+    this.connectors = this.connectors.filter((_, idx) => idx !== index);
+    if (this.configConnectorId === connector.id) {
+      this.configConnectorId = '';
+      this.authService.updateConfigConnectorId('');
+    }
+    this.authService.saveConnectors(this.connectors);
+  }
+
+  updateConnector(index: number, field: keyof Connector, value: string): void {
+    const next = [...this.connectors];
+    const existing = next[index];
+    if (!existing) {
+      return;
+    }
+    next[index] = {
+      ...existing,
+      [field]: value
+    };
+    this.connectors = next;
+    this.authService.saveConnectors(this.connectors);
+  }
+
+  selectConfigConnector(connectorId: string): void {
+    this.configConnectorId = connectorId;
+    this.authService.updateConfigConnectorId(connectorId);
+    const connector = this.authService.getConnector(connectorId);
+    if (connector) {
+      this.applyProviderSettings({
+        pat: connector.pat,
+        organization: connector.organization,
+        project: connector.project
+      });
     }
   }
 
@@ -123,7 +205,7 @@ export class ConfigDialogComponent implements OnInit {
     if (tab === 'config') {
       this.configProvider = provider;
       this.provider = provider;
-      this.applyProviderSettings(this.authService.getProviderSettings(provider));
+      this.applyProviderSettings(this.authService.getProviderConfigSettings(provider));
       this.dbRepoId = this.resolveDbRepoId(this.dbRepoId);
       this.persistConfigSource(this.dbRepoId, this.dbBranch);
       this.loadConfig();
@@ -140,7 +222,7 @@ export class ConfigDialogComponent implements OnInit {
 
   setProvider(provider: DevOpsProvider): void {
     this.provider = provider;
-    this.applyProviderSettings(this.authService.getProviderSettings(provider));
+    this.applyProviderSettings(this.authService.getProviderConfigSettings(provider));
   }
 
   isProviderSelected(provider: DevOpsProvider): boolean {
@@ -153,6 +235,14 @@ export class ConfigDialogComponent implements OnInit {
 
   providerName(provider: DevOpsProvider): string {
     return provider === 'github' ? 'GitHub' : 'Azure DevOps';
+  }
+
+  connectorLabel(connector: Connector): string {
+    return `${connector.name} (${this.providerName(connector.provider)})`;
+  }
+
+  availableConfigConnectors(): Connector[] {
+    return this.connectors.filter(connector => connector.provider === this.provider);
   }
 
   organizationLabel(): string {
@@ -171,13 +261,6 @@ export class ConfigDialogComponent implements OnInit {
     return this.provider === 'github' ? 'optional-workspace' : 'my-project';
   }
 
-  tokenLabel(): string {
-    return this.provider === 'github' ? 'GitHub Token' : 'Personal Access Token';
-  }
-
-  tokenPlaceholder(): string {
-    return this.provider === 'github' ? 'Enter GitHub token' : 'Enter Azure DevOps PAT';
-  }
 
   configStatusMessage(): string {
     if (this.isSavingConfig()) {
@@ -398,10 +481,9 @@ export class ConfigDialogComponent implements OnInit {
     this.repoProfilesDirty = false;
   }
 
-  private applyProviderSettings(settings: ProviderSettings): void {
-    this.organization = settings.organization;
-    this.project = settings.project;
-    this.token = settings.pat;
+  private applyProviderSettings(configSettings: ProviderSettings): void {
+    this.organization = configSettings.organization;
+    this.project = configSettings.project;
   }
 
   private persistConfigSource(repoId: string, branch: string): void {
