@@ -5,84 +5,80 @@
       "id" : "git-6",
       "taskType" : "GitTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ ],
       "nextTaskIds" : [ "Billing PR" ],
       "repoName" : "mvax-native-billing",
-      "branch" : "release/primary/10.83",
+      "branch" : "release/primary/10.85",
       "sourceBranch" : "release/develop"
     }, {
       "id" : "git-1",
       "taskType" : "GitTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ ],
       "nextTaskIds" : [ "API PR" ],
       "repoName" : "mvax-api",
-      "branch" : "release/primary/10.83",
+      "branch" : "release/primary/10.85",
       "sourceBranch" : "release/develop"
     }, {
       "id" : "git-3",
       "taskType" : "GitTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ ],
       "nextTaskIds" : [ "Upgrades PR" ],
       "repoName" : "mvax-upgrades",
-      "branch" : "release/primary/10.83",
+      "branch" : "release/primary/10.85",
       "sourceBranch" : "release/develop"
     }, {
       "id" : "git-4",
       "taskType" : "GitTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ ],
       "nextTaskIds" : [ "Common PR" ],
       "repoName" : "mvax-plan-services",
-      "branch" : "release/primary/10.83",
+      "branch" : "release/primary/10.85",
       "sourceBranch" : "release/develop"
     }, {
       "id" : "git-5",
       "taskType" : "GitTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ ],
       "nextTaskIds" : [ "Common PR" ],
       "repoName" : "mvax-common",
-      "branch" : "primary/10.83",
+      "branch" : "primary/10.85",
       "sourceBranch" : "develop"
     }, {
       "id" : "git-2",
       "taskType" : "GitTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ ],
       "nextTaskIds" : [ "Auth PR" ],
       "repoName" : "mvax-authentication",
-      "branch" : "release/primary/10.83",
+      "branch" : "release/primary/10.85",
       "sourceBranch" : "release/develop"
-    }, {
-      "id" : "Plan PR",
-      "taskType" : "PrTask",
-      "devOpsServiceFactory" : "azure",
-      "conditions" : [ {
-        "taskId" : "git-4",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ "Plan Build" ],
-      "fromBranch" : "release/primary/10.83",
-      "targetBranch" : "master",
-      "repoName" : "mvax-plan-services"
     }, {
       "id" : "Billing PR",
       "taskType" : "PrTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "git-6",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ "Billing Build" ],
-      "fromBranch" : "release/primary/10.83",
+      "fromBranch" : "release/primary/10.85",
       "targetBranch" : "master",
       "repoName" : "mvax-native-billing"
     }, {
       "id" : "Common PR",
       "taskType" : "PrTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "git-5",
         "status" : "SUCCEEDED"
@@ -91,49 +87,53 @@
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ "Common Build" ],
-      "fromBranch" : "primary/10.83",
+      "fromBranch" : "primary/10.85",
       "targetBranch" : "master",
       "repoName" : "mvax-common"
     }, {
       "id" : "Upgrades PR",
       "taskType" : "PrTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "git-3",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ "Upgrades Build" ],
-      "fromBranch" : "release/primary/10.83",
+      "fromBranch" : "release/primary/10.85",
       "targetBranch" : "master",
       "repoName" : "mvax-upgrades"
     }, {
       "id" : "API PR",
       "taskType" : "PrTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "git-1",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ "API Build" ],
-      "fromBranch" : "release/primary/10.83",
+      "fromBranch" : "release/primary/10.85",
       "targetBranch" : "master",
       "repoName" : "mvax-api"
     }, {
       "id" : "Auth PR",
       "taskType" : "PrTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "git-2",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ "Auth Build" ],
-      "fromBranch" : "release/primary/10.83",
+      "fromBranch" : "release/primary/10.85",
       "targetBranch" : "master",
       "repoName" : "mvax-authentication"
     }, {
       "id" : "Plan Build",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "Common PR",
         "status" : "SUCCEEDED"
@@ -142,69 +142,87 @@
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
-      "branch" : "release/primary/10.83",
+      "branch" : "release/primary/10.85",
       "repoName" : "mvax-plan-services",
       "definitionId" : "5021"
     }, {
       "id" : "API Build",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "API PR",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
-      "branch" : "release/primary/10.83",
+      "branch" : "release/primary/10.85",
       "repoName" : "mvax-api",
       "definitionId" : "997"
     }, {
       "id" : "Upgrades Build",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "Upgrades PR",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
-      "branch" : "release/primary/10.83",
+      "branch" : "release/primary/10.85",
       "repoName" : "mvax-upgrades",
       "definitionId" : "7912"
     }, {
       "id" : "Auth Build",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "Auth PR",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
-      "branch" : "release/primary/10.83",
+      "branch" : "release/primary/10.85",
       "repoName" : "mvax-authentication",
       "definitionId" : "3768"
     }, {
       "id" : "Common Build",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "Common PR",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
-      "branch" : "primary/10.83",
+      "branch" : "primary/10.85",
       "repoName" : "mvax-common",
       "definitionId" : "3794"
     }, {
       "id" : "Billing Build",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
       "conditions" : [ {
         "taskId" : "Billing PR",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
-      "branch" : "release/primary/10.83",
+      "branch" : "release/primary/10.85",
       "repoName" : "mvax-native-billing",
       "definitionId" : "5018"
+    }, {
+      "id" : "Plan PR",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "azure",
+      "connectorId" : "azure-login-vfuk-digital-digital",
+      "conditions" : [ {
+        "taskId" : "git-4",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Plan Build" ],
+      "fromBranch" : "release/primary/10.85",
+      "targetBranch" : "master",
+      "repoName" : "mvax-plan-services"
     } ]
   }
 }
