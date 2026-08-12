@@ -10,7 +10,7 @@
       "nextTaskIds" : [ ],
       "fromBranch" : "release/develop",
       "targetBranch" : "main",
-      "repoName" : "mvax-native-billing"
+      "repoName" : "mvax-offers"
     }, {
       "id" : "git-1",
       "taskType" : "GitTask",
