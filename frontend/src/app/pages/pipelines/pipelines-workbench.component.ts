@@ -40,6 +40,7 @@ interface Point {
 interface EditorPipelineTaskNode extends PipelineTaskNode {
   editorId: string;
   position: Point;
+  hasSavedPosition: boolean;
 }
 
 interface ToolboxTask {
@@ -780,6 +781,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     const newTask: EditorPipelineTaskNode = {
       ...task,
       editorId: this.createEditorId(),
+      hasSavedPosition: true,
       id: this.generateTaskId(task.taskType),
       position: { x: task.position.x + 40, y: task.position.y + 40 },
       nextTaskIds: [],
@@ -1131,6 +1133,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
     return {
       editorId: this.createEditorId(),
+      hasSavedPosition: true,
       position,
       id: this.generateTaskId(taskType),
       taskType,
@@ -1201,12 +1204,17 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     const rows = new Map<number, number>();
 
     return draftNodes.map(node => {
+      if (node.hasSavedPosition) {
+        return node;
+      }
+
       const level = levels.get(node.id) || 0;
       const row = rows.get(level) || 0;
       rows.set(level, row + 1);
 
       return {
         ...node,
+        hasSavedPosition: true,
         position: {
           x: this.canvasOriginX + level * 300,
           y: this.canvasOriginY + row * 180
@@ -1269,7 +1277,10 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   private hydrateTask(task: PipelineTaskNode): EditorPipelineTaskNode {
     return {
       editorId: this.createEditorId(),
-      position: { x: 0, y: 0 },
+      hasSavedPosition: !!task.position,
+      position: task.position
+        ? { x: task.position.x, y: task.position.y }
+        : { x: 0, y: 0 },
       id: task.id,
       taskType: task.taskType,
       devOpsServiceFactory: task.devOpsServiceFactory,
@@ -1374,6 +1385,10 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       id: node.id.trim(),
       taskType: node.taskType,
       devOpsServiceFactory: node.devOpsServiceFactory,
+      position: {
+        x: node.position.x,
+        y: node.position.y
+      },
       conditions: node.conditions.map(condition => ({
         taskId: condition.taskId.trim(),
         status: condition.status

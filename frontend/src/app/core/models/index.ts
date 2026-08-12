@@ -120,12 +120,18 @@ export interface PipelineCondition {
   status: PipelineTaskStatus;
 }
 
+export interface PipelineTaskPosition {
+  x: number;
+  y: number;
+}
+
 export interface PipelineTaskNode {
   id: string;
   taskType: PipelineTaskType;
   devOpsServiceFactory: DevOpsProvider;
   conditions: PipelineCondition[];
   nextTaskIds: string[];
+  position?: PipelineTaskPosition;
   branch?: string;
   repoName?: string;
   definitionId?: string;
