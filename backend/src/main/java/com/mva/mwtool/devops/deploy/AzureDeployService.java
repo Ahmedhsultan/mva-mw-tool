@@ -129,19 +129,24 @@ public class AzureDeployService implements DeployService {
             log.info("Using existing release #{}", releaseNode.path("id").asInt());
         }
 
-        // 5. Approve + trigger the target environment
+        // 5. Trigger the target environment, then approve any pre-deployment checks it creates
         if (releaseNode != null && environment != null && !environment.isBlank()) {
             int releaseId = releaseNode.path("id").asInt();
-            approveAllForEnvironment(releaseId, environment);
             boolean triggered = triggerEnvironment(releaseNode, environment);
 
-            // Retry: approve again then re-trigger
             if (!triggered) {
                 log.info("First trigger attempt failed for release #{}, retrying...", releaseId);
                 sleep(2000);
-                approveAllForEnvironment(releaseId, environment);
-                sleep(1000);
-                triggerEnvironment(releaseNode, environment);
+                triggered = triggerEnvironment(releaseNode, environment);
+            }
+
+            if (triggered) {
+                sleep(2000);
+                int approved = approveAllForEnvironment(releaseId, environment);
+                if (approved == 0) {
+                    sleep(2000);
+                    approveAllForEnvironment(releaseId, environment);
+                }
             }
         }
 
