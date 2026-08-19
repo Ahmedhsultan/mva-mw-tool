@@ -5,15 +5,23 @@
       "id" : "API",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 80,
+        "y" : 80
+      },
       "conditions" : [ ],
       "nextTaskIds" : [ "API-Deploy" ],
-      "branch" : "release/develop",
+      "branch" : "release/add-mw-mock-token-to-the-infra",
       "repoName" : "mvax-api",
       "definitionId" : "997"
     }, {
       "id" : "API-Deploy",
       "taskType" : "DeploymentTask",
       "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 380,
+        "y" : 80
+      },
       "conditions" : [ {
         "taskId" : "API-Deploy",
         "status" : "SUCCEEDED"
