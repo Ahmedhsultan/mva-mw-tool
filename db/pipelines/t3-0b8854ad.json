@@ -1,0 +1,64 @@
+{
+  "pipelineName" : "t3",
+  "pipelineStructure" : {
+    "tasks" : [ {
+      "id" : "approval-1",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "GitHub",
+      "position" : {
+        "x" : 1041,
+        "y" : 1394
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "build-2" ],
+      "approved" : false
+    }, {
+      "id" : "build-2",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 1410,
+        "y" : 1380
+      },
+      "conditions" : [ {
+        "taskId" : "approval-1",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "approval-2" ],
+      "branch" : "release/develop",
+      "repoName" : "mvax-offers",
+      "definitionId" : "5222"
+    }, {
+      "id" : "build-1",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 1715,
+        "y" : 1780
+      },
+      "conditions" : [ {
+        "taskId" : "approval-2",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "branch" : "release/develop",
+      "repoName" : "mvax-upgrades",
+      "definitionId" : "7912"
+    }, {
+      "id" : "approval-2",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "GitHub",
+      "position" : {
+        "x" : 1831,
+        "y" : 1376
+      },
+      "conditions" : [ {
+        "taskId" : "build-2",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "build-1" ],
+      "approved" : false
+    } ],
+    "variables" : [ ]
+  }
+}

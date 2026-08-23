@@ -1,0 +1,26 @@
+{
+  "pipelineName" : "pipeline-5",
+  "pipelineStructure" : {
+    "tasks" : [ {
+      "id" : "build-1",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "GitHub VOIS",
+      "position" : {
+        "x" : 1400,
+        "y" : 1400
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ ],
+      "branch" : "release/primary/10.84",
+      "repoName" : "mvax-offers",
+      "definitionId" : "5222"
+    } ],
+    "variables" : [ {
+      "name" : "release_number",
+      "label" : "",
+      "defaultValue" : "10.84",
+      "required" : true,
+      "description" : ""
+    } ]
+  }
+}
