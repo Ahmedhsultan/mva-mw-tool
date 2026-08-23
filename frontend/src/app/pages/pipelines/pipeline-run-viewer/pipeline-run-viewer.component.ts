@@ -121,6 +121,18 @@ export class PipelineRunViewerComponent implements OnChanges, OnDestroy {
     });
   }
 
+  approveTask(task: PipelineRunTask): void {
+    if (!this.run) return;
+    this.apiService.approveTask(this.run.pipelineRunName, task.id).subscribe({
+      next: () => {
+        this.snackBar.open(`Task "${task.id}" approved.`, '', { duration: 2000, panelClass: 'success-snackbar' });
+        this.refreshRun();
+        if (!this.pollSub) this.startPolling();
+      },
+      error: () => this.snackBar.open(`Failed to approve "${task.id}".`, '', { duration: 3000, panelClass: 'error-snackbar' })
+    });
+  }
+
   canRerun(task: PipelineRunTask): boolean {
     const s = task.status || 'PENDING';
     return s === 'FAILED' || s === 'CANCELLED' || s === 'SUCCEEDED';
@@ -129,6 +141,10 @@ export class PipelineRunViewerComponent implements OnChanges, OnDestroy {
   canStop(task: PipelineRunTask): boolean {
     const s = task.status || 'PENDING';
     return s === 'RUNNING' || s === 'PENDING' || s === 'WAITING_APPROVAL';
+  }
+
+  canApprove(task: PipelineRunTask): boolean {
+    return task.taskType === 'ApprovalTask' && (task.status || 'PENDING') === 'WAITING_APPROVAL';
   }
 
   statusIcon(status?: PipelineTaskStatus): string {

@@ -336,7 +336,7 @@
           </header>
           <div class="drawer-scroll">
             @if (task) {
-              @if (repoProfiles.length) {
+              @if (repoProfiles.length && task.taskType !== 'ApprovalTask') {
                 <mat-form-field appearance="outline">
                   <mat-label>Repository preset</mat-label>
                   <mat-icon matPrefix>folder_managed</mat-icon>
@@ -349,12 +349,14 @@
               }
 
               <mat-form-field appearance="outline"><mat-label>Task id</mat-label><input matInput required [ngModel]="task.id" (ngModelChange)="updateTaskId(task.editorId, $event)"></mat-form-field>
-              <mat-form-field appearance="outline"><mat-label>Connector</mat-label>
-                <mat-icon matPrefix>electrical_services</mat-icon>
-                <mat-select required [(ngModel)]="task.devOpsServiceFactory">
-                  @for (connector of availableConnectors; track connector.name) { <mat-option [value]="connector.name">{{ connector.name }} ({{ connectorTypeLabel(connector.type) }})</mat-option> }
-                </mat-select>
-              </mat-form-field>
+              @if (task.taskType !== 'ApprovalTask') {
+                <mat-form-field appearance="outline"><mat-label>Connector</mat-label>
+                  <mat-icon matPrefix>electrical_services</mat-icon>
+                  <mat-select required [(ngModel)]="task.devOpsServiceFactory">
+                    @for (connector of availableConnectors; track connector.name) { <mat-option [value]="connector.name">{{ connector.name }} ({{ connectorTypeLabel(connector.type) }})</mat-option> }
+                  </mat-select>
+                </mat-form-field>
+              }
               @switch (task.taskType) {
                 @case ('BuildTask') {
                   <mat-form-field appearance="outline"><mat-label>Branch</mat-label><input matInput required [(ngModel)]="task.branch"></mat-form-field>
@@ -373,9 +375,7 @@
                   <mat-form-field appearance="outline"><mat-label>Description</mat-label><input matInput [(ngModel)]="task.description"></mat-form-field>
                 }
                 @case ('ApprovalTask') {
-                  <div class="toggle-row"><span>Approved</span>
-                    <button mat-stroked-button [class.active-toggle]="task.approved" (click)="task.approved = !task.approved"><mat-icon>{{ task.approved ? 'task_alt' : 'pending_actions' }}</mat-icon> {{ task.approved ? 'Yes' : 'No' }}</button>
-                  </div>
+                  <p class="muted-copy">This task pauses the pipeline until you approve it from the run viewer.</p>
                 }
                 @case ('GitTask') {
                   <mat-form-field appearance="outline"><mat-label>Source branch</mat-label><input matInput required [(ngModel)]="task.sourceBranch"></mat-form-field>

@@ -1203,7 +1203,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       position,
       id: this.generateTaskId(taskType),
       taskType,
-      devOpsServiceFactory: defaultConnector as DevOpsProvider,
+      devOpsServiceFactory: (taskType === 'ApprovalTask' ? '' : defaultConnector) as DevOpsProvider,
       conditions: [],
       nextTaskIds: [],
       branch: '',
@@ -1454,7 +1454,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     const task: PipelineTaskNode = {
       id: node.id.trim(),
       taskType: node.taskType,
-      devOpsServiceFactory: node.devOpsServiceFactory,
+      devOpsServiceFactory: (node.taskType === 'ApprovalTask' ? '' : node.devOpsServiceFactory) as DevOpsProvider,
       position: {
         x: node.position.x,
         y: node.position.y
@@ -1480,7 +1480,6 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
         task.description = node.description?.trim() || '';
         break;
       case 'ApprovalTask':
-        task.approved = !!node.approved;
         break;
       case 'GitTask':
         task.repoName = node.repoName?.trim() || '';
@@ -1529,7 +1528,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
         incoming.set(id, 0);
       }
 
-      if (!node.devOpsServiceFactory) {
+      if (!node.devOpsServiceFactory && node.taskType !== 'ApprovalTask') {
         this.pushValidationError(errors, `Task "${id || this.taskLabel(node.taskType)}" is missing a connector.`, node.editorId);
       }
 
@@ -1751,11 +1750,19 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   private collectProviders(tasks: PipelineTaskNode[]): DevOpsProvider[] {
-    return [...new Set(tasks.map(task => task.devOpsServiceFactory))];
+    return [...new Set(
+      tasks
+        .filter(task => task.taskType !== 'ApprovalTask' && !!task.devOpsServiceFactory)
+        .map(task => task.devOpsServiceFactory)
+    )];
   }
 
   private collectConnectorNames(tasks: PipelineTaskNode[]): string[] {
-    return [...new Set(tasks.map(task => task.devOpsServiceFactory as string))];
+    return [...new Set(
+      tasks
+        .filter(task => task.taskType !== 'ApprovalTask' && !!task.devOpsServiceFactory)
+        .map(task => task.devOpsServiceFactory as string)
+    )];
   }
 
   private validateRunCredentials(providers: DevOpsProvider[]): string[] {

@@ -119,5 +119,12 @@ public class PipelineController {
         pipelineService.stopTask(pipelineRunName, taskId);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/runs/{pipelineRunName}/tasks/{taskId}/approve")
+    public ResponseEntity<Void> approveTask(@PathVariable String pipelineRunName,
+                                            @PathVariable String taskId) {
+        pipelineService.approveTask(pipelineRunName, taskId);
+        return ResponseEntity.ok().build();
+    }
 }
 

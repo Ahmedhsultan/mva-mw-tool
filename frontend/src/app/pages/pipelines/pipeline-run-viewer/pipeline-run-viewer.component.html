@@ -63,6 +63,11 @@
               </span>
 
               <span class="node-actions">
+                @if (canApprove(node.task)) {
+                  <button mat-icon-button class="action-btn approve-btn" (click)="approveTask(node.task)" matTooltip="Approve gate">
+                    <mat-icon>task_alt</mat-icon>
+                  </button>
+                }
                 @if (canRerun(node.task)) {
                   <button mat-icon-button class="action-btn rerun-btn" (click)="rerunTask(node.task)" matTooltip="Rerun task">
                     <mat-icon>replay</mat-icon>

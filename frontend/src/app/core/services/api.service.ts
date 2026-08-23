@@ -177,6 +177,10 @@ export class ApiService {
     return this.http.post<void>(`/api/pipelines/runs/${encodeURIComponent(pipelineRunName)}/tasks/${encodeURIComponent(taskId)}/stop`, {});
   }
 
+  approveTask(pipelineRunName: string, taskId: string): Observable<void> {
+    return this.http.post<void>(`/api/pipelines/runs/${encodeURIComponent(pipelineRunName)}/tasks/${encodeURIComponent(taskId)}/approve`, {});
+  }
+
   // ---- Helpers ----
 
   private authHeaders(provider: string): HttpHeaders {

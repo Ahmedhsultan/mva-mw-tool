@@ -117,6 +117,17 @@ public class PipelineService {
         task.forceStop();
     }
 
+    public void approveTask(String pipelineRunName, String taskId) {
+        Task task = findTask(pipelineRunName, taskId);
+        if (!(task instanceof com.mva.mwtool.service.pipeline.tasks.ApprovalTask approvalTask)) {
+            throw new IllegalArgumentException("Task is not an approval task: " + taskId);
+        }
+        if (approvalTask.getStatus() != com.mva.mwtool.enums.TaskStatus.WAITING_APPROVAL) {
+            throw new IllegalStateException("Task is not waiting for approval: " + taskId);
+        }
+        approvalTask.approve();
+    }
+
     private Task findTask(String pipelineRunName, String taskId) {
         return PipelineRunsRepo.getPipelineRuns().stream()
                 .filter(p -> p.getPipelineRunName().equals(pipelineRunName))

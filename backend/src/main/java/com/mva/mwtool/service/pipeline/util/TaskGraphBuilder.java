@@ -59,7 +59,7 @@ public class TaskGraphBuilder {
                     node.has("id") ? node.get("id").asText() : "?",
                     connectorName,
                     credentials.getConnectors() != null ? credentials.getConnectors().keySet() : "null");
-            if (connectorName != null) {
+            if (connectorName != null && !connectorName.isBlank()) {
                 Map<String, ConnectorCredentials> connectors = credentials.getConnectors();
                 ConnectorCredentials connector = connectors != null ? connectors.get(connectorName) : null;
                 if (connector == null) {

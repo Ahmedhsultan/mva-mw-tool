@@ -15,8 +15,14 @@ public class ApprovalTask extends Task {
 
     @Override
     protected void execute() {
-        // Approval is a manual gate — mark as succeeded when approved
+        // Manual gate: leave unapproved so downstream tasks stay paused until approve() is called
+    }
+
+    public void approve() {
         this.approved = true;
+        this.executionFailed = false;
+        this.failureMessage = null;
+        this.lastKnownStatus = TaskStatus.SUCCEEDED;
     }
 
     @Override
@@ -27,7 +33,10 @@ public class ApprovalTask extends Task {
     @Override
     public void reTryRun() {
         this.approved = false;
-        execute();
+        this.executionFailed = false;
+        this.failureMessage = null;
+        this.executionStarted = true;
+        this.lastKnownStatus = TaskStatus.WAITING_APPROVAL;
     }
 
     @Override
@@ -35,6 +44,9 @@ public class ApprovalTask extends Task {
         if (executionFailed) {
             return TaskStatus.FAILED;
         }
-        return approved ? TaskStatus.SUCCEEDED : TaskStatus.WAITING_APPROVAL;
+        if (approved) {
+            return TaskStatus.SUCCEEDED;
+        }
+        return executionStarted ? TaskStatus.WAITING_APPROVAL : TaskStatus.PENDING;
     }
 }
