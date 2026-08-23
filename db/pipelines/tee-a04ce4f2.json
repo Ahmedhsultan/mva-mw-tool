@@ -1,0 +1,26 @@
+{
+  "pipelineName" : "tee",
+  "pipelineStructure" : {
+    "tasks" : [ {
+      "id" : "build-1",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "GitHub",
+      "position" : {
+        "x" : 1400,
+        "y" : 1400
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ ],
+      "branch" : "release/primary/${release_number}",
+      "repoName" : "mvax-upgrades",
+      "definitionId" : "7912"
+    } ],
+    "variables" : [ {
+      "name" : "release_number",
+      "label" : "",
+      "defaultValue" : "10.84",
+      "required" : true,
+      "description" : ""
+    } ]
+  }
+}
