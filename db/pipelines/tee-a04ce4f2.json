@@ -12,8 +12,8 @@
       "conditions" : [ ],
       "nextTaskIds" : [ ],
       "branch" : "release/primary/${release_number}",
-      "repoName" : "mvax-upgrades",
-      "definitionId" : "7912"
+      "repoName" : "mvax-native-billing",
+      "definitionId" : "5018"
     } ],
     "variables" : [ {
       "name" : "release_number",
