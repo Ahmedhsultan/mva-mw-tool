@@ -32,7 +32,7 @@
   </section>
 
   <section class="workbench-tabs-shell mva-card">
-    <mat-tab-group class="workbench-tabs" [(selectedIndex)]="workbenchTabIndex" animationDuration="200ms">
+    <mat-tab-group class="workbench-tabs" [selectedIndex]="workbenchTabIndex" (selectedIndexChange)="onWorkbenchTabChange($event)" animationDuration="200ms">
       <mat-tab>
         <ng-template mat-tab-label>
           Library

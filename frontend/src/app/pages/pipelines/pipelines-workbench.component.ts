@@ -1,7 +1,7 @@
 import { CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
 import { Overlay, OverlayModule, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
-import { Component, ElementRef, OnDestroy, OnInit, TemplateRef, ViewChild, ViewContainerRef, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, TemplateRef, ViewChild, ViewContainerRef, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { ErrorStateMatcher } from '@angular/material/core';
@@ -234,13 +234,23 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     private snackBar: MatSnackBar,
     private dialog: MatDialog,
     private overlay: Overlay,
-    private viewContainerRef: ViewContainerRef
+    private viewContainerRef: ViewContainerRef,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.availableConnectors = this.authService.getConnectors();
     this.startNewPipeline(false);
     this.refreshWorkspace();
+  }
+
+  onWorkbenchTabChange(index: number): void {
+    this.workbenchTabIndex = index;
+    if (index === 0) {
+      this.loadPipelines();
+    } else if (index === 1) {
+      this.loadPipelineRuns();
+    }
   }
 
   get pendingConnectionSource(): EditorPipelineTaskNode | null {
@@ -1106,16 +1116,22 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
     this.isLoadingPipelines = true;
     this.pipelinesError = '';
+    this.cdr.markForCheck();
 
     this.apiService.getPipelines(storage.provider, storage.repoId, storage.branch)
-      .pipe(finalize(() => this.isLoadingPipelines = false))
+      .pipe(finalize(() => {
+        this.isLoadingPipelines = false;
+        this.cdr.markForCheck();
+      }))
       .subscribe({
         next: pipelines => {
           this.pipelines = [...pipelines];
           this.rebuildPipelineLookup();
+          this.cdr.markForCheck();
         },
         error: () => {
           this.pipelinesError = 'Could not load saved pipelines from the backend.';
+          this.cdr.markForCheck();
         }
       });
   }
@@ -1123,15 +1139,21 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   private loadPipelineRuns(): void {
     this.isLoadingRuns = true;
     this.runsError = '';
+    this.cdr.markForCheck();
 
     this.apiService.getPipelineRuns()
-      .pipe(finalize(() => this.isLoadingRuns = false))
+      .pipe(finalize(() => {
+        this.isLoadingRuns = false;
+        this.cdr.markForCheck();
+      }))
       .subscribe({
         next: runs => {
           this.pipelineRuns = [...runs].reverse();
+          this.cdr.markForCheck();
         },
         error: () => {
           this.runsError = 'Could not load pipeline history. The backend run endpoint may still be initializing runtime status serialization.';
+          this.cdr.markForCheck();
         }
       });
   }
