@@ -1,0 +1,105 @@
+<h2 mat-dialog-title class="dialog-title">Pipeline variables</h2>
+
+<mat-dialog-content class="dialog-content">
+  <div class="dialog-hero">
+    <div class="dialog-intro">
+      <div class="intro-icon">
+        <mat-icon>tune</mat-icon>
+      </div>
+      <div>
+        <strong>Define reusable values</strong>
+        <p>Use <code>{{ '$' }}{{ '{' }}NAME{{ '}' }}</code> inside branch, environment, description, repo, or definition fields to resolve values at run time.</p>
+      </div>
+    </div>
+
+    <div class="hero-stats">
+      <div class="stat-pill">
+        <strong>{{ variableCount }}</strong>
+        <span>Variables</span>
+      </div>
+      <div class="stat-pill is-accent">
+        <strong>{{ requiredCount }}</strong>
+        <span>Required</span>
+      </div>
+    </div>
+  </div>
+
+  @if (variables.length) {
+    <div class="dialog-toolbar">
+      <button mat-stroked-button type="button" (click)="addVariable()"><mat-icon>add</mat-icon> Add variable</button>
+    </div>
+
+    <div class="variable-list">
+      @for (variable of variables; track variable.editorId) {
+        <section class="variable-card" [class.is-collapsed]="variable.collapsed">
+          <div class="variable-card-header">
+            <div class="variable-heading">
+              <strong>{{ variableDisplayName(variable) }}</strong>
+              <span>{{ variableSubtitle(variable) }}</span>
+            </div>
+            <div class="variable-actions">
+              @if (variable.collapsed) {
+                <button mat-stroked-button type="button" (click)="expandVariable(variable)"><mat-icon>edit</mat-icon> Edit</button>
+              } @else {
+                <button mat-flat-button color="primary" type="button" [disabled]="!isVariableValid(variable)" (click)="saveVariable(variable)"><mat-icon>check</mat-icon> Save variable</button>
+              }
+              <button mat-icon-button type="button" (click)="removeVariable($index)" matTooltip="Remove variable"><mat-icon>delete_outline</mat-icon></button>
+            </div>
+          </div>
+
+          @if (!variable.collapsed) {
+            <div class="variable-form-grid">
+              <mat-form-field appearance="outline"><mat-label>Name</mat-label><input matInput required [(ngModel)]="variable.name"></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Label</mat-label><input matInput [(ngModel)]="variable.label"></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Default value</mat-label><input matInput [(ngModel)]="variable.defaultValue"></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Description</mat-label><input matInput [(ngModel)]="variable.description"></mat-form-field>
+            </div>
+            <div class="variable-footer">
+              <mat-checkbox [(ngModel)]="variable.required">Require a value before run</mat-checkbox>
+              @if (!isVariableValid(variable)) {
+                <span class="field-hint is-error">Use a unique name with letters, numbers, or underscores.</span>
+              }
+            </div>
+          } @else {
+            <div class="variable-summary">
+              <span class="summary-chip">{{ variable.name || 'Unnamed' }}</span>
+              @if ((variable.defaultValue ?? '').trim()) {
+                <span class="summary-chip">Default: {{ variable.defaultValue }}</span>
+              }
+              @if (variable.required) {
+                <span class="summary-chip is-required">Required</span>
+              }
+            </div>
+          }
+        </section>
+      }
+    </div>
+  } @else {
+    <div class="empty-state-card">
+      <div class="empty-state-visual">
+        <div class="empty-orbit empty-orbit-one"></div>
+        <div class="empty-orbit empty-orbit-two"></div>
+        <div class="empty-icon-badge">
+          <mat-icon>tune</mat-icon>
+        </div>
+      </div>
+
+      <div class="empty-state-copy">
+        <strong>No variables yet</strong>
+        <p>Add a variable to reuse values across tasks and override them when you run the pipeline.</p>
+      </div>
+
+      <div class="empty-state-actions">
+        <button mat-flat-button color="primary" type="button" (click)="addVariable()">
+          <mat-icon>add</mat-icon>
+          Add variable
+        </button>
+      </div>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="dialog-actions">
+  <button mat-stroked-button type="button" (click)="close()">Close</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="!canSave" (click)="save()">Save</button>
+</mat-dialog-actions>

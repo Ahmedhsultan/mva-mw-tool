@@ -1,0 +1,87 @@
+.dialog-content {
+  display: grid;
+  gap: 16px;
+  min-width: min(560px, calc(100vw - 48px));
+  max-width: 100%;
+  padding-top: 8px;
+}
+
+.dialog-intro {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+
+  strong {
+    display: block;
+    color: var(--mva-text);
+    margin-bottom: 4px;
+  }
+
+  p {
+    margin: 0;
+    color: var(--mva-text-muted);
+    line-height: 1.5;
+  }
+}
+
+.intro-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--mva-accent-strong);
+  background: linear-gradient(135deg, rgba(36, 119, 255, 0.12), rgba(16, 185, 129, 0.1));
+}
+
+.variable-list {
+  display: grid;
+  gap: 12px;
+}
+
+.variable-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(118, 139, 173, 0.16);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.variable-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  strong {
+    display: block;
+    color: var(--mva-text);
+  }
+
+  span {
+    color: var(--mva-text-soft);
+    font-size: 12px;
+    font-weight: 700;
+  }
+}
+
+.required-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #9a3412 !important;
+  background: rgba(245, 158, 11, 0.14);
+}
+
+.variable-description {
+  margin: 0;
+  color: var(--mva-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .dialog-content {
+    min-width: 0;
+  }
+}

@@ -559,6 +559,16 @@
   font-weight: 700;
 }
 
+.button-count {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(36, 119, 255, 0.1);
+  color: var(--mva-accent-strong);
+  font-size: 11px;
+  font-weight: 800;
+}
+
 .catalog-hint.is-warning {
   max-width: 420px;
   color: #9a3412;
@@ -846,6 +856,7 @@
   padding-top: 10px;
   border-top: 1px solid rgba(118, 139, 173, 0.12);
 }
+
 
 .drawer-empty-state {
   min-height: 220px;

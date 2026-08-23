@@ -63,6 +63,7 @@
                       <strong>{{ pipeline.pipelineName }}</strong>
                       <div class="pipeline-meta-row">
                         <span class="meta-chip"><mat-icon>layers</mat-icon> {{ pipeline.pipelineStructure.tasks.length }} tasks</span>
+                        <span class="meta-chip"><mat-icon>tune</mat-icon> {{ (pipeline.pipelineStructure.variables || []).length }} vars</span>
                         <span class="meta-chip"><mat-icon>cloud</mat-icon> {{ pipelineProvidersLabel(pipeline) }}</span>
                       </div>
                     </div>
@@ -243,6 +244,13 @@
               <mat-icon>save</mat-icon>
               {{ isSavingPipeline ? 'Saving...' : 'Save pipeline' }}
             </button>
+            <button mat-stroked-button type="button" (click)="openPipelineVariablesDialog()">
+              <mat-icon>tune</mat-icon>
+              Variables
+              @if (pipelineVariables.length) {
+                <span class="button-count">{{ pipelineVariables.length }}</span>
+              }
+            </button>
 
             @if (taskCatalogError) {
               <span class="catalog-hint is-warning">{{ taskCatalogError }}</span>
@@ -314,7 +322,7 @@
         </div>
 
         @let task = selectedTask();
-        <aside class="task-config-window mva-card" [class.is-empty]="!task" (click)="$event.stopPropagation()">
+        <aside class="task-config-window mva-card" (click)="$event.stopPropagation()">
           <header class="drawer-header">
             @if (task) {
               <div class="node-type-pill"><mat-icon>{{ taskIcon(task.taskType) }}</mat-icon> {{ taskLabel(task.taskType) }}</div>

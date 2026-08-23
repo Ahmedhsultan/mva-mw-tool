@@ -4,11 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.mva.mwtool.devops.DevOpsServiceFactory;
 import com.mva.mwtool.dto.DevOpsCredentials;
 import com.mva.mwtool.dto.Pipeline;
+import com.mva.mwtool.dto.PipelineRunRequest;
 import com.mva.mwtool.enums.TaskStatus;
 import com.mva.mwtool.repository.PipelineRepository;
 import com.mva.mwtool.service.pipeline.PipelineGraph;
 import com.mva.mwtool.service.pipeline.PipelineRunsRepo;
 import com.mva.mwtool.service.pipeline.tasks.Task;
+import com.mva.mwtool.service.pipeline.util.PipelineVariableResolver;
 import com.mva.mwtool.service.pipeline.util.TaskGraphBuilder;
 import org.springframework.stereotype.Service;
 
@@ -63,11 +65,19 @@ public class PipelineService {
     }
 
     public boolean runPipeline(String pat, String provider, String organization, String project,
-                               String repoId, String branch, String pipelineName, DevOpsCredentials devOpsCredentials) {
+                               String repoId, String branch, String pipelineName, PipelineRunRequest runRequest) {
         Pipeline pipeline = pipelineRepository.findPipeline(pat, provider, organization, project, repoId, branch, pipelineName)
             .orElseThrow(() -> new IllegalArgumentException("Pipeline not found: " + pipelineName));
 
-        PipelineGraph graph = TaskGraphBuilder.build(pipeline.getPipelineStructure(), devOpsServiceFactory, devOpsCredentials);
+        JsonNode resolvedPipelineStructure = PipelineVariableResolver.resolve(
+            pipeline.getPipelineStructure(),
+            runRequest != null ? runRequest.getVariables() : null
+        );
+        DevOpsCredentials devOpsCredentials = runRequest != null
+            ? runRequest.toDevOpsCredentials()
+            : new DevOpsCredentials();
+
+        PipelineGraph graph = TaskGraphBuilder.build(resolvedPipelineStructure, devOpsServiceFactory, devOpsCredentials);
 
         PipelineRunsRepo.getPipelineRuns().add(graph);
         graph.startOrchestration();

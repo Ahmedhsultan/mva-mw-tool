@@ -3,6 +3,7 @@ package com.mva.mwtool.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mva.mwtool.dto.DevOpsCredentials;
 import com.mva.mwtool.dto.Pipeline;
+import com.mva.mwtool.dto.PipelineRunRequest;
 import com.mva.mwtool.enums.TaskStatus;
 import com.mva.mwtool.service.PipelineService;
 import com.mva.mwtool.service.pipeline.PipelineGraph;
@@ -78,7 +79,7 @@ public class PipelineController {
                                                @RequestParam String repoId,
                                                @RequestParam(required = false) String branch,
                                                @PathVariable String pipelineName,
-                                               @RequestBody DevOpsCredentials credentials) {
+                                               @RequestBody PipelineRunRequest request) {
         boolean result = pipelineService.runPipeline(
             pat,
             provider,
@@ -87,7 +88,7 @@ public class PipelineController {
             repoId,
             branch,
             pipelineName,
-            credentials
+            request
         );
         return ResponseEntity.ok(result);
     }

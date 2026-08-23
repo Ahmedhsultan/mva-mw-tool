@@ -125,6 +125,18 @@ export interface PipelineTaskPosition {
   y: number;
 }
 
+export interface PipelineVariableDefinition {
+  name: string;
+  label: string;
+  defaultValue: string;
+  required: boolean;
+  description?: string;
+}
+
+export interface PipelineVariableValueMap {
+  [name: string]: string;
+}
+
 export interface PipelineTaskNode {
   id: string;
   taskType: PipelineTaskType;
@@ -150,6 +162,8 @@ export interface PipelineTaskNode {
 
 export interface PipelinePayload {
   tasks: PipelineTaskNode[];
+  variables?: PipelineVariableDefinition[];
+  resolvedVariables?: PipelineVariableValueMap;
 }
 
 export interface PipelineDto {
@@ -172,6 +186,7 @@ export interface ConnectorCredentials {
 
 export interface PipelineRunCredentials {
   connectors?: Record<string, ConnectorCredentials>;
+  variables?: PipelineVariableValueMap;
 }
 
 export interface PipelineRunTask {

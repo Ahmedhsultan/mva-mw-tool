@@ -1,0 +1,43 @@
+<h2 mat-dialog-title>Run {{ data.pipelineName }}</h2>
+
+<mat-dialog-content class="dialog-content">
+  <div class="dialog-intro">
+    <div class="intro-icon">
+      <mat-icon>tune</mat-icon>
+    </div>
+    <div>
+      <strong>Pipeline variables</strong>
+      <p>Review the default values below. These values will be resolved into any task field that uses <code>{{ '$' }}{{ '{' }}NAME{{ '}' }}</code>.</p>
+    </div>
+  </div>
+
+  <div class="variable-list">
+    @for (variable of data.variables; track variable.name) {
+      <section class="variable-card">
+        <div class="variable-card-header">
+          <div>
+            <strong>{{ variable.label || variable.name }}</strong>
+            <span>{{ variable.name }}</span>
+          </div>
+          @if (variable.required) {
+            <span class="required-pill">Required</span>
+          }
+        </div>
+
+        @if (variable.description?.trim()) {
+          <p class="variable-description">{{ variable.description }}</p>
+        }
+
+        <mat-form-field appearance="outline">
+          <mat-label>{{ variable.label || variable.name }}</mat-label>
+          <input matInput [required]="variable.required" [(ngModel)]="values[variable.name]">
+        </mat-form-field>
+      </section>
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button type="button" (click)="close()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" [disabled]="hasMissingRequiredValues" (click)="submit()">Run pipeline</button>
+</mat-dialog-actions>

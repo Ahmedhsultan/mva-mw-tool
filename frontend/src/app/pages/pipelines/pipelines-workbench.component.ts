@@ -5,6 +5,7 @@ import { Component, ElementRef, OnDestroy, OnInit, TemplateRef, ViewChild, ViewC
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { ErrorStateMatcher } from '@angular/material/core';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -21,6 +22,8 @@ import {
   PipelineCondition,
   PipelineDto,
   PipelinePayload,
+  PipelineVariableDefinition,
+  PipelineVariableValueMap,
   RepoProfile,
   PipelineRunCredentials,
   PipelineRunDto,
@@ -30,6 +33,8 @@ import {
 } from '../../core/models';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { PipelineVariablesDialogComponent } from './pipeline-variables-dialog/pipeline-variables-dialog.component';
+import { PipelineRunVariablesDialogComponent } from './pipeline-run-variables-dialog/pipeline-run-variables-dialog.component';
 import { PipelineRunViewerComponent } from './pipeline-run-viewer/pipeline-run-viewer.component';
 
 interface Point {
@@ -130,6 +135,9 @@ const TASK_PREFIX: Record<PipelineTaskType, string> = {
   PrTask: 'pr'
 };
 
+const PIPELINE_VARIABLE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const PIPELINE_VARIABLE_REFERENCE_PATTERN = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
+
 class ImmediateErrorStateMatcher implements ErrorStateMatcher {
   isErrorState(control: any): boolean {
     return !!(control && control.invalid);
@@ -174,6 +182,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   pipelines: PipelineDto[] = [];
   pipelineRuns: PipelineRunDto[] = [];
   editorNodes: EditorPipelineTaskNode[] = [];
+  pipelineVariables: PipelineVariableDefinition[] = [];
 
   workbenchTabIndex = 0;
   isBuilderWindowOpen = false;
@@ -223,6 +232,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     private apiService: ApiService,
     private authService: AuthService,
     private snackBar: MatSnackBar,
+    private dialog: MatDialog,
     private overlay: Overlay,
     private viewContainerRef: ViewContainerRef
   ) {}
@@ -286,6 +296,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     this.selectedTask.set(null);
     this.pendingConnectionSourceEditorId = null;
     this.editorNodes = [];
+    this.pipelineVariables = [];
     this.draftPipelineName = this.generatePipelineName();
 
     if (openBuilderWindow) {
@@ -298,6 +309,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     this.draftPipelineName = pipeline.pipelineName;
     this.pendingConnectionSourceEditorId = null;
     this.editorNodes = this.layoutTasks(pipeline.pipelineStructure.tasks || []);
+    this.pipelineVariables = this.hydrateVariables(pipeline.pipelineStructure.variables);
     this.openTaskConfig(this.editorNodes[0] || null);
     this.openBuilderWindow();
   }
@@ -307,6 +319,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     this.draftPipelineName = `${pipeline.pipelineName} (copy)`;
     this.pendingConnectionSourceEditorId = null;
     this.editorNodes = this.layoutTasks(pipeline.pipelineStructure.tasks || []);
+    this.pipelineVariables = this.hydrateVariables(pipeline.pipelineStructure.variables);
     this.openTaskConfig(this.editorNodes[0] || null);
     this.openBuilderWindow();
   }
@@ -317,6 +330,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     this.draftPipelineName = resolvedName || this.generatePipelineName();
     this.pendingConnectionSourceEditorId = null;
     this.editorNodes = this.layoutTasks(run.pipelineStructure?.tasks || []);
+    this.pipelineVariables = this.hydrateVariables(run.pipelineStructure?.variables);
     this.openTaskConfig(this.editorNodes[0] || null);
     this.openBuilderWindow();
   }
@@ -591,6 +605,23 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       });
   }
 
+  openPipelineVariablesDialog(): void {
+    this.dialog.open(PipelineVariablesDialogComponent, {
+      width: '640px',
+      maxWidth: 'calc(100vw - 24px)',
+      autoFocus: false,
+      data: {
+        variables: this.hydrateVariables(this.pipelineVariables)
+      }
+    }).afterClosed().subscribe(variables => {
+      if (!variables) {
+        return;
+      }
+
+      this.pipelineVariables = this.hydrateVariables(variables);
+    });
+  }
+
   runSavedPipeline(pipelineName: string): void {
     const pipeline = this.pipelines.find(candidate => candidate.pipelineName === pipelineName);
     if (!pipeline) {
@@ -611,13 +642,48 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const pipelineVariables = this.hydrateVariables(pipeline.pipelineStructure.variables);
+    if (pipelineVariables.length) {
+      this.dialog.open(PipelineRunVariablesDialogComponent, {
+        width: '560px',
+        maxWidth: 'calc(100vw - 24px)',
+        autoFocus: false,
+        data: {
+          pipelineName,
+          variables: pipelineVariables
+        }
+      }).afterClosed().subscribe(values => {
+        if (!values) {
+          return;
+        }
+
+        this.startPipelineRun(storage.provider, storage.repoId, storage.branch, pipelineName, providers, values);
+      });
+      return;
+    }
+
+    this.startPipelineRun(storage.provider, storage.repoId, storage.branch, pipelineName, providers, {});
+  }
+
+  private startPipelineRun(
+    provider: string,
+    repoId: string,
+    branch: string,
+    pipelineName: string,
+    providers: DevOpsProvider[],
+    variables: PipelineVariableValueMap
+  ): void {
+
     this.isRunningPipeline = true;
     this.apiService.runPipeline(
-      storage.provider,
-      storage.repoId,
-      storage.branch,
+      provider,
+      repoId,
+      branch,
       pipelineName,
-      this.buildRunCredentials(providers)
+      {
+        ...this.buildRunCredentials(providers),
+        variables
+      }
     )
       .pipe(finalize(() => this.isRunningPipeline = false))
       .subscribe({
@@ -1354,6 +1420,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   private buildPayload(): PipelinePayload {
+    const variables = this.normalizedPipelineVariables();
     const tasks = [...this.editorNodes]
       .sort((left, right) => {
         if (left.position.x === right.position.x) {
@@ -1377,7 +1444,10 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       }
     }
 
-    return { tasks };
+    return {
+      tasks,
+      variables
+    };
   }
 
   private serializeTask(node: EditorPipelineTaskNode): PipelineTaskNode {
@@ -1431,12 +1501,17 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     const errors: ValidationIssue[] = [];
     const warnings: string[] = [];
     const ids = new Set<string>();
+    const variableNames = new Set<string>();
+    const referencedVariableNames = new Set<string>();
     const incoming = new Map<string, number>();
     const nodeIds = this.editorNodes.map(node => node.id.trim()).filter(Boolean);
     const buildIds = new Set(this.editorNodes
       .filter(node => node.taskType === 'BuildTask')
       .map(node => node.id.trim())
       .filter(Boolean));
+    const normalizedVariables = this.normalizedPipelineVariables();
+
+    this.validatePipelineVariables(normalizedVariables, errors, variableNames);
 
     if (!this.editorNodes.length) {
       this.pushValidationError(errors, 'Add at least one task node to the graph.');
@@ -1459,6 +1534,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       }
 
       this.validateRequiredFields(node, errors);
+      this.validateVariableReferences(node, variableNames, referencedVariableNames, errors);
     }
 
     for (const node of this.editorNodes) {
@@ -1516,10 +1592,98 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       }
     }
 
+    for (const variable of normalizedVariables) {
+      if (!referencedVariableNames.has(variable.name)) {
+        warnings.push(`Pipeline variable "${variable.name}" is not referenced by any task yet.`);
+      }
+    }
+
     return {
       errors,
       warnings: [...new Set(warnings)]
     };
+  }
+
+  private validatePipelineVariables(
+    variables: PipelineVariableDefinition[],
+    errors: ValidationIssue[],
+    variableNames: Set<string>
+  ): void {
+    for (const variable of variables) {
+      const name = variable.name.trim();
+      if (!name) {
+        this.pushValidationError(errors, 'Pipeline variables need a name.');
+        continue;
+      }
+
+      if (!PIPELINE_VARIABLE_NAME_PATTERN.test(name)) {
+        this.pushValidationError(errors, `Pipeline variable "${name}" must start with a letter or underscore and use only letters, numbers, or underscores.`);
+        continue;
+      }
+
+      if (variableNames.has(name)) {
+        this.pushValidationError(errors, `Pipeline variable "${name}" is duplicated.`);
+        continue;
+      }
+
+      variableNames.add(name);
+    }
+  }
+
+  private validateVariableReferences(
+    node: EditorPipelineTaskNode,
+    variableNames: Set<string>,
+    referencedVariableNames: Set<string>,
+    errors: ValidationIssue[]
+  ): void {
+    for (const field of this.variableAwareTaskFields(node)) {
+      const value = field.value?.trim();
+      if (!value) {
+        continue;
+      }
+
+      PIPELINE_VARIABLE_REFERENCE_PATTERN.lastIndex = 0;
+      for (const match of value.matchAll(PIPELINE_VARIABLE_REFERENCE_PATTERN)) {
+        const variableName = match[1];
+        referencedVariableNames.add(variableName);
+        if (!variableNames.has(variableName)) {
+          this.pushValidationError(errors, `Task "${node.id || this.taskLabel(node.taskType)}" references unknown pipeline variable "${variableName}" in ${field.label}.`, node.editorId);
+        }
+      }
+    }
+  }
+
+  private variableAwareTaskFields(node: EditorPipelineTaskNode): Array<{ label: string; value: string | undefined }> {
+    switch (node.taskType) {
+      case 'BuildTask':
+        return [
+          { label: 'branch', value: node.branch },
+          { label: 'repo name', value: node.repoName },
+          { label: 'definition id', value: node.definitionId }
+        ];
+      case 'DeploymentTask':
+        return [
+          { label: 'build ref', value: node.buildTaskId },
+          { label: 'repo name', value: node.repoName },
+          { label: 'definition id', value: node.definitionId },
+          { label: 'environment', value: node.environment },
+          { label: 'description', value: node.description }
+        ];
+      case 'GitTask':
+        return [
+          { label: 'repo name', value: node.repoName },
+          { label: 'new branch', value: node.branch },
+          { label: 'source branch', value: node.sourceBranch }
+        ];
+      case 'PrTask':
+        return [
+          { label: 'repo name', value: node.repoName },
+          { label: 'source branch', value: node.fromBranch },
+          { label: 'target branch', value: node.targetBranch }
+        ];
+      default:
+        return [];
+    }
   }
 
   private validateRequiredFields(node: EditorPipelineTaskNode, errors: ValidationIssue[]): void {
@@ -1633,8 +1797,36 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     }
 
     return { connectors: connectorsMap };
+  }
 
-    return { connectors: connectorsMap };
+  private hydrateVariables(variables: PipelineVariableDefinition[] | undefined): PipelineVariableDefinition[] {
+    return (variables || []).map(variable => ({
+      name: variable.name || '',
+      label: variable.label || '',
+      defaultValue: variable.defaultValue || '',
+      required: !!variable.required,
+      description: variable.description || ''
+    }));
+  }
+
+  private normalizedPipelineVariables(variables: PipelineVariableDefinition[] = this.pipelineVariables): PipelineVariableDefinition[] {
+    return variables
+      .filter(variable => !this.isEmptyVariable(variable))
+      .map(variable => ({
+        name: variable.name.trim(),
+        label: variable.label.trim(),
+        defaultValue: variable.defaultValue ?? '',
+        required: !!variable.required,
+        description: variable.description?.trim() || ''
+      }));
+  }
+
+  private isEmptyVariable(variable: PipelineVariableDefinition): boolean {
+    return !variable.name.trim()
+      && !variable.label.trim()
+      && !(variable.defaultValue ?? '').trim()
+      && !variable.description?.trim()
+      && !variable.required;
   }
 
   private generatePipelineName(): string {
@@ -1706,6 +1898,14 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
   private normalizePayload(payload: PipelinePayload): string {
     return JSON.stringify({
+      variables: [...(payload.variables || [])]
+        .map(variable => ({
+          ...variable,
+          name: variable.name.trim(),
+          label: variable.label.trim(),
+          description: variable.description?.trim() || ''
+        }))
+        .sort((left, right) => left.name.localeCompare(right.name)),
       tasks: [...(payload.tasks || [])]
         .map(task => ({
           ...task,
