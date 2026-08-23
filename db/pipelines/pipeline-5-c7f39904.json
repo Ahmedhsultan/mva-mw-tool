@@ -12,8 +12,8 @@
       "conditions" : [ ],
       "nextTaskIds" : [ ],
       "branch" : "release/primary/10.84",
-      "repoName" : "mvax-upgrades",
-      "definitionId" : "7912"
+      "repoName" : "mvax-offers",
+      "definitionId" : "5222"
     } ],
     "variables" : [ {
       "name" : "release_number",
