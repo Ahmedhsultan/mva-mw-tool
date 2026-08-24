@@ -4,7 +4,7 @@
     "tasks" : [ {
       "id" : "build-1",
       "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "GitHub",
+      "devOpsServiceFactory" : "GitHub VOIS",
       "position" : {
         "x" : 1400,
         "y" : 1400
