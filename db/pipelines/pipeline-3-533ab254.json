@@ -1,0 +1,38 @@
+{
+  "pipelineName" : "pipeline-3",
+  "pipelineStructure" : {
+    "tasks" : [ {
+      "id" : "build-1",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "GitHub",
+      "position" : {
+        "x" : 1400,
+        "y" : 1400
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "deploy-1" ],
+      "branch" : "release/develop",
+      "repoName" : "mvax-native-billing",
+      "definitionId" : "5018"
+    }, {
+      "id" : "deploy-1",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "GitHub",
+      "position" : {
+        "x" : 1868,
+        "y" : 1388
+      },
+      "conditions" : [ {
+        "taskId" : "build-1",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "build-1",
+      "repoName" : "mvax-native-billing",
+      "definitionId" : "2066",
+      "environment" : "int1",
+      "description" : ""
+    } ],
+    "variables" : [ ]
+  }
+}
