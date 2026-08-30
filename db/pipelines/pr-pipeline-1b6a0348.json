@@ -1,0 +1,149 @@
+{
+  "pipelineName" : "PR pipeline",
+  "pipelineStructure" : {
+    "tasks" : [ {
+      "id" : "approval-5",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 1182,
+        "y" : 1830
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "plan" ]
+    }, {
+      "id" : "approval-4",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 1187,
+        "y" : 2044
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "billing" ]
+    }, {
+      "id" : "approval-3",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 1202,
+        "y" : 1617
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "upgrades" ]
+    }, {
+      "id" : "approval-2",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 1210,
+        "y" : 1388
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "offers" ]
+    }, {
+      "id" : "approval-1",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 1214,
+        "y" : 1191
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "API" ]
+    }, {
+      "id" : "upgrades",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 1592,
+        "y" : 1614
+      },
+      "conditions" : [ {
+        "taskId" : "approval-3",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "${source_branch}",
+      "targetBranch" : "${target_branch}",
+      "repoName" : "mvax-upgrades"
+    }, {
+      "id" : "offers",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "Github vois",
+      "position" : {
+        "x" : 1593,
+        "y" : 1405
+      },
+      "conditions" : [ {
+        "taskId" : "approval-2",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "${source_branch}",
+      "targetBranch" : "${target_branch}",
+      "repoName" : "mvax-offers"
+    }, {
+      "id" : "plan",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "Github vois",
+      "position" : {
+        "x" : 1606,
+        "y" : 1839
+      },
+      "conditions" : [ {
+        "taskId" : "approval-5",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "${source_branch}",
+      "targetBranch" : "${target_branch}",
+      "repoName" : "mvax-plan-services"
+    }, {
+      "id" : "billing",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "Github vois",
+      "position" : {
+        "x" : 1606,
+        "y" : 2071
+      },
+      "conditions" : [ {
+        "taskId" : "approval-4",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "${source_branch}",
+      "targetBranch" : "${target_branch}",
+      "repoName" : "mvax-native-billing"
+    }, {
+      "id" : "API",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 1626,
+        "y" : 1181
+      },
+      "conditions" : [ {
+        "taskId" : "approval-1",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "${source_branch}",
+      "targetBranch" : "${target_branch}",
+      "repoName" : "mvax-api"
+    } ],
+    "variables" : [ {
+      "name" : "source_branch",
+      "label" : "",
+      "defaultValue" : "release/develop",
+      "required" : true,
+      "description" : ""
+    }, {
+      "name" : "target_branch",
+      "label" : "",
+      "defaultValue" : "release/develop",
+      "required" : true,
+      "description" : ""
+    } ]
+  }
+}
