@@ -134,7 +134,7 @@
     }, {
       "id" : "deploy-3",
       "taskType" : "DeploymentTask",
-      "devOpsServiceFactory" : "Github vois",
+      "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
         "x" : 2108,
         "y" : 2191
@@ -152,7 +152,7 @@
     }, {
       "id" : "deploy-6",
       "taskType" : "DeploymentTask",
-      "devOpsServiceFactory" : "Github vois",
+      "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
         "x" : 2120,
         "y" : 1611
@@ -170,7 +170,7 @@
     }, {
       "id" : "deploy-4",
       "taskType" : "DeploymentTask",
-      "devOpsServiceFactory" : "Github vois",
+      "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
         "x" : 2122,
         "y" : 2001
