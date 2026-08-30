@@ -54,7 +54,7 @@
     }, {
       "id" : "billing-build",
       "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "Github vois",
+      "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
         "x" : 1662,
         "y" : 2177
@@ -86,7 +86,7 @@
     }, {
       "id" : "plan-build",
       "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "Github vois",
+      "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
         "x" : 1677,
         "y" : 1971
@@ -102,7 +102,7 @@
     }, {
       "id" : "offers-build",
       "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "Github vois",
+      "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
         "x" : 1692,
         "y" : 1618
