@@ -54,7 +54,7 @@
     }, {
       "id" : "billing-build",
       "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "GitHub",
+      "devOpsServiceFactory" : "Github vois",
       "position" : {
         "x" : 1662,
         "y" : 2177
@@ -70,7 +70,7 @@
     }, {
       "id" : "upgrades-build",
       "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "GitHub",
+      "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
         "x" : 1676,
         "y" : 1786
@@ -86,7 +86,7 @@
     }, {
       "id" : "plan-build",
       "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "GitHub",
+      "devOpsServiceFactory" : "Github vois",
       "position" : {
         "x" : 1677,
         "y" : 1971
@@ -102,7 +102,7 @@
     }, {
       "id" : "offers-build",
       "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "GitHub",
+      "devOpsServiceFactory" : "Github vois",
       "position" : {
         "x" : 1692,
         "y" : 1618
@@ -118,7 +118,7 @@
     }, {
       "id" : "api-build",
       "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "GitHub",
+      "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
         "x" : 1695,
         "y" : 1446
