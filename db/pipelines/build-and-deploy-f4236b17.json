@@ -1,0 +1,233 @@
+{
+  "pipelineName" : "build and deploy",
+  "pipelineStructure" : {
+    "tasks" : [ {
+      "id" : "approval-2",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 1183,
+        "y" : 2178
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "billing-build" ]
+    }, {
+      "id" : "approval-7",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 1195,
+        "y" : 1795
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "upgrades-build" ]
+    }, {
+      "id" : "approval-5",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 1196,
+        "y" : 1630
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "offers-build" ]
+    }, {
+      "id" : "approval-6",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 1200,
+        "y" : 1975
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "plan-build" ]
+    }, {
+      "id" : "approval-1",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 1205,
+        "y" : 1452
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "api-build" ]
+    }, {
+      "id" : "billing-build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "GitHub",
+      "position" : {
+        "x" : 1662,
+        "y" : 2177
+      },
+      "conditions" : [ {
+        "taskId" : "approval-2",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "deploy-3" ],
+      "branch" : "${branch}",
+      "repoName" : "mvax-native-billing",
+      "definitionId" : "5018"
+    }, {
+      "id" : "upgrades-build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "GitHub",
+      "position" : {
+        "x" : 1676,
+        "y" : 1786
+      },
+      "conditions" : [ {
+        "taskId" : "approval-7",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "deploy-5" ],
+      "branch" : "${branch}",
+      "repoName" : "mvax-upgrades",
+      "definitionId" : "7912"
+    }, {
+      "id" : "plan-build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "GitHub",
+      "position" : {
+        "x" : 1677,
+        "y" : 1971
+      },
+      "conditions" : [ {
+        "taskId" : "approval-6",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "deploy-4" ],
+      "branch" : "${branch}",
+      "repoName" : "mvax-plan-services",
+      "definitionId" : "5021"
+    }, {
+      "id" : "offers-build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "GitHub",
+      "position" : {
+        "x" : 1692,
+        "y" : 1618
+      },
+      "conditions" : [ {
+        "taskId" : "approval-5",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "deploy-6" ],
+      "branch" : "${branch}",
+      "repoName" : "mvax-offers",
+      "definitionId" : "5222"
+    }, {
+      "id" : "api-build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "GitHub",
+      "position" : {
+        "x" : 1695,
+        "y" : 1446
+      },
+      "conditions" : [ {
+        "taskId" : "approval-1",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "api" ],
+      "branch" : "${branch}",
+      "repoName" : "mvax-api",
+      "definitionId" : "997"
+    }, {
+      "id" : "deploy-3",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Github vois",
+      "position" : {
+        "x" : 2108,
+        "y" : 2191
+      },
+      "conditions" : [ {
+        "taskId" : "billing-build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "billing-build",
+      "repoName" : "mvax-native-billing",
+      "definitionId" : "2066",
+      "environment" : "qc1",
+      "description" : "${branch}"
+    }, {
+      "id" : "deploy-6",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Github vois",
+      "position" : {
+        "x" : 2120,
+        "y" : 1611
+      },
+      "conditions" : [ {
+        "taskId" : "offers-build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "offers-build",
+      "repoName" : "mvax-offers",
+      "definitionId" : "2102",
+      "environment" : "qc1",
+      "description" : "${branch}"
+    }, {
+      "id" : "deploy-4",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Github vois",
+      "position" : {
+        "x" : 2122,
+        "y" : 2001
+      },
+      "conditions" : [ {
+        "taskId" : "plan-build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "plan-build",
+      "repoName" : "mvax-plan-services",
+      "definitionId" : "2067",
+      "environment" : "qc1",
+      "description" : "${branch}"
+    }, {
+      "id" : "deploy-5",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 2125,
+        "y" : 1800
+      },
+      "conditions" : [ {
+        "taskId" : "upgrades-build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "upgrades-build",
+      "repoName" : "mvax-upgrades",
+      "definitionId" : "2388",
+      "environment" : "qc1",
+      "description" : "${branch}"
+    }, {
+      "id" : "api",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 2134,
+        "y" : 1440
+      },
+      "conditions" : [ {
+        "taskId" : "api-build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "api-build",
+      "repoName" : "mvax-api",
+      "definitionId" : "503",
+      "environment" : "qc1",
+      "description" : "${branch}"
+    } ],
+    "variables" : [ {
+      "name" : "branch",
+      "label" : "",
+      "defaultValue" : "release/develop",
+      "required" : true,
+      "description" : ""
+    } ]
+  }
+}
