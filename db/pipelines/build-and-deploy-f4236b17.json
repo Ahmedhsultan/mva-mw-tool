@@ -219,7 +219,7 @@
       "buildTaskId" : "api-build",
       "repoName" : "mvax-api",
       "definitionId" : "503",
-      "environment" : "int1",
+      "environment" : "qcx",
       "description" : "${branch}"
     } ],
     "variables" : [ {
