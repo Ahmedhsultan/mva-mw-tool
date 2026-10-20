@@ -54,7 +54,7 @@
     }, {
       "id" : "upgrades",
       "taskType" : "PrTask",
-      "devOpsServiceFactory" : "Azure DevOps",
+      "devOpsServiceFactory" : "github_vois",
       "position" : {
         "x" : 1592,
         "y" : 1614
@@ -70,7 +70,7 @@
     }, {
       "id" : "offers",
       "taskType" : "PrTask",
-      "devOpsServiceFactory" : "Github vois",
+      "devOpsServiceFactory" : "github_vois",
       "position" : {
         "x" : 1593,
         "y" : 1405
@@ -86,7 +86,7 @@
     }, {
       "id" : "plan",
       "taskType" : "PrTask",
-      "devOpsServiceFactory" : "Github vois",
+      "devOpsServiceFactory" : "github_vois",
       "position" : {
         "x" : 1606,
         "y" : 1839
@@ -102,7 +102,7 @@
     }, {
       "id" : "billing",
       "taskType" : "PrTask",
-      "devOpsServiceFactory" : "Github vois",
+      "devOpsServiceFactory" : "github_vois",
       "position" : {
         "x" : 1606,
         "y" : 2071
@@ -118,7 +118,7 @@
     }, {
       "id" : "API",
       "taskType" : "PrTask",
-      "devOpsServiceFactory" : "Azure DevOps",
+      "devOpsServiceFactory" : "github_vois",
       "position" : {
         "x" : 1626,
         "y" : 1181
