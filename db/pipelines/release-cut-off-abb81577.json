@@ -130,7 +130,7 @@
         "taskId" : "Offers - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ ],
+      "nextTaskIds" : [ "offers - Primary Deploy" ],
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-offers",
       "definitionId" : "5222"
@@ -213,7 +213,7 @@
         "taskId" : "API - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ ],
+      "nextTaskIds" : [ "Billing - Primary Deploy" ],
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-native-billing",
       "definitionId" : "5018"
@@ -234,22 +234,6 @@
       "targetBranch" : "main",
       "repoName" : "mvax-common"
     }, {
-      "id" : "API - primary Build",
-      "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "Azure DevOps",
-      "position" : {
-        "x" : 1790,
-        "y" : 1026
-      },
-      "conditions" : [ {
-        "taskId" : "API - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ ],
-      "branch" : "release/primary/${releaseNumber}",
-      "repoName" : "mvax-api",
-      "definitionId" : "997"
-    }, {
       "id" : "Adobe - primary Build",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "Azure DevOps",
@@ -261,7 +245,7 @@
         "taskId" : "Adobe - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ ],
+      "nextTaskIds" : [ "adobe - Primary Deploy" ],
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-adobe-integrator",
       "definitionId" : "5281"
@@ -309,7 +293,7 @@
         "taskId" : "Upgrades - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ ],
+      "nextTaskIds" : [ "Upgrades - Primary Deploy" ],
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-upgrades",
       "definitionId" : "7912"
@@ -341,7 +325,7 @@
         "taskId" : "Plan - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ ],
+      "nextTaskIds" : [ "Plan - Primary Deploy" ],
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-plan-services",
       "definitionId" : "5021"
@@ -417,10 +401,152 @@
         "taskId" : "Population - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ ],
+      "nextTaskIds" : [ "Auth - Primary Deploy" ],
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-authentication",
       "definitionId" : "3768"
+    }, {
+      "id" : "API - primary Build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 2133,
+        "y" : 790
+      },
+      "conditions" : [ {
+        "taskId" : "API - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "branch" : "release/primary/${releaseNumber}",
+      "repoName" : "mvax-api",
+      "definitionId" : "997"
+    }, {
+      "id" : "offers - Primary Deploy",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 2534,
+        "y" : 3036
+      },
+      "conditions" : [ {
+        "taskId" : "Offers - primary Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "Offers - primary Build",
+      "repoName" : "mvax-offers",
+      "definitionId" : "2102",
+      "environment" : "qc1",
+      "description" : ""
+    }, {
+      "id" : "Billing - Primary Deploy",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 2540,
+        "y" : 1314
+      },
+      "conditions" : [ {
+        "taskId" : "Billing - primary Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "Billing - primary Build",
+      "repoName" : "mvax-native-billing",
+      "definitionId" : "2066",
+      "environment" : "qc1",
+      "description" : ""
+    }, {
+      "id" : "API - Primary Deploy",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 2551,
+        "y" : 812
+      },
+      "conditions" : [ {
+        "taskId" : "API - primary Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "API - primary Build",
+      "repoName" : "mvax-api",
+      "definitionId" : "503",
+      "environment" : "qc1",
+      "description" : ""
+    }, {
+      "id" : "adobe - Primary Deploy",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 2553,
+        "y" : 2629
+      },
+      "conditions" : [ {
+        "taskId" : "Adobe - primary Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "Adobe - primary Build",
+      "repoName" : "mvax-adobe-integrator",
+      "definitionId" : "2110",
+      "environment" : "qc1",
+      "description" : ""
+    }, {
+      "id" : "Upgrades - Primary Deploy",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 2556,
+        "y" : 1765
+      },
+      "conditions" : [ {
+        "taskId" : "Upgrades - primary Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "Upgrades - primary Build",
+      "repoName" : "mvax-upgrades",
+      "definitionId" : "2388",
+      "environment" : "qc1",
+      "description" : ""
+    }, {
+      "id" : "Auth - Primary Deploy",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 2561,
+        "y" : 4715
+      },
+      "conditions" : [ {
+        "taskId" : "Auth - primary Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "Auth - primary Build",
+      "repoName" : "mvax-authentication",
+      "definitionId" : "1718",
+      "environment" : "qc1",
+      "description" : ""
+    }, {
+      "id" : "Plan - Primary Deploy",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 2562,
+        "y" : 2181
+      },
+      "conditions" : [ {
+        "taskId" : "plan - primary Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "plan - primary Build",
+      "repoName" : "mvax-plan-services",
+      "definitionId" : "2067",
+      "environment" : "qc1",
+      "description" : ""
     } ],
     "variables" : [ {
       "name" : "releaseNumber",
