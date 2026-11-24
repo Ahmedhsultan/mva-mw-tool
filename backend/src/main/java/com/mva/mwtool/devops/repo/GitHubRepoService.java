@@ -183,6 +183,7 @@ public class GitHubRepoService implements RepoService {
 
         // Create the new branch ref
         String createUrl = String.format("%s/repos/%s/%s/git/refs", BASE_URL, organization, repoId);
+        log.info("[GitHub] createBranch repo='{}' newBranch='{}' from='{}' sha='{}'", repoId, newBranch, sourceBranch, sha);
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("ref", "refs/heads/" + newBranch);
         requestBody.put("sha", sha);
