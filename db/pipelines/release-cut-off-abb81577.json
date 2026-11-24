@@ -63,7 +63,7 @@
         "taskId" : "approval-1",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "API - PR to Main", "API - primary Build", "API - Main Build" ],
+      "nextTaskIds" : [ "API - PR to Main", "API - primary Build", "API - DropDB Build" ],
       "repoName" : "mvax-api",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
@@ -79,7 +79,7 @@
         "taskId" : "approval-2",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "Upgrades - PR to Main", "Upgrades - primary Build", "upgrades - Main Build" ],
+      "nextTaskIds" : [ "Upgrades - PR to Main", "Upgrades - primary Build", "Upgrades - DropDB build" ],
       "repoName" : "mvax-upgrades",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
@@ -159,25 +159,25 @@
         "taskId" : "API - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "API - Primary Deploy" ],
+      "nextTaskIds" : [ "approval-10" ],
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-api",
       "definitionId" : "997",
       "buildMode" : "NEW"
     }, {
-      "id" : "API - Main Build",
+      "id" : "API - DropDB Build",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
-        "x" : 1664,
-        "y" : 957
+        "x" : 1669,
+        "y" : 978
       },
       "conditions" : [ {
         "taskId" : "API - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "API - Main Deploy" ],
-      "branch" : "main",
+      "nextTaskIds" : [ "API - DropDB Deploy" ],
+      "branch" : "release/gouna/drop_db",
       "repoName" : "mvax-api",
       "definitionId" : "997",
       "buildMode" : "LATEST"
@@ -193,28 +193,11 @@
         "taskId" : "Upgrades - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "Upgrades - Primary Deploy" ],
+      "nextTaskIds" : [ "approval-11" ],
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-upgrades",
       "definitionId" : "7912",
       "buildMode" : "NEW"
-    }, {
-      "id" : "upgrades - Main Build",
-      "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "Azure DevOps",
-      "position" : {
-        "x" : 1685,
-        "y" : 2143
-      },
-      "conditions" : [ {
-        "taskId" : "Upgrades - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ "Upgrades - Main Deploy" ],
-      "branch" : "main",
-      "repoName" : "mvax-upgrades",
-      "definitionId" : "7912",
-      "buildMode" : "LATEST"
     }, {
       "id" : "Upgrades - PR to Main",
       "taskType" : "PrTask",
@@ -232,6 +215,23 @@
       "targetBranch" : "main",
       "repoName" : "mvax-upgrades"
     }, {
+      "id" : "Upgrades - DropDB build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 1699,
+        "y" : 2157
+      },
+      "conditions" : [ {
+        "taskId" : "Upgrades - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Upgrades - DropDB Deploy" ],
+      "branch" : "release/dahab/drop_db",
+      "repoName" : "mvax-upgrades",
+      "definitionId" : "7912",
+      "buildMode" : "LATEST"
+    }, {
       "id" : "Adobe - primary Build",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "Azure DevOps",
@@ -243,7 +243,7 @@
         "taskId" : "Adobe - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "adobe - Primary Deploy" ],
+      "nextTaskIds" : [ "approval-16" ],
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-adobe-integrator",
       "definitionId" : "5281",
@@ -354,41 +354,80 @@
       "targetBranch" : "main",
       "repoName" : "mvax-common"
     }, {
-      "id" : "API - Main Deploy",
+      "id" : "approval-10",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 2123,
+        "y" : 676
+      },
+      "conditions" : [ {
+        "taskId" : "API - primary Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "API - Primary Deploy" ]
+    }, {
+      "id" : "API - DropDB Deploy",
       "taskType" : "DeploymentTask",
       "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
-        "x" : 2168,
-        "y" : 963
+        "x" : 2165,
+        "y" : 993
       },
       "conditions" : [ {
-        "taskId" : "API - Main Build",
+        "taskId" : "API - DropDB Build",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "API - Primary Deploy" ],
-      "buildTaskId" : "API - Main Build",
+      "nextTaskIds" : [ "API - Main Build" ],
+      "buildTaskId" : "API - DropDB Build",
       "repoName" : "mvax-api",
       "definitionId" : "503",
       "environment" : "qc1",
       "description" : ""
     }, {
-      "id" : "Upgrades - Main Deploy",
+      "id" : "approval-11",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 2180,
+        "y" : 1844
+      },
+      "conditions" : [ {
+        "taskId" : "Upgrades - primary Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Upgrades - Primary Deploy" ]
+    }, {
+      "id" : "Upgrades - DropDB Deploy",
       "taskType" : "DeploymentTask",
       "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
-        "x" : 2270,
-        "y" : 2134
+        "x" : 2183,
+        "y" : 2152
       },
       "conditions" : [ {
-        "taskId" : "upgrades - Main Build",
+        "taskId" : "Upgrades - DropDB build",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "Upgrades - Primary Deploy" ],
-      "buildTaskId" : "upgrades - Main Build",
+      "nextTaskIds" : [ "upgrades - Main Build" ],
+      "buildTaskId" : "Upgrades - DropDB build",
       "repoName" : "mvax-upgrades",
       "definitionId" : "2388",
       "environment" : "qc1",
       "description" : ""
+    }, {
+      "id" : "approval-16",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 2282,
+        "y" : 2769
+      },
+      "conditions" : [ {
+        "taskId" : "Adobe - primary Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "adobe - Primary Deploy" ]
     }, {
       "id" : "Adobe - Main Deploy",
       "taskType" : "DeploymentTask",
@@ -401,7 +440,7 @@
         "taskId" : "Adobe - Main Build",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "adobe - Primary Deploy" ],
+      "nextTaskIds" : [ ],
       "buildTaskId" : "Adobe - Main Build",
       "repoName" : "mvax-adobe-integrator",
       "definitionId" : "2110",
@@ -416,13 +455,7 @@
         "y" : 686
       },
       "conditions" : [ {
-        "taskId" : "API - Main Build",
-        "status" : "SUCCEEDED"
-      }, {
-        "taskId" : "API - primary Build",
-        "status" : "SUCCEEDED"
-      }, {
-        "taskId" : "API - Main Deploy",
+        "taskId" : "approval-10",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
@@ -432,6 +465,23 @@
       "environment" : "qc1",
       "description" : ""
     }, {
+      "id" : "API - Main Build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 2649,
+        "y" : 990
+      },
+      "conditions" : [ {
+        "taskId" : "API - DropDB Deploy",
+        "status" : "FAILED"
+      } ],
+      "nextTaskIds" : [ "API - Main Deploy" ],
+      "branch" : "main",
+      "repoName" : "mvax-api",
+      "definitionId" : "997",
+      "buildMode" : "LATEST"
+    }, {
       "id" : "Upgrades - Primary Deploy",
       "taskType" : "DeploymentTask",
       "devOpsServiceFactory" : "Azure DevOps",
@@ -440,10 +490,7 @@
         "y" : 1797
       },
       "conditions" : [ {
-        "taskId" : "Upgrades - primary Build",
-        "status" : "SUCCEEDED"
-      }, {
-        "taskId" : "Upgrades - Main Deploy",
+        "taskId" : "approval-11",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
@@ -453,6 +500,23 @@
       "environment" : "qc1",
       "description" : ""
     }, {
+      "id" : "upgrades - Main Build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 2762,
+        "y" : 2145
+      },
+      "conditions" : [ {
+        "taskId" : "Upgrades - DropDB Deploy",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Upgrades - Main Deploy" ],
+      "branch" : "main",
+      "repoName" : "mvax-upgrades",
+      "definitionId" : "7912",
+      "buildMode" : "LATEST"
+    }, {
       "id" : "adobe - Primary Deploy",
       "taskType" : "DeploymentTask",
       "devOpsServiceFactory" : "Azure DevOps",
@@ -461,10 +525,7 @@
         "y" : 2766
       },
       "conditions" : [ {
-        "taskId" : "Adobe - primary Build",
-        "status" : "SUCCEEDED"
-      }, {
-        "taskId" : "Adobe - Main Deploy",
+        "taskId" : "approval-16",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
@@ -474,15 +535,41 @@
       "environment" : "qc1",
       "description" : ""
     }, {
-      "id" : "approval-10",
-      "taskType" : "ApprovalTask",
-      "devOpsServiceFactory" : "",
+      "id" : "API - Main Deploy",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
-        "x" : 4187,
-        "y" : 537.5999450683594
+        "x" : 3136,
+        "y" : 982
       },
-      "conditions" : [ ],
-      "nextTaskIds" : [ ]
+      "conditions" : [ {
+        "taskId" : "API - Main Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "API - Main Build",
+      "repoName" : "mvax-api",
+      "definitionId" : "503",
+      "environment" : "qc1",
+      "description" : ""
+    }, {
+      "id" : "Upgrades - Main Deploy",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 3234,
+        "y" : 2140
+      },
+      "conditions" : [ {
+        "taskId" : "upgrades - Main Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "upgrades - Main Build",
+      "repoName" : "mvax-upgrades",
+      "definitionId" : "2388",
+      "environment" : "qc1",
+      "description" : ""
     }, {
       "id" : "approval-9",
       "taskType" : "ApprovalTask",
@@ -583,7 +670,7 @@
         "taskId" : "approval-8",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "Plan - PR to Main", "plan - primary Build", "Plan - Main Build" ],
+      "nextTaskIds" : [ "Plan - PR to Main", "plan - primary Build", "Plan - DropDB Build" ],
       "repoName" : "mvax-plan-services",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
@@ -618,7 +705,7 @@
         "taskId" : "API - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "Billing - Primary Deploy" ],
+      "nextTaskIds" : [ "approval-13" ],
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-native-billing",
       "definitionId" : "5018",
@@ -655,7 +742,7 @@
         "taskId" : "Population - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "Auth - Primary Deploy" ],
+      "nextTaskIds" : [ "approval-15" ],
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-authentication",
       "definitionId" : "3768",
@@ -724,7 +811,7 @@
         "taskId" : "Offers - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "offers - Primary Deploy" ],
+      "nextTaskIds" : [ "approval-14" ],
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-offers",
       "definitionId" : "5222",
@@ -758,28 +845,11 @@
         "taskId" : "Plan - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "Plan - Primary Deploy" ],
+      "nextTaskIds" : [ "approval-12" ],
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-plan-services",
       "definitionId" : "5021",
       "buildMode" : "NEW"
-    }, {
-      "id" : "Plan - Main Build",
-      "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "Azure DevOps",
-      "position" : {
-        "x" : 5325,
-        "y" : 2922
-      },
-      "conditions" : [ {
-        "taskId" : "Plan - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ "Plan - Main Deploy" ],
-      "branch" : "main",
-      "repoName" : "mvax-plan-services",
-      "definitionId" : "5021",
-      "buildMode" : "LATEST"
     }, {
       "id" : "Plan - PR to Main",
       "taskType" : "PrTask",
@@ -797,6 +867,36 @@
       "targetBranch" : "main",
       "repoName" : "mvax-plan-services"
     }, {
+      "id" : "Plan - DropDB Build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 5347,
+        "y" : 2916
+      },
+      "conditions" : [ {
+        "taskId" : "Plan - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Plan - DropDB Deploy" ],
+      "branch" : "release/drop_db",
+      "repoName" : "mvax-plan-services",
+      "definitionId" : "5021",
+      "buildMode" : "LATEST"
+    }, {
+      "id" : "approval-13",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 5578,
+        "y" : 1317
+      },
+      "conditions" : [ {
+        "taskId" : "Billing - primary Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Billing - Primary Deploy" ]
+    }, {
       "id" : "Billing - Main Deploy",
       "taskType" : "DeploymentTask",
       "devOpsServiceFactory" : "Azure DevOps",
@@ -808,7 +908,7 @@
         "taskId" : "Billing - Main Build",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "Billing - Primary Deploy" ],
+      "nextTaskIds" : [ ],
       "buildTaskId" : "Billing - Main Build",
       "repoName" : "mvax-native-billing",
       "definitionId" : "2066",
@@ -826,10 +926,54 @@
         "taskId" : "Auth - Main Build",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "Auth - Primary Deploy" ],
+      "nextTaskIds" : [ ],
       "buildTaskId" : "Auth - Main Build",
       "repoName" : "mvax-authentication",
       "definitionId" : "1718",
+      "environment" : "qc1",
+      "description" : ""
+    }, {
+      "id" : "approval-15",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 5726,
+        "y" : 4934.199951171875
+      },
+      "conditions" : [ {
+        "taskId" : "Auth - primary Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Auth - Primary Deploy" ]
+    }, {
+      "id" : "approval-12",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 5748,
+        "y" : 2562
+      },
+      "conditions" : [ {
+        "taskId" : "plan - primary Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Plan - Primary Deploy" ]
+    }, {
+      "id" : "Plan - DropDB Deploy",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 5762,
+        "y" : 2910
+      },
+      "conditions" : [ {
+        "taskId" : "Plan - DropDB Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Plan - Main Build" ],
+      "buildTaskId" : "Plan - DropDB Build",
+      "repoName" : "mvax-plan-services",
+      "definitionId" : "2067",
       "environment" : "qc1",
       "description" : ""
     }, {
@@ -844,49 +988,76 @@
         "taskId" : "Offers - Main Build",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "offers - Primary Deploy" ],
+      "nextTaskIds" : [ ],
       "buildTaskId" : "Offers - Main Build",
       "repoName" : "mvax-offers",
       "definitionId" : "2102",
       "environment" : "qc1",
       "description" : ""
     }, {
-      "id" : "Plan - Main Deploy",
-      "taskType" : "DeploymentTask",
-      "devOpsServiceFactory" : "Azure DevOps",
+      "id" : "approval-14",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
       "position" : {
-        "x" : 5802,
-        "y" : 2928
+        "x" : 5797,
+        "y" : 3809
       },
       "conditions" : [ {
-        "taskId" : "Plan - Main Build",
+        "taskId" : "Offers - primary Build",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "Plan - Primary Deploy" ],
-      "buildTaskId" : "Plan - Main Build",
-      "repoName" : "mvax-plan-services",
-      "definitionId" : "2067",
-      "environment" : "qc1",
-      "description" : ""
+      "nextTaskIds" : [ "offers - Primary Deploy" ]
     }, {
       "id" : "Billing - Primary Deploy",
       "taskType" : "DeploymentTask",
       "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
-        "x" : 6088,
-        "y" : 1402
+        "x" : 6090,
+        "y" : 1335
       },
       "conditions" : [ {
-        "taskId" : "Billing - primary Build",
-        "status" : "SUCCEEDED"
-      }, {
-        "taskId" : "Billing - Main Deploy",
+        "taskId" : "approval-13",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
       "buildTaskId" : "Billing - primary Build",
       "repoName" : "mvax-native-billing",
       "definitionId" : "2066",
+      "environment" : "qc1",
+      "description" : ""
+    }, {
+      "id" : "Plan - Main Build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 6189,
+        "y" : 2916
+      },
+      "conditions" : [ {
+        "taskId" : "Plan - DropDB Deploy",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Plan - Main Deploy" ],
+      "branch" : "main",
+      "repoName" : "mvax-plan-services",
+      "definitionId" : "5021",
+      "buildMode" : "LATEST"
+    }, {
+      "id" : "Plan - Primary Deploy",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 6201,
+        "y" : 2564
+      },
+      "conditions" : [ {
+        "taskId" : "approval-12",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "plan - primary Build",
+      "repoName" : "mvax-plan-services",
+      "definitionId" : "2067",
       "environment" : "qc1",
       "description" : ""
     }, {
@@ -898,10 +1069,7 @@
         "y" : 3826
       },
       "conditions" : [ {
-        "taskId" : "Offers - primary Build",
-        "status" : "SUCCEEDED"
-      }, {
-        "taskId" : "Offers - Main Deploy",
+        "taskId" : "approval-14",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
@@ -919,10 +1087,7 @@
         "y" : 4936
       },
       "conditions" : [ {
-        "taskId" : "Auth - primary Build",
-        "status" : "SUCCEEDED"
-      }, {
-        "taskId" : "Auth - Main Deploy",
+        "taskId" : "approval-15",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
@@ -932,22 +1097,19 @@
       "environment" : "qc1",
       "description" : ""
     }, {
-      "id" : "Plan - Primary Deploy",
+      "id" : "Plan - Main Deploy",
       "taskType" : "DeploymentTask",
       "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
-        "x" : 6264,
-        "y" : 2637
+        "x" : 6620,
+        "y" : 2907
       },
       "conditions" : [ {
-        "taskId" : "plan - primary Build",
-        "status" : "SUCCEEDED"
-      }, {
-        "taskId" : "Plan - Main Deploy",
+        "taskId" : "Plan - Main Build",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
-      "buildTaskId" : "plan - primary Build",
+      "buildTaskId" : "Plan - Main Build",
       "repoName" : "mvax-plan-services",
       "definitionId" : "2067",
       "environment" : "qc1",
