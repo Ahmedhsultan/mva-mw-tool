@@ -2,9 +2,61 @@
   "pipelineName" : "Release Cut-off",
   "pipelineStructure" : {
     "tasks" : [ {
+      "id" : "Upgrades - Create Primary Branch",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1397,
+        "y" : 1869
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ ],
+      "repoName" : "mvax-upgrades",
+      "branch" : "release/primary/${releaseNumber}",
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "Plan - Create Primary Branch",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1399,
+        "y" : 2116
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ ],
+      "repoName" : "mvax-plan-services",
+      "branch" : "release/primary/${releaseNumber}",
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "Common - Create Primary Branch",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1399,
+        "y" : 2843
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ ],
+      "repoName" : "mvax-common",
+      "branch" : "primary/${releaseNumber}",
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "Population - Create Primary Branch",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1399,
+        "y" : 3077
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ ],
+      "repoName" : "mvax-population-engine",
+      "branch" : "release/primary/${releaseNumber}",
+      "sourceBranch" : "release/develop"
+    }, {
       "id" : "API - Create Primary Branch",
       "taskType" : "GitTask",
-      "devOpsServiceFactory" : "GitHub",
+      "devOpsServiceFactory" : "VOIS Github",
       "position" : {
         "x" : 1400,
         "y" : 1400
@@ -12,6 +64,45 @@
       "conditions" : [ ],
       "nextTaskIds" : [ ],
       "repoName" : "mvax-api",
+      "branch" : "release/primary/${releaseNumber}",
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "Billing - Create Primary Branch",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1400,
+        "y" : 1617
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ ],
+      "repoName" : "mvax-native-billing",
+      "branch" : "release/primary/${releaseNumber}",
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "Offers - Create Primary Branch",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1401,
+        "y" : 2604
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ ],
+      "repoName" : "mvax-offers",
+      "branch" : "release/primary/${releaseNumber}",
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "Adobe - Create Primary Branch",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1402,
+        "y" : 2360
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ ],
+      "repoName" : "mvax-adobe-integrator",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
     } ],
