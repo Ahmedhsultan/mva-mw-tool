@@ -20,10 +20,23 @@ interface RunEdge {
   path: string;
 }
 
-const NODE_WIDTH = 260;
-const NODE_HEIGHT = 100;
+interface Point {
+  x: number;
+  y: number;
+}
+
+type PortSide = 'top' | 'right' | 'bottom' | 'left';
+
+interface Port extends Point {
+  side: PortSide;
+}
+
+// Match the pipeline builder node size so saved positions render with the same spacing.
+const NODE_WIDTH = 300;
+const NODE_HEIGHT = 130;
 const H_GAP = 100;
 const V_GAP = 40;
+const PADDING = 40;
 
 @Component({
   selector: 'app-pipeline-run-viewer',
@@ -198,21 +211,9 @@ export class PipelineRunViewerComponent implements OnChanges, OnDestroy {
     if (!taskMap) { this.nodes = []; this.edges = []; return; }
 
     const tasks = Object.values(taskMap);
-    const levels = this.computeLevels(tasks, taskMap);
-    const rows = new Map<number, number>();
-    const posMap = new Map<string, { x: number; y: number }>();
+    const posMap = this.savedPositions(tasks) ?? this.levelPositions(tasks, taskMap);
 
-    this.nodes = tasks.map(task => {
-      const level = levels.get(task.id) || 0;
-      const row = rows.get(level) || 0;
-      rows.set(level, row + 1);
-
-      const x = 40 + level * (NODE_WIDTH + H_GAP);
-      const y = 40 + row * (NODE_HEIGHT + V_GAP);
-      posMap.set(task.id, { x, y });
-
-      return { task, x, y };
-    });
+    this.nodes = tasks.map(task => ({ task, ...posMap.get(task.id)! }));
 
     this.edges = [];
     for (const task of tasks) {
@@ -221,22 +222,85 @@ export class PipelineRunViewerComponent implements OnChanges, OnDestroy {
       for (const nextId of task.nextTaskIds || []) {
         const tgt = posMap.get(nextId);
         if (!tgt) continue;
-        const sx = src.x + NODE_WIDTH;
-        const sy = src.y + NODE_HEIGHT / 2;
-        const tx = tgt.x;
-        const ty = tgt.y + NODE_HEIGHT / 2;
-        const mx = (sx + tx) / 2;
-        this.edges.push({
-          key: `${task.id}-${nextId}`,
-          path: `M${sx},${sy} C${mx},${sy} ${mx},${ty} ${tx},${ty}`
-        });
+        const { from, to } = this.bestPorts(src, tgt);
+        this.edges.push({ key: `${task.id}-${nextId}`, path: this.bezierPath(from, to) });
       }
     }
 
-    const maxLevel = Math.max(...[...levels.values()], 0);
-    const maxRows = Math.max(...[...rows.values()], 1);
-    this.canvasWidth = 80 + (maxLevel + 1) * (NODE_WIDTH + H_GAP);
-    this.canvasHeight = 80 + maxRows * (NODE_HEIGHT + V_GAP);
+    const positions = [...posMap.values()];
+    this.canvasWidth = Math.max(...positions.map(p => p.x), 0) + NODE_WIDTH + PADDING;
+    this.canvasHeight = Math.max(...positions.map(p => p.y), 0) + NODE_HEIGHT + PADDING;
+  }
+
+  /** Positions saved by the builder, shifted so the top-left node sits at the padding; null if any task lacks one. */
+  private savedPositions(tasks: PipelineRunTask[]): Map<string, Point> | null {
+    const saved = new Map<string, Point>();
+    for (const structureTask of this.run?.pipelineStructure?.tasks || []) {
+      if (structureTask.position) saved.set(structureTask.id, structureTask.position);
+    }
+    if (!tasks.length || tasks.some(task => !saved.has(task.id))) return null;
+
+    const points = tasks.map(task => saved.get(task.id)!);
+    const minX = Math.min(...points.map(p => p.x));
+    const minY = Math.min(...points.map(p => p.y));
+    const result = new Map<string, Point>();
+    for (const task of tasks) {
+      const p = saved.get(task.id)!;
+      result.set(task.id, { x: p.x - minX + PADDING, y: p.y - minY + PADDING });
+    }
+    return result;
+  }
+
+  private levelPositions(tasks: PipelineRunTask[], taskMap: Record<string, PipelineRunTask>): Map<string, Point> {
+    const levels = this.computeLevels(tasks, taskMap);
+    const rows = new Map<number, number>();
+    const result = new Map<string, Point>();
+    for (const task of tasks) {
+      const level = levels.get(task.id) || 0;
+      const row = rows.get(level) || 0;
+      rows.set(level, row + 1);
+      result.set(task.id, {
+        x: PADDING + level * (NODE_WIDTH + H_GAP),
+        y: PADDING + row * (NODE_HEIGHT + V_GAP)
+      });
+    }
+    return result;
+  }
+
+  private bestPorts(source: Point, target: Point): { from: Port; to: Port } {
+    const dx = target.x - source.x;
+    const dy = target.y - source.y;
+    const sp = this.nodePorts(source);
+    const tp = this.nodePorts(target);
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      return dx > 0 ? { from: sp.right, to: tp.left } : { from: sp.left, to: tp.right };
+    }
+    return dy > 0 ? { from: sp.bottom, to: tp.top } : { from: sp.top, to: tp.bottom };
+  }
+
+  private nodePorts(pos: Point): Record<PortSide, Port> {
+    return {
+      top: { side: 'top', x: pos.x + NODE_WIDTH / 2, y: pos.y },
+      right: { side: 'right', x: pos.x + NODE_WIDTH, y: pos.y + NODE_HEIGHT / 2 },
+      bottom: { side: 'bottom', x: pos.x + NODE_WIDTH / 2, y: pos.y + NODE_HEIGHT },
+      left: { side: 'left', x: pos.x, y: pos.y + NODE_HEIGHT / 2 }
+    };
+  }
+
+  private bezierPath(from: Port, to: Port): string {
+    const offset = Math.max(50, Math.min(180, Math.hypot(to.x - from.x, to.y - from.y) * 0.4));
+    const c1 = this.controlPoint(from, offset);
+    const c2 = this.controlPoint(to, offset);
+    return `M${from.x},${from.y} C${c1.x},${c1.y} ${c2.x},${c2.y} ${to.x},${to.y}`;
+  }
+
+  private controlPoint(port: Port, offset: number): Point {
+    switch (port.side) {
+      case 'right': return { x: port.x + offset, y: port.y };
+      case 'left': return { x: port.x - offset, y: port.y };
+      case 'bottom': return { x: port.x, y: port.y + offset };
+      case 'top': return { x: port.x, y: port.y - offset };
+    }
   }
 
   private computeLevels(tasks: PipelineRunTask[], taskMap: Record<string, PipelineRunTask>): Map<string, number> {

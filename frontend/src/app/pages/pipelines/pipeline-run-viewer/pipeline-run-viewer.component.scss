@@ -98,7 +98,10 @@
 
 .run-node {
   position: absolute;
-  width: 260px;
+  width: 300px;
+  min-height: 130px;
+  display: flex;
+  flex-direction: column;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.92);
   border: 1.5px solid rgba(118, 139, 173, 0.2);
@@ -155,6 +158,7 @@
 }
 
 .node-body {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 3px;
