@@ -151,6 +151,22 @@
       "targetBranch" : "main",
       "repoName" : "mvax-offers"
     }, {
+      "id" : "API - primary Build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 1779,
+        "y" : 1013
+      },
+      "conditions" : [ {
+        "taskId" : "API - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "API - Primary Deploy" ],
+      "branch" : "release/primary/${releaseNumber}",
+      "repoName" : "mvax-api",
+      "definitionId" : "997"
+    }, {
       "id" : "Common - primary Build",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "Azure DevOps",
@@ -405,22 +421,6 @@
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-authentication",
       "definitionId" : "3768"
-    }, {
-      "id" : "API - primary Build",
-      "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "Azure DevOps",
-      "position" : {
-        "x" : 2133,
-        "y" : 790
-      },
-      "conditions" : [ {
-        "taskId" : "API - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ ],
-      "branch" : "release/primary/${releaseNumber}",
-      "repoName" : "mvax-api",
-      "definitionId" : "997"
     }, {
       "id" : "offers - Primary Deploy",
       "taskType" : "DeploymentTask",
