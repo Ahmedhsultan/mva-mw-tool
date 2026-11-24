@@ -151,38 +151,6 @@
       "targetBranch" : "main",
       "repoName" : "mvax-offers"
     }, {
-      "id" : "API - PR to Main",
-      "taskType" : "PrTask",
-      "devOpsServiceFactory" : "VOIS Github",
-      "position" : {
-        "x" : 1771,
-        "y" : 1043
-      },
-      "conditions" : [ {
-        "taskId" : "API - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ ],
-      "fromBranch" : "release/primary/${releaseNumber}",
-      "targetBranch" : "main",
-      "repoName" : "mvax-api"
-    }, {
-      "id" : "API - primary Build",
-      "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "Azure DevOps",
-      "position" : {
-        "x" : 1773,
-        "y" : 829
-      },
-      "conditions" : [ {
-        "taskId" : "API - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ ],
-      "branch" : "release/primary/${releaseNumber}",
-      "repoName" : "mvax-api",
-      "definitionId" : "997"
-    }, {
       "id" : "Common - primary Build",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "Azure DevOps",
@@ -198,6 +166,22 @@
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-common",
       "definitionId" : "3794"
+    }, {
+      "id" : "API - PR to Main",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1786,
+        "y" : 803
+      },
+      "conditions" : [ {
+        "taskId" : "API - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "release/primary/${releaseNumber}",
+      "targetBranch" : "main",
+      "repoName" : "mvax-api"
     }, {
       "id" : "Billing - PR to Main",
       "taskType" : "PrTask",
@@ -249,6 +233,22 @@
       "fromBranch" : "primary/${releaseNumber}",
       "targetBranch" : "main",
       "repoName" : "mvax-common"
+    }, {
+      "id" : "API - primary Build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 1790,
+        "y" : 1026
+      },
+      "conditions" : [ {
+        "taskId" : "API - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "branch" : "release/primary/${releaseNumber}",
+      "repoName" : "mvax-api",
+      "definitionId" : "997"
     }, {
       "id" : "Adobe - primary Build",
       "taskType" : "BuildTask",
