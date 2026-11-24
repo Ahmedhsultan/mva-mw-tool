@@ -509,7 +509,7 @@
       },
       "conditions" : [ {
         "taskId" : "Upgrades - DropDB Deploy",
-        "status" : "SUCCEEDED"
+        "status" : "FAILED"
       } ],
       "nextTaskIds" : [ "Upgrades - Main Deploy" ],
       "branch" : "main",
@@ -1035,7 +1035,7 @@
       },
       "conditions" : [ {
         "taskId" : "Plan - DropDB Deploy",
-        "status" : "SUCCEEDED"
+        "status" : "FAILED"
       } ],
       "nextTaskIds" : [ "Plan - Main Deploy" ],
       "branch" : "main",
