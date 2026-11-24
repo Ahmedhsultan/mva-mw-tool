@@ -10,7 +10,7 @@
         "y" : 923
       },
       "conditions" : [ ],
-      "nextTaskIds" : [ "API - PR to Main", "Billing - primary Build" ],
+      "nextTaskIds" : [ "API - PR to Main", "API - primary Build" ],
       "repoName" : "mvax-api",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
@@ -114,7 +114,7 @@
         "y" : 4331
       },
       "conditions" : [ ],
-      "nextTaskIds" : [ "Auth - PR to Main", "Auth - primary Build" ],
+      "nextTaskIds" : [ "Population - primary Build", "Popublation - PR to Main" ],
       "repoName" : "mvax-population-engine",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
@@ -356,6 +356,9 @@
       "conditions" : [ {
         "taskId" : "Auth - Create Primary Branch",
         "status" : "SUCCEEDED"
+      }, {
+        "taskId" : "Population - Create Primary Branch",
+        "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
       "fromBranch" : "release/primary/${releaseNumber}",
@@ -371,6 +374,9 @@
       },
       "conditions" : [ {
         "taskId" : "Auth - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      }, {
+        "taskId" : "Population - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
