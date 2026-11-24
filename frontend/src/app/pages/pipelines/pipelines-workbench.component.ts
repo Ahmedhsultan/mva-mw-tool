@@ -1,6 +1,6 @@
 import { Overlay, OverlayModule, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
-import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, TemplateRef, ViewChild, ViewContainerRef, signal } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, HostListener, OnDestroy, OnInit, TemplateRef, ViewChild, ViewContainerRef, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { ErrorStateMatcher } from '@angular/material/core';
@@ -35,6 +35,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { PipelineVariablesDialogComponent } from './pipeline-variables-dialog/pipeline-variables-dialog.component';
 import { PipelineRunVariablesDialogComponent } from './pipeline-run-variables-dialog/pipeline-run-variables-dialog.component';
 import { PipelineRunViewerComponent } from './pipeline-run-viewer/pipeline-run-viewer.component';
+import { CanvasMinimapComponent, MinimapRect } from '../../shared/canvas-minimap/canvas-minimap.component';
 
 interface Point {
   x: number;
@@ -158,7 +159,8 @@ class ImmediateErrorStateMatcher implements ErrorStateMatcher {
     MatTabsModule,
     MatTooltipModule,
     MatMenuModule,
-    PipelineRunViewerComponent
+    PipelineRunViewerComponent,
+    CanvasMinimapComponent
   ],
   providers: [
     { provide: ErrorStateMatcher, useClass: ImmediateErrorStateMatcher }
@@ -219,6 +221,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   // Signals keep the overlay-rendered canvas in sync outside template event handlers (RAF, pointer capture).
   private readonly zoomState = signal(1);
   private readonly canvasTick = signal(0);
+  readonly viewportRect = signal<MinimapRect | null>(null);
   private readonly minZoom = 0.25;
   private readonly maxZoom = 2;
   private zoomTarget = 1;
@@ -290,6 +293,41 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   nodeTransform(task: EditorPipelineTaskNode): string {
     this.canvasTick();
     return `translate(${task.position.x}px, ${task.position.y}px)`;
+  }
+
+  get minimapNodes(): MinimapRect[] {
+    this.canvasTick();
+    const selectedId = this.selectedTask()?.editorId;
+    return this.editorNodes.map(node => ({
+      x: node.position.x,
+      y: node.position.y,
+      width: this.nodeWidth,
+      height: this.nodeHeight,
+      tone: node.editorId === selectedId ? 'is-selected' : this.isTaskIncomplete(node) ? 'is-danger' : ''
+    }));
+  }
+
+  @HostListener('window:resize')
+  updateViewport(): void {
+    const el = this.canvasBoard?.nativeElement;
+    const layer = el?.querySelector('.canvas-zoom-layer') as HTMLElement | null;
+    if (!el || !layer) return;
+    const zoom = this.canvasZoom;
+    this.viewportRect.set({
+      x: (el.scrollLeft - layer.offsetLeft) / zoom,
+      y: (el.scrollTop - layer.offsetTop) / zoom,
+      width: el.clientWidth / zoom,
+      height: el.clientHeight / zoom
+    });
+  }
+
+  onMinimapNavigate(point: Point): void {
+    const el = this.canvasBoard?.nativeElement;
+    const layer = el?.querySelector('.canvas-zoom-layer') as HTMLElement | null;
+    if (!el || !layer) return;
+    el.scrollLeft = point.x * this.canvasZoom + layer.offsetLeft - el.clientWidth / 2;
+    el.scrollTop = point.y * this.canvasZoom + layer.offsetTop - el.clientHeight / 2;
+    this.updateViewport();
   }
 
   get smartEdges(): SmartEdge[] {
@@ -406,6 +444,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       if (this.canvasBoard) {
         this.canvasBoard.nativeElement.scrollLeft = this.initialViewportX;
         this.canvasBoard.nativeElement.scrollTop = this.initialViewportY;
+        this.updateViewport();
       }
     }, 50);
   }
@@ -462,6 +501,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       el.scrollLeft = Math.max(0, (minX - 50) * this.canvasZoom);
       el.scrollTop = Math.max(0, (minY - 50) * this.canvasZoom);
+      this.updateViewport();
     });
   }
 
@@ -512,6 +552,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     }
 
     this.canvasZoom = next;
+    this.updateViewport();
     if (next !== this.zoomTarget) {
       this.zoomFrame = requestAnimationFrame(this.stepZoom);
     }

@@ -1,5 +1,5 @@
 import { LowerCasePipe } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -8,6 +8,7 @@ import { Subscription, interval, EMPTY } from 'rxjs';
 import { switchMap, finalize, catchError } from 'rxjs/operators';
 import { PipelineRunDto, PipelineRunTask, PipelineTaskStatus } from '../../../core/models';
 import { ApiService } from '../../../core/services/api.service';
+import { CanvasMinimapComponent, MinimapRect } from '../../../shared/canvas-minimap/canvas-minimap.component';
 
 interface RunNodeLayout {
   task: PipelineRunTask;
@@ -41,18 +42,20 @@ const PADDING = 40;
 @Component({
   selector: 'app-pipeline-run-viewer',
   standalone: true,
-  imports: [LowerCasePipe, MatButtonModule, MatIconModule, MatSnackBarModule, MatTooltipModule],
+  imports: [LowerCasePipe, MatButtonModule, MatIconModule, MatSnackBarModule, MatTooltipModule, CanvasMinimapComponent],
   templateUrl: './pipeline-run-viewer.component.html',
   styleUrl: './pipeline-run-viewer.component.scss'
 })
-export class PipelineRunViewerComponent implements OnChanges, OnDestroy {
+export class PipelineRunViewerComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() run: PipelineRunDto | null = null;
   @Output() closed = new EventEmitter<void>();
+  @ViewChild('scroller') scroller?: ElementRef<HTMLDivElement>;
 
   nodes: RunNodeLayout[] = [];
   edges: RunEdge[] = [];
   canvasWidth = 0;
   canvasHeight = 0;
+  readonly viewportRect = signal<MinimapRect | null>(null);
 
   private pollSub?: Subscription;
   isRefreshing = false;
@@ -71,6 +74,35 @@ export class PipelineRunViewerComponent implements OnChanges, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopPolling();
+  }
+
+  ngAfterViewInit(): void {
+    this.updateViewport();
+  }
+
+  get minimapNodes(): MinimapRect[] {
+    return this.nodes.map(node => ({
+      x: node.x,
+      y: node.y,
+      width: NODE_WIDTH,
+      height: NODE_HEIGHT,
+      tone: this.statusTone(node.task.status)
+    }));
+  }
+
+  @HostListener('window:resize')
+  updateViewport(): void {
+    const el = this.scroller?.nativeElement;
+    if (!el) return;
+    this.viewportRect.set({ x: el.scrollLeft, y: el.scrollTop, width: el.clientWidth, height: el.clientHeight });
+  }
+
+  onMinimapNavigate(point: { x: number; y: number }): void {
+    const el = this.scroller?.nativeElement;
+    if (!el) return;
+    el.scrollLeft = point.x - el.clientWidth / 2;
+    el.scrollTop = point.y - el.clientHeight / 2;
+    this.updateViewport();
   }
 
   close(): void {

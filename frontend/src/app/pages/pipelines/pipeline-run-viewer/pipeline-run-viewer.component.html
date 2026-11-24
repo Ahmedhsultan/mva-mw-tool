@@ -21,7 +21,7 @@
       </button>
     </div>
 
-    <div class="run-viewer-canvas" tabindex="0">
+    <div class="run-viewer-canvas" #scroller tabindex="0" (scroll)="updateViewport()">
       <div class="canvas-scroll" [style.width.px]="canvasWidth" [style.height.px]="canvasHeight">
         <svg class="edge-layer" [attr.width]="canvasWidth" [attr.height]="canvasHeight">
           @for (edge of edges; track edge.key) {
@@ -89,5 +89,7 @@
         }
       </div>
     </div>
+
+    <app-canvas-minimap style="right: 16px; bottom: 16px" [nodes]="minimapNodes" [viewport]="viewportRect()" (navigate)="onMinimapNavigate($event)"></app-canvas-minimap>
   </section>
 </div>

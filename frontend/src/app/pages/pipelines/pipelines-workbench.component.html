@@ -273,7 +273,7 @@
             </div>
           }
 
-          <div class="canvas-stage" #canvasBoard [style.cursor]="isDraggingConnection ? 'crosshair' : panCursor" (pointerdown)="onCanvasPointerDown($event)" (pointermove)="onCanvasPointerMove($event)" (pointerup)="onCanvasPointerUp($event)" (dragover)="onCanvasDragOver($event)" (drop)="onCanvasDrop($event)" (wheel)="onCanvasWheel($event)" (mousemove)="onConnectionDragMove($event)" (mouseup)="onConnectionDragEnd($event)">
+          <div class="canvas-stage" #canvasBoard [style.cursor]="isDraggingConnection ? 'crosshair' : panCursor" (pointerdown)="onCanvasPointerDown($event)" (pointermove)="onCanvasPointerMove($event)" (pointerup)="onCanvasPointerUp($event)" (dragover)="onCanvasDragOver($event)" (drop)="onCanvasDrop($event)" (wheel)="onCanvasWheel($event)" (scroll)="updateViewport()" (mousemove)="onConnectionDragMove($event)" (mouseup)="onConnectionDragEnd($event)">
             @if (pendingConnectionSource; as source) {
               <div class="connect-banner"><mat-icon>north_east</mat-icon> Connecting from <strong>{{ source.id }}</strong> <button mat-button (click)="clearPendingConnection()">Cancel</button></div>
             }
@@ -319,6 +319,7 @@
             </div>
           </div>
 
+          <app-canvas-minimap style="left: 94px; bottom: 18px" [nodes]="minimapNodes" [viewport]="viewportRect()" [label]="zoomPercent + '%'" (navigate)="onMinimapNavigate($event)"></app-canvas-minimap>
         </div>
 
         @let task = selectedTask();
