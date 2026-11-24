@@ -1,0 +1,26 @@
+{
+  "pipelineName" : "Release Cut-off",
+  "pipelineStructure" : {
+    "tasks" : [ {
+      "id" : "API - Create Primary Branch",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "GitHub",
+      "position" : {
+        "x" : 1400,
+        "y" : 1400
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ ],
+      "repoName" : "mvax-api",
+      "branch" : "release/primary/${releaseNumber}",
+      "sourceBranch" : "release/develop"
+    } ],
+    "variables" : [ {
+      "name" : "releaseNumber",
+      "label" : "",
+      "defaultValue" : "10.87",
+      "required" : true,
+      "description" : ""
+    } ]
+  }
+}
