@@ -1,5 +1,5 @@
 {
-  "environments" : [ "dev1", "int1", "qc1", "qc2", "qc5", "prod1-blue", "prod1-common" ],
+  "environments" : [ "dev1", "int1", "qc1", "qc2", "qc5", "prod1-blue", "prod1-common", "qcx" ],
   "repoProfiles" : [ {
     "name" : "mvax-api",
     "type" : "service",
