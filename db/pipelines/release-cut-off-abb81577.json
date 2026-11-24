@@ -10,7 +10,7 @@
         "y" : 1869
       },
       "conditions" : [ ],
-      "nextTaskIds" : [ ],
+      "nextTaskIds" : [ "Upgrades - PR to Main" ],
       "repoName" : "mvax-upgrades",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
@@ -23,7 +23,7 @@
         "y" : 2116
       },
       "conditions" : [ ],
-      "nextTaskIds" : [ ],
+      "nextTaskIds" : [ "Plan - PR to Main" ],
       "repoName" : "mvax-plan-services",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
@@ -36,7 +36,7 @@
         "y" : 2843
       },
       "conditions" : [ ],
-      "nextTaskIds" : [ ],
+      "nextTaskIds" : [ "Common - PR to Main" ],
       "repoName" : "mvax-common",
       "branch" : "primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
@@ -49,7 +49,7 @@
         "y" : 3077
       },
       "conditions" : [ ],
-      "nextTaskIds" : [ ],
+      "nextTaskIds" : [ "Popublation - PR to Main" ],
       "repoName" : "mvax-population-engine",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
@@ -62,7 +62,7 @@
         "y" : 1400
       },
       "conditions" : [ ],
-      "nextTaskIds" : [ ],
+      "nextTaskIds" : [ "API - PR to Main" ],
       "repoName" : "mvax-api",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
@@ -75,7 +75,7 @@
         "y" : 1617
       },
       "conditions" : [ ],
-      "nextTaskIds" : [ ],
+      "nextTaskIds" : [ "Billing - PR to Main" ],
       "repoName" : "mvax-native-billing",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
@@ -88,7 +88,7 @@
         "y" : 2604
       },
       "conditions" : [ ],
-      "nextTaskIds" : [ ],
+      "nextTaskIds" : [ "Offers - PR to Main" ],
       "repoName" : "mvax-offers",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
@@ -101,10 +101,138 @@
         "y" : 2360
       },
       "conditions" : [ ],
-      "nextTaskIds" : [ ],
+      "nextTaskIds" : [ "Adobe - PR to Main" ],
       "repoName" : "mvax-adobe-integrator",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
+    }, {
+      "id" : "Common - PR to Main",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1757,
+        "y" : 2845
+      },
+      "conditions" : [ {
+        "taskId" : "Common - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "primary/${releaseNumber}",
+      "targetBranch" : "main",
+      "repoName" : "mvax-common"
+    }, {
+      "id" : "Popublation - PR to Main",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1761,
+        "y" : 3070
+      },
+      "conditions" : [ {
+        "taskId" : "Population - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "release/primary/${releaseNumber}",
+      "targetBranch" : "main",
+      "repoName" : "mvax-population-engine"
+    }, {
+      "id" : "Offers - PR to Main",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1762,
+        "y" : 2615
+      },
+      "conditions" : [ {
+        "taskId" : "Offers - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "release/primary/${releaseNumber}",
+      "targetBranch" : "main",
+      "repoName" : "mvax-offers"
+    }, {
+      "id" : "Adobe - PR to Main",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1764,
+        "y" : 2364
+      },
+      "conditions" : [ {
+        "taskId" : "Adobe - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "release/primary/${releaseNumber}",
+      "targetBranch" : "main",
+      "repoName" : "mvax-adobe-integrator"
+    }, {
+      "id" : "Plan - PR to Main",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1771,
+        "y" : 2119
+      },
+      "conditions" : [ {
+        "taskId" : "Plan - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "release/primary/${releaseNumber}",
+      "targetBranch" : "main",
+      "repoName" : "mvax-plan-services"
+    }, {
+      "id" : "Upgrades - PR to Main",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1776,
+        "y" : 1871
+      },
+      "conditions" : [ {
+        "taskId" : "Upgrades - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "release/primary/${releaseNumber}",
+      "targetBranch" : "main",
+      "repoName" : "mvax-upgrades"
+    }, {
+      "id" : "Billing - PR to Main",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1784,
+        "y" : 1635
+      },
+      "conditions" : [ {
+        "taskId" : "Billing - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "release/primary/${releaseNumber}",
+      "targetBranch" : "main",
+      "repoName" : "mvax-native-billing"
+    }, {
+      "id" : "API - PR to Main",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 1797,
+        "y" : 1404
+      },
+      "conditions" : [ {
+        "taskId" : "API - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "release/primary/${releaseNumber}",
+      "targetBranch" : "main",
+      "repoName" : "mvax-api"
     } ],
     "variables" : [ {
       "name" : "releaseNumber",
