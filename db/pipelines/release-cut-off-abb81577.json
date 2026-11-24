@@ -2,29 +2,69 @@
   "pipelineName" : "Release Cut-off",
   "pipelineStructure" : {
     "tasks" : [ {
+      "id" : "approval-5",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 738,
+        "y" : 4898.300048828125
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "Population - Create Primary Branch" ]
+    }, {
+      "id" : "approval-4",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 743,
+        "y" : 3836
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "Common - Create Primary Branch" ]
+    }, {
+      "id" : "approval-3",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 756,
+        "y" : 2762
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "Adobe - Create Primary Branch" ]
+    }, {
+      "id" : "approval-1",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 762,
+        "y" : 661.0999755859375
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "API - Create Primary Branch" ]
+    }, {
+      "id" : "approval-2",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 772,
+        "y" : 1738
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "Upgrades - Create Primary Branch" ]
+    }, {
       "id" : "API - Create Primary Branch",
       "taskType" : "GitTask",
       "devOpsServiceFactory" : "VOIS Github",
       "position" : {
-        "x" : 1315,
-        "y" : 923
+        "x" : 1114,
+        "y" : 657
       },
-      "conditions" : [ ],
-      "nextTaskIds" : [ "API - PR to Main", "API - primary Build" ],
+      "conditions" : [ {
+        "taskId" : "approval-1",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "API - PR to Main", "API - primary Build", "build-1" ],
       "repoName" : "mvax-api",
-      "branch" : "release/primary/${releaseNumber}",
-      "sourceBranch" : "release/develop"
-    }, {
-      "id" : "Billing - Create Primary Branch",
-      "taskType" : "GitTask",
-      "devOpsServiceFactory" : "VOIS Github",
-      "position" : {
-        "x" : 1335,
-        "y" : 1405
-      },
-      "conditions" : [ ],
-      "nextTaskIds" : [ "Billing - PR to Main", "Billing - primary Build" ],
-      "repoName" : "mvax-native-billing",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
     }, {
@@ -35,23 +75,29 @@
         "x" : 1341,
         "y" : 1843
       },
-      "conditions" : [ ],
+      "conditions" : [ {
+        "taskId" : "approval-2",
+        "status" : "SUCCEEDED"
+      } ],
       "nextTaskIds" : [ "Upgrades - PR to Main", "Upgrades - primary Build" ],
       "repoName" : "mvax-upgrades",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
     }, {
-      "id" : "Plan - Create Primary Branch",
+      "id" : "Common - Create Primary Branch",
       "taskType" : "GitTask",
       "devOpsServiceFactory" : "VOIS Github",
       "position" : {
-        "x" : 1345,
-        "y" : 2287
+        "x" : 1347,
+        "y" : 3812
       },
-      "conditions" : [ ],
-      "nextTaskIds" : [ "Plan - PR to Main", "plan - primary Build" ],
-      "repoName" : "mvax-plan-services",
-      "branch" : "release/primary/${releaseNumber}",
+      "conditions" : [ {
+        "taskId" : "approval-4",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Common - PR to Main", "Common - primary Build" ],
+      "repoName" : "mvax-common",
+      "branch" : "primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
     }, {
       "id" : "Adobe - Create Primary Branch",
@@ -61,48 +107,12 @@
         "x" : 1352,
         "y" : 2676
       },
-      "conditions" : [ ],
+      "conditions" : [ {
+        "taskId" : "approval-3",
+        "status" : "SUCCEEDED"
+      } ],
       "nextTaskIds" : [ "Adobe - PR to Main", "Adobe - primary Build" ],
       "repoName" : "mvax-adobe-integrator",
-      "branch" : "release/primary/${releaseNumber}",
-      "sourceBranch" : "release/develop"
-    }, {
-      "id" : "Offers - Create Primary Branch",
-      "taskType" : "GitTask",
-      "devOpsServiceFactory" : "VOIS Github",
-      "position" : {
-        "x" : 1366,
-        "y" : 3160
-      },
-      "conditions" : [ ],
-      "nextTaskIds" : [ "Offers - PR to Main", "Offers - primary Build" ],
-      "repoName" : "mvax-offers",
-      "branch" : "release/primary/${releaseNumber}",
-      "sourceBranch" : "release/develop"
-    }, {
-      "id" : "Common - Create Primary Branch",
-      "taskType" : "GitTask",
-      "devOpsServiceFactory" : "VOIS Github",
-      "position" : {
-        "x" : 1383,
-        "y" : 3708
-      },
-      "conditions" : [ ],
-      "nextTaskIds" : [ "Common - PR to Main", "Common - primary Build" ],
-      "repoName" : "mvax-common",
-      "branch" : "primary/${releaseNumber}",
-      "sourceBranch" : "release/develop"
-    }, {
-      "id" : "Auth - Create Primary Branch",
-      "taskType" : "GitTask",
-      "devOpsServiceFactory" : "VOIS Github",
-      "position" : {
-        "x" : 1424,
-        "y" : 4796
-      },
-      "conditions" : [ ],
-      "nextTaskIds" : [ "Auth - PR to Main", "Auth - primary Build" ],
-      "repoName" : "mvax-authentication",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
     }, {
@@ -110,78 +120,17 @@
       "taskType" : "GitTask",
       "devOpsServiceFactory" : "VOIS Github",
       "position" : {
-        "x" : 1432,
-        "y" : 4331
+        "x" : 1373,
+        "y" : 4876
       },
-      "conditions" : [ ],
+      "conditions" : [ {
+        "taskId" : "approval-5",
+        "status" : "SUCCEEDED"
+      } ],
       "nextTaskIds" : [ "Population - primary Build", "Popublation - PR to Main" ],
       "repoName" : "mvax-population-engine",
       "branch" : "release/primary/${releaseNumber}",
       "sourceBranch" : "release/develop"
-    }, {
-      "id" : "Offers - primary Build",
-      "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "Azure DevOps",
-      "position" : {
-        "x" : 1760,
-        "y" : 3255
-      },
-      "conditions" : [ {
-        "taskId" : "Offers - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ "offers - Primary Deploy" ],
-      "branch" : "release/primary/${releaseNumber}",
-      "repoName" : "mvax-offers",
-      "definitionId" : "5222"
-    }, {
-      "id" : "Offers - PR to Main",
-      "taskType" : "PrTask",
-      "devOpsServiceFactory" : "VOIS Github",
-      "position" : {
-        "x" : 1769,
-        "y" : 3057
-      },
-      "conditions" : [ {
-        "taskId" : "Offers - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ ],
-      "fromBranch" : "release/primary/${releaseNumber}",
-      "targetBranch" : "main",
-      "repoName" : "mvax-offers"
-    }, {
-      "id" : "API - primary Build",
-      "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "Azure DevOps",
-      "position" : {
-        "x" : 1779,
-        "y" : 1013
-      },
-      "conditions" : [ {
-        "taskId" : "API - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ "API - Primary Deploy" ],
-      "branch" : "release/primary/${releaseNumber}",
-      "repoName" : "mvax-api",
-      "definitionId" : "997"
-    }, {
-      "id" : "Common - primary Build",
-      "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "Azure DevOps",
-      "position" : {
-        "x" : 1784,
-        "y" : 3763
-      },
-      "conditions" : [ {
-        "taskId" : "Common - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ ],
-      "branch" : "release/primary/${releaseNumber}",
-      "repoName" : "mvax-common",
-      "definitionId" : "3794"
     }, {
       "id" : "API - PR to Main",
       "taskType" : "PrTask",
@@ -199,57 +148,6 @@
       "targetBranch" : "main",
       "repoName" : "mvax-api"
     }, {
-      "id" : "Billing - PR to Main",
-      "taskType" : "PrTask",
-      "devOpsServiceFactory" : "VOIS Github",
-      "position" : {
-        "x" : 1786,
-        "y" : 1304
-      },
-      "conditions" : [ {
-        "taskId" : "Billing - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ ],
-      "fromBranch" : "release/primary/${releaseNumber}",
-      "targetBranch" : "main",
-      "repoName" : "mvax-native-billing"
-    }, {
-      "id" : "Billing - primary Build",
-      "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "Azure DevOps",
-      "position" : {
-        "x" : 1787,
-        "y" : 1518
-      },
-      "conditions" : [ {
-        "taskId" : "Billing - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      }, {
-        "taskId" : "API - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ "Billing - Primary Deploy" ],
-      "branch" : "release/primary/${releaseNumber}",
-      "repoName" : "mvax-native-billing",
-      "definitionId" : "5018"
-    }, {
-      "id" : "Common - PR to Main",
-      "taskType" : "PrTask",
-      "devOpsServiceFactory" : "VOIS Github",
-      "position" : {
-        "x" : 1789,
-        "y" : 3569
-      },
-      "conditions" : [ {
-        "taskId" : "Common - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ ],
-      "fromBranch" : "primary/${releaseNumber}",
-      "targetBranch" : "main",
-      "repoName" : "mvax-common"
-    }, {
       "id" : "Adobe - primary Build",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "Azure DevOps",
@@ -264,7 +162,8 @@
       "nextTaskIds" : [ "adobe - Primary Deploy" ],
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-adobe-integrator",
-      "definitionId" : "5281"
+      "definitionId" : "5281",
+      "buildMode" : "NEW"
     }, {
       "id" : "Adobe - PR to Main",
       "taskType" : "PrTask",
@@ -312,46 +211,52 @@
       "nextTaskIds" : [ "Upgrades - Primary Deploy" ],
       "branch" : "release/primary/${releaseNumber}",
       "repoName" : "mvax-upgrades",
-      "definitionId" : "7912"
+      "definitionId" : "7912",
+      "buildMode" : "NEW"
     }, {
-      "id" : "Plan - PR to Main",
-      "taskType" : "PrTask",
-      "devOpsServiceFactory" : "VOIS Github",
-      "position" : {
-        "x" : 1795,
-        "y" : 2193
-      },
-      "conditions" : [ {
-        "taskId" : "Plan - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ ],
-      "fromBranch" : "release/primary/${releaseNumber}",
-      "targetBranch" : "main",
-      "repoName" : "mvax-plan-services"
-    }, {
-      "id" : "plan - primary Build",
+      "id" : "Population - primary Build",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
-        "x" : 1797,
-        "y" : 2377
+        "x" : 1830,
+        "y" : 5051
       },
       "conditions" : [ {
-        "taskId" : "Plan - Create Primary Branch",
+        "taskId" : "Auth - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      }, {
+        "taskId" : "Population - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "Plan - Primary Deploy" ],
+      "nextTaskIds" : [ ],
       "branch" : "release/primary/${releaseNumber}",
-      "repoName" : "mvax-plan-services",
-      "definitionId" : "5021"
+      "repoName" : "mvax-population-engine",
+      "definitionId" : "7483",
+      "buildMode" : "NEW"
+    }, {
+      "id" : "Common - primary Build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 1850,
+        "y" : 4064
+      },
+      "conditions" : [ {
+        "taskId" : "Common - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "branch" : "release/primary/${releaseNumber}",
+      "repoName" : "mvax-common",
+      "definitionId" : "3794",
+      "buildMode" : "NEW"
     }, {
       "id" : "Popublation - PR to Main",
       "taskType" : "PrTask",
       "devOpsServiceFactory" : "VOIS Github",
       "position" : {
-        "x" : 1829,
-        "y" : 4216
+        "x" : 1863,
+        "y" : 4616
       },
       "conditions" : [ {
         "taskId" : "Auth - Create Primary Branch",
@@ -365,98 +270,55 @@
       "targetBranch" : "main",
       "repoName" : "mvax-population-engine"
     }, {
-      "id" : "Population - primary Build",
-      "taskType" : "BuildTask",
-      "devOpsServiceFactory" : "Azure DevOps",
-      "position" : {
-        "x" : 1835,
-        "y" : 4440
-      },
-      "conditions" : [ {
-        "taskId" : "Auth - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      }, {
-        "taskId" : "Population - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ ],
-      "branch" : "release/primary/${releaseNumber}",
-      "repoName" : "mvax-population-engine",
-      "definitionId" : "7483"
-    }, {
-      "id" : "Auth - PR to Main",
+      "id" : "Common - PR to Main",
       "taskType" : "PrTask",
       "devOpsServiceFactory" : "VOIS Github",
       "position" : {
-        "x" : 1855,
-        "y" : 4731
+        "x" : 1867,
+        "y" : 3598
       },
       "conditions" : [ {
-        "taskId" : "Auth - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      }, {
-        "taskId" : "Population - Create Primary Branch",
+        "taskId" : "Common - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
-      "fromBranch" : "release/primary/${releaseNumber}",
+      "fromBranch" : "primary/${releaseNumber}",
       "targetBranch" : "main",
-      "repoName" : "mvax-authentication"
+      "repoName" : "mvax-common"
     }, {
-      "id" : "Auth - primary Build",
+      "id" : "API - primary Build",
       "taskType" : "BuildTask",
       "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
-        "x" : 1871,
-        "y" : 4933
+        "x" : 2160,
+        "y" : 541
       },
       "conditions" : [ {
-        "taskId" : "Auth - Create Primary Branch",
-        "status" : "SUCCEEDED"
-      }, {
-        "taskId" : "Population - Create Primary Branch",
+        "taskId" : "API - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
-      "nextTaskIds" : [ "Auth - Primary Deploy" ],
+      "nextTaskIds" : [ "API - Primary Deploy" ],
       "branch" : "release/primary/${releaseNumber}",
-      "repoName" : "mvax-authentication",
-      "definitionId" : "3768"
+      "repoName" : "mvax-api",
+      "definitionId" : "997",
+      "buildMode" : "NEW"
     }, {
-      "id" : "offers - Primary Deploy",
-      "taskType" : "DeploymentTask",
+      "id" : "build-1",
+      "taskType" : "BuildTask",
       "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
-        "x" : 2534,
-        "y" : 3036
+        "x" : 2164,
+        "y" : 1039
       },
       "conditions" : [ {
-        "taskId" : "Offers - primary Build",
+        "taskId" : "API - Create Primary Branch",
         "status" : "SUCCEEDED"
       } ],
       "nextTaskIds" : [ ],
-      "buildTaskId" : "Offers - primary Build",
-      "repoName" : "mvax-offers",
-      "definitionId" : "2102",
-      "environment" : "qc1",
-      "description" : ""
-    }, {
-      "id" : "Billing - Primary Deploy",
-      "taskType" : "DeploymentTask",
-      "devOpsServiceFactory" : "Azure DevOps",
-      "position" : {
-        "x" : 2540,
-        "y" : 1314
-      },
-      "conditions" : [ {
-        "taskId" : "Billing - primary Build",
-        "status" : "SUCCEEDED"
-      } ],
-      "nextTaskIds" : [ ],
-      "buildTaskId" : "Billing - primary Build",
-      "repoName" : "mvax-native-billing",
-      "definitionId" : "2066",
-      "environment" : "qc1",
-      "description" : ""
+      "branch" : "main",
+      "repoName" : "mvax-api",
+      "definitionId" : "997",
+      "buildMode" : "LATEST"
     }, {
       "id" : "API - Primary Deploy",
       "taskType" : "DeploymentTask",
@@ -512,12 +374,285 @@
       "environment" : "qc1",
       "description" : ""
     }, {
+      "id" : "approval-10",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 4187,
+        "y" : 537.5999450683594
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ ]
+    }, {
+      "id" : "approval-9",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 4249,
+        "y" : 1316.0999755859375
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "Billing - Create Primary Branch" ]
+    }, {
+      "id" : "approval-8",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 4284,
+        "y" : 2543
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "Plan - Create Primary Branch" ]
+    }, {
+      "id" : "approval-7",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 4286,
+        "y" : 3774
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "Offers - Create Primary Branch" ]
+    }, {
+      "id" : "approval-6",
+      "taskType" : "ApprovalTask",
+      "devOpsServiceFactory" : "",
+      "position" : {
+        "x" : 4292,
+        "y" : 4944.800537109375
+      },
+      "conditions" : [ ],
+      "nextTaskIds" : [ "Auth - Create Primary Branch" ]
+    }, {
+      "id" : "Billing - Create Primary Branch",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 4683,
+        "y" : 1294
+      },
+      "conditions" : [ {
+        "taskId" : "approval-9",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Billing - PR to Main", "Billing - primary Build" ],
+      "repoName" : "mvax-native-billing",
+      "branch" : "release/primary/${releaseNumber}",
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "Auth - Create Primary Branch",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 4812,
+        "y" : 4937
+      },
+      "conditions" : [ {
+        "taskId" : "approval-6",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Auth - PR to Main", "Auth - primary Build" ],
+      "repoName" : "mvax-authentication",
+      "branch" : "release/primary/${releaseNumber}",
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "Offers - Create Primary Branch",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 4814,
+        "y" : 3784
+      },
+      "conditions" : [ {
+        "taskId" : "approval-7",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Offers - PR to Main", "Offers - primary Build" ],
+      "repoName" : "mvax-offers",
+      "branch" : "release/primary/${releaseNumber}",
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "Plan - Create Primary Branch",
+      "taskType" : "GitTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 4818,
+        "y" : 2565
+      },
+      "conditions" : [ {
+        "taskId" : "approval-8",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Plan - PR to Main", "plan - primary Build" ],
+      "repoName" : "mvax-plan-services",
+      "branch" : "release/primary/${releaseNumber}",
+      "sourceBranch" : "release/develop"
+    }, {
+      "id" : "Billing - PR to Main",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 5125,
+        "y" : 1088
+      },
+      "conditions" : [ {
+        "taskId" : "Billing - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "release/primary/${releaseNumber}",
+      "targetBranch" : "main",
+      "repoName" : "mvax-native-billing"
+    }, {
+      "id" : "Billing - primary Build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 5127,
+        "y" : 1542
+      },
+      "conditions" : [ {
+        "taskId" : "Billing - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      }, {
+        "taskId" : "API - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Billing - Primary Deploy" ],
+      "branch" : "release/primary/${releaseNumber}",
+      "repoName" : "mvax-native-billing",
+      "definitionId" : "5018",
+      "buildMode" : "NEW"
+    }, {
+      "id" : "Auth - PR to Main",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 5170,
+        "y" : 4742
+      },
+      "conditions" : [ {
+        "taskId" : "Auth - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      }, {
+        "taskId" : "Population - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "release/primary/${releaseNumber}",
+      "targetBranch" : "main",
+      "repoName" : "mvax-authentication"
+    }, {
+      "id" : "Auth - primary Build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 5189,
+        "y" : 5119
+      },
+      "conditions" : [ {
+        "taskId" : "Auth - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      }, {
+        "taskId" : "Population - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Auth - Primary Deploy" ],
+      "branch" : "release/primary/${releaseNumber}",
+      "repoName" : "mvax-authentication",
+      "definitionId" : "3768",
+      "buildMode" : "NEW"
+    }, {
+      "id" : "Plan - PR to Main",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 5205,
+        "y" : 2397
+      },
+      "conditions" : [ {
+        "taskId" : "Plan - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "release/primary/${releaseNumber}",
+      "targetBranch" : "main",
+      "repoName" : "mvax-plan-services"
+    }, {
+      "id" : "plan - primary Build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 5243,
+        "y" : 2822
+      },
+      "conditions" : [ {
+        "taskId" : "Plan - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "Plan - Primary Deploy" ],
+      "branch" : "release/primary/${releaseNumber}",
+      "repoName" : "mvax-plan-services",
+      "definitionId" : "5021",
+      "buildMode" : "NEW"
+    }, {
+      "id" : "Offers - primary Build",
+      "taskType" : "BuildTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 5248,
+        "y" : 4045
+      },
+      "conditions" : [ {
+        "taskId" : "Offers - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ "offers - Primary Deploy" ],
+      "branch" : "release/primary/${releaseNumber}",
+      "repoName" : "mvax-offers",
+      "definitionId" : "5222",
+      "buildMode" : "NEW"
+    }, {
+      "id" : "Offers - PR to Main",
+      "taskType" : "PrTask",
+      "devOpsServiceFactory" : "VOIS Github",
+      "position" : {
+        "x" : 5256,
+        "y" : 3581
+      },
+      "conditions" : [ {
+        "taskId" : "Offers - Create Primary Branch",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "fromBranch" : "release/primary/${releaseNumber}",
+      "targetBranch" : "main",
+      "repoName" : "mvax-offers"
+    }, {
+      "id" : "Billing - Primary Deploy",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 5550,
+        "y" : 1574
+      },
+      "conditions" : [ {
+        "taskId" : "Billing - primary Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "Billing - primary Build",
+      "repoName" : "mvax-native-billing",
+      "definitionId" : "2066",
+      "environment" : "qc1",
+      "description" : ""
+    }, {
       "id" : "Auth - Primary Deploy",
       "taskType" : "DeploymentTask",
       "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
-        "x" : 2561,
-        "y" : 4715
+        "x" : 5579,
+        "y" : 4906
       },
       "conditions" : [ {
         "taskId" : "Auth - primary Build",
@@ -534,8 +669,8 @@
       "taskType" : "DeploymentTask",
       "devOpsServiceFactory" : "Azure DevOps",
       "position" : {
-        "x" : 2562,
-        "y" : 2181
+        "x" : 5623,
+        "y" : 2783
       },
       "conditions" : [ {
         "taskId" : "plan - primary Build",
@@ -545,6 +680,24 @@
       "buildTaskId" : "plan - primary Build",
       "repoName" : "mvax-plan-services",
       "definitionId" : "2067",
+      "environment" : "qc1",
+      "description" : ""
+    }, {
+      "id" : "offers - Primary Deploy",
+      "taskType" : "DeploymentTask",
+      "devOpsServiceFactory" : "Azure DevOps",
+      "position" : {
+        "x" : 5686,
+        "y" : 4025
+      },
+      "conditions" : [ {
+        "taskId" : "Offers - primary Build",
+        "status" : "SUCCEEDED"
+      } ],
+      "nextTaskIds" : [ ],
+      "buildTaskId" : "Offers - primary Build",
+      "repoName" : "mvax-offers",
+      "definitionId" : "2102",
       "environment" : "qc1",
       "description" : ""
     } ],
