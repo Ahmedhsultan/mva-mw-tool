@@ -6,7 +6,9 @@ import com.mva.mwtool.dto.BuildDto;
 import com.mva.mwtool.dto.DevOpsCredentials;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -83,6 +85,31 @@ public class AzureBuildService implements BuildService {
 
         ResponseEntity<JsonNode> response = restTemplate.exchange(url, HttpMethod.POST, entity, JsonNode.class);
         return mapToBuildDto(response.getBody());
+    }
+
+    @Override
+    public BuildDto getLatestSuccessfulBuild(String branch, String repoId, String definitionId) {
+        String branchRef = branch.startsWith("refs/") ? branch : "refs/heads/" + branch;
+        String url = UriComponentsBuilder
+                .fromHttpUrl(String.format("%s/%s/%s/_apis/build/builds", BASE_URL, organization, project))
+                .queryParam("definitions", definitionId)
+                .queryParam("branchName", branchRef)
+                .queryParam("statusFilter", "completed")
+                .queryParam("resultFilter", "succeeded,partiallySucceeded")
+                .queryParam("queryOrder", "finishTimeDescending")
+                .queryParam("$top", 1)
+                .queryParam("api-version", API_VERSION)
+                .encode()
+                .toUriString();
+
+        HttpEntity<Void> entity = new HttpEntity<>(AzureAuthService.createHeaders(pat));
+        ResponseEntity<JsonNode> response = restTemplate.exchange(URI.create(url), HttpMethod.GET, entity, JsonNode.class);
+
+        JsonNode body = response.getBody();
+        if (body != null && body.has("value") && body.get("value").size() > 0) {
+            return mapToBuildDto(body.get("value").get(0));
+        }
+        return null;
     }
 
     @Override

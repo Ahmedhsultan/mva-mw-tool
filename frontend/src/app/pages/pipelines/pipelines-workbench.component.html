@@ -290,13 +290,13 @@
               </svg>
 
               @for (task of editorNodes; track task.editorId) {
-                <article class="pipeline-node" [attr.data-editor-id]="task.editorId" [class.selected]="selectedTask()?.editorId === task.editorId" [class.connect-source]="pendingConnectionSourceEditorId === task.editorId" [class.node-incomplete]="isTaskIncomplete(task)" cdkDrag [cdkDragBoundary]="'.canvas-zoom-layer'" [cdkDragFreeDragPosition]="task.position" (cdkDragEnded)="onNodeDragEnded(task, $event)" (click)="selectTask(task, $event)">
+                <article class="pipeline-node" [attr.data-editor-id]="task.editorId" [class.selected]="selectedTask()?.editorId === task.editorId" [class.connect-source]="pendingConnectionSourceEditorId === task.editorId" [class.node-incomplete]="isTaskIncomplete(task)" [class.dragging]="draggingEditorId === task.editorId" [style.transform]="nodeTransform(task)" (pointerdown)="onNodePointerDown(task, $event)" (pointermove)="onNodePointerMove($event)" (pointerup)="onNodePointerUp($event)" (pointercancel)="onNodePointerUp($event)" (click)="onNodeClick(task, $event)">
                   <button type="button" class="port port-top" (mousedown)="onPortDragStart(task.editorId, $event)" (click)="onPortClick(task.editorId, $event)"></button>
                   <button type="button" class="port port-right" (mousedown)="onPortDragStart(task.editorId, $event)" (click)="onPortClick(task.editorId, $event)"></button>
                   <button type="button" class="port port-bottom" (mousedown)="onPortDragStart(task.editorId, $event)" (click)="onPortClick(task.editorId, $event)"></button>
                   <button type="button" class="port port-left" (mousedown)="onPortDragStart(task.editorId, $event)" (click)="onPortClick(task.editorId, $event)"></button>
                   <header class="node-header">
-                    <div class="node-type-pill node-drag-handle" cdkDragHandle><mat-icon>{{ taskIcon(task.taskType) }}</mat-icon> {{ taskLabel(task.taskType) }}</div>
+                    <div class="node-type-pill node-drag-handle"><mat-icon>{{ taskIcon(task.taskType) }}</mat-icon> {{ taskLabel(task.taskType) }}</div>
                     <div class="node-actions">
                       <button mat-icon-button type="button" class="inline-icon-btn node-config-btn" (pointerdown)="$event.stopPropagation()" (click)="selectTask(task, $event)" matTooltip="Configure task">
                         <mat-icon>tune</mat-icon>
@@ -359,6 +359,16 @@
               }
               @switch (task.taskType) {
                 @case ('BuildTask') {
+                  <mat-form-field appearance="outline"><mat-label>Build mode</mat-label>
+                    <mat-icon matPrefix>{{ task.buildMode === 'LATEST' ? 'history' : 'play_circle' }}</mat-icon>
+                    <mat-select required [(ngModel)]="task.buildMode">
+                      <mat-option value="NEW">Run new build</mat-option>
+                      <mat-option value="LATEST">Reuse latest successful build</mat-option>
+                    </mat-select>
+                    @if (task.buildMode === 'LATEST') {
+                      <mat-hint>Picks the latest successful build of this branch for downstream deploys.</mat-hint>
+                    }
+                  </mat-form-field>
                   <mat-form-field appearance="outline"><mat-label>Branch</mat-label><input matInput required [(ngModel)]="task.branch"></mat-form-field>
                 }
                 @case ('DeploymentTask') {

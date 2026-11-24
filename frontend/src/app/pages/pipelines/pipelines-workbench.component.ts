@@ -1,4 +1,3 @@
-import { CdkDragEnd, DragDropModule } from '@angular/cdk/drag-drop';
 import { Overlay, OverlayModule, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, TemplateRef, ViewChild, ViewContainerRef, signal } from '@angular/core';
@@ -149,7 +148,6 @@ class ImmediateErrorStateMatcher implements ErrorStateMatcher {
   standalone: true,
   imports: [
     FormsModule,
-    DragDropModule,
     OverlayModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -204,7 +202,6 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   deletingPipelineName = '';
   pipelinesError = '';
   runsError = '';
-  canvasZoom = 1;
   repoProfiles: RepoProfile[] = [];
   configuredEnvironments: string[] = [];
   taskCatalogError = '';
@@ -219,6 +216,27 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   private panScrollX = 0;
   private panScrollY = 0;
   private panMoved = false;
+  // Signals keep the overlay-rendered canvas in sync outside template event handlers (RAF, pointer capture).
+  private readonly zoomState = signal(1);
+  private readonly canvasTick = signal(0);
+  private readonly minZoom = 0.25;
+  private readonly maxZoom = 2;
+  private zoomTarget = 1;
+  private zoomAnchor: Point | null = null;
+  private zoomFrame = 0;
+  private nodeDrag: {
+    task: EditorPipelineTaskNode;
+    pointerId: number;
+    startClientX: number;
+    startClientY: number;
+    startScrollLeft: number;
+    startScrollTop: number;
+    originX: number;
+    originY: number;
+    moved: boolean;
+  } | null = null;
+  private suppressNodeClick = false;
+  draggingEditorId: string | null = null;
   private readonly canvasOriginX = 80;
   private readonly canvasOriginY = 80;
   private readonly initialViewportX = 1000;
@@ -261,7 +279,21 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     return this.buildValidationSummary();
   }
 
+  get canvasZoom(): number {
+    return this.zoomState();
+  }
+
+  set canvasZoom(value: number) {
+    this.zoomState.set(value);
+  }
+
+  nodeTransform(task: EditorPipelineTaskNode): string {
+    this.canvasTick();
+    return `translate(${task.position.x}px, ${task.position.y}px)`;
+  }
+
   get smartEdges(): SmartEdge[] {
+    this.canvasTick();
     const nodeById = new Map(this.editorNodes.map(node => [node.id, node]));
     const edges: SmartEdge[] = [];
 
@@ -355,7 +387,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
 
   openBuilderWindow(): void {
     this.isBuilderWindowOpen = true;
-    this.canvasZoom = 1;
+    this.setZoomImmediate(1);
     if (!this.overlayRef) {
       this.overlayRef = this.overlay.create({
         hasBackdrop: false,
@@ -386,18 +418,21 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    cancelAnimationFrame(this.zoomFrame);
     this.overlayRef?.dispose();
   }
 
-  zoomIn(): void { this.canvasZoom = Math.min(2, +(this.canvasZoom + 0.1).toFixed(2)); }
-  zoomOut(): void { this.canvasZoom = Math.max(0.25, +(this.canvasZoom - 0.1).toFixed(2)); }
-  resetZoom(): void { this.canvasZoom = 1; }
+  zoomIn(): void { this.zoomAround(this.zoomTarget * 1.2); }
+  zoomOut(): void { this.zoomAround(this.zoomTarget / 1.2); }
+  resetZoom(): void { this.zoomAround(1); }
 
   onCanvasWheel(event: WheelEvent): void {
     if (event.ctrlKey || event.metaKey) {
       event.preventDefault();
-      const delta = event.deltaY > 0 ? -0.05 : 0.05;
-      this.canvasZoom = Math.min(2, Math.max(0.25, +(this.canvasZoom + delta).toFixed(2)));
+      // Trackpad pinch sends small deltas, mouse wheels send large ones; clamp so both feel continuous.
+      const rawDelta = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
+      const delta = Math.max(-60, Math.min(60, rawDelta));
+      this.zoomAround(this.zoomTarget * Math.exp(-delta * 0.006), event.clientX, event.clientY);
     } else if (this.canvasBoard) {
       // Allow free panning with trackpad/scroll in all directions
       event.preventDefault();
@@ -422,12 +457,120 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     const contentH = maxY - minY + 100;
 
     const zoom = Math.min(1.2, Math.max(0.3, Math.min(viewW / contentW, viewH / contentH) * 0.85));
-    this.canvasZoom = +zoom.toFixed(2);
+    this.setZoomImmediate(+zoom.toFixed(2));
 
     setTimeout(() => {
       el.scrollLeft = Math.max(0, (minX - 50) * this.canvasZoom);
       el.scrollTop = Math.max(0, (minY - 50) * this.canvasZoom);
     });
+  }
+
+  private setZoomImmediate(zoom: number): void {
+    cancelAnimationFrame(this.zoomFrame);
+    this.zoomFrame = 0;
+    this.zoomAnchor = null;
+    this.zoomTarget = zoom;
+    this.canvasZoom = zoom;
+  }
+
+  private zoomAround(target: number, clientX?: number, clientY?: number): void {
+    this.zoomTarget = Math.min(this.maxZoom, Math.max(this.minZoom, target));
+    const el = this.canvasBoard?.nativeElement;
+    if (!el) {
+      this.setZoomImmediate(this.zoomTarget);
+      return;
+    }
+    if (clientX === undefined || clientY === undefined) {
+      const rect = el.getBoundingClientRect();
+      clientX = rect.left + rect.width / 2;
+      clientY = rect.top + rect.height / 2;
+    }
+    this.zoomAnchor = { x: clientX, y: clientY };
+    if (!this.zoomFrame) {
+      this.zoomFrame = requestAnimationFrame(this.stepZoom);
+    }
+  }
+
+  private readonly stepZoom = (): void => {
+    this.zoomFrame = 0;
+    const current = this.canvasZoom;
+    const diff = this.zoomTarget - current;
+    const next = Math.abs(diff) < 0.002 ? this.zoomTarget : current + diff * 0.3;
+
+    const el = this.canvasBoard?.nativeElement;
+    const layer = el?.querySelector('.canvas-zoom-layer') as HTMLElement | null;
+    if (el && layer && this.zoomAnchor) {
+      // Keep the canvas point under the anchor fixed while scaling.
+      const rect = el.getBoundingClientRect();
+      const offsetX = this.zoomAnchor.x - rect.left;
+      const offsetY = this.zoomAnchor.y - rect.top;
+      const pointX = (el.scrollLeft + offsetX - layer.offsetLeft) / current;
+      const pointY = (el.scrollTop + offsetY - layer.offsetTop) / current;
+      layer.style.transform = `scale(${next})`;
+      el.scrollLeft = pointX * next + layer.offsetLeft - offsetX;
+      el.scrollTop = pointY * next + layer.offsetTop - offsetY;
+    }
+
+    this.canvasZoom = next;
+    if (next !== this.zoomTarget) {
+      this.zoomFrame = requestAnimationFrame(this.stepZoom);
+    }
+  };
+
+  onNodePointerDown(task: EditorPipelineTaskNode, event: PointerEvent): void {
+    if (event.button !== 0 || !this.canvasBoard) return;
+    const target = event.target as HTMLElement;
+    if (target.closest('button, .port, input, textarea')) return;
+
+    const el = this.canvasBoard.nativeElement;
+    this.nodeDrag = {
+      task,
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startScrollLeft: el.scrollLeft,
+      startScrollTop: el.scrollTop,
+      originX: task.position.x,
+      originY: task.position.y,
+      moved: false
+    };
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  }
+
+  onNodePointerMove(event: PointerEvent): void {
+    const drag = this.nodeDrag;
+    if (!drag || event.pointerId !== drag.pointerId || !this.canvasBoard) return;
+
+    const el = this.canvasBoard.nativeElement;
+    const screenDx = event.clientX - drag.startClientX + el.scrollLeft - drag.startScrollLeft;
+    const screenDy = event.clientY - drag.startClientY + el.scrollTop - drag.startScrollTop;
+    if (!drag.moved && Math.abs(screenDx) + Math.abs(screenDy) < 3) return;
+
+    drag.moved = true;
+    this.draggingEditorId = drag.task.editorId;
+    drag.task.position = {
+      x: Math.min(this.canvasWidth - this.nodeWidth - 40, Math.max(40, drag.originX + screenDx / this.canvasZoom)),
+      y: Math.min(this.canvasHeight - this.nodeHeight - 40, Math.max(40, drag.originY + screenDy / this.canvasZoom))
+    };
+    this.canvasTick.update(tick => tick + 1);
+  }
+
+  onNodePointerUp(event: PointerEvent): void {
+    const drag = this.nodeDrag;
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    this.suppressNodeClick = drag.moved;
+    this.nodeDrag = null;
+    this.draggingEditorId = null;
+    this.canvasTick.update(tick => tick + 1);
+  }
+
+  onNodeClick(task: EditorPipelineTaskNode, event: MouseEvent): void {
+    if (this.suppressNodeClick) {
+      this.suppressNodeClick = false;
+      event.stopPropagation();
+      return;
+    }
+    this.selectTask(task, event);
   }
 
   onCanvasPointerDown(event: PointerEvent): void {
@@ -756,14 +899,6 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
     this.addTask(taskType, position);
   }
 
-  onNodeDragEnded(task: EditorPipelineTaskNode, event: CdkDragEnd): void {
-    const position = event.source.getFreeDragPosition();
-    task.position = {
-      x: Math.min(this.canvasWidth - this.nodeWidth - 40, Math.max(40, position.x)),
-      y: Math.min(this.canvasHeight - this.nodeHeight - 40, Math.max(40, position.y))
-    };
-  }
-
   selectTask(task: EditorPipelineTaskNode, event?: Event): void {
     this.openTaskConfig(task, event);
   }
@@ -1003,7 +1138,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
   nodeSummary(node: PipelineTaskNode): string {
     switch (node.taskType) {
       case 'BuildTask':
-        return `${node.repoName || 'repo'} • ${node.branch || 'branch'} • definition ${node.definitionId || 'n/a'}`;
+        return `${node.buildMode === 'LATEST' ? 'Reuse latest' : 'New build'} • ${node.repoName || 'repo'} • ${node.branch || 'branch'} • definition ${node.definitionId || 'n/a'}`;
       case 'DeploymentTask':
         return `${node.environment || 'environment'} • build ${node.buildTaskId || 'missing'} • definition ${node.definitionId || 'n/a'}`;
       case 'ApprovalTask':
@@ -1231,6 +1366,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       branch: '',
       repoName: '',
       definitionId: '',
+      buildMode: 'NEW',
       buildTaskId: '',
       environment: taskType === 'DeploymentTask' ? (this.configuredEnvironments[0] || 'production') : '',
       description: '',
@@ -1377,6 +1513,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
       branch: task.branch || '',
       repoName: task.repoName || '',
       definitionId: task.definitionId || '',
+      buildMode: task.buildMode === 'LATEST' ? 'LATEST' : 'NEW',
       buildTaskId: task.buildTaskId || '',
       environment: task.environment || '',
       description: task.description || '',
@@ -1493,6 +1630,7 @@ export class PipelinesWorkbenchComponent implements OnInit, OnDestroy {
         task.branch = node.branch?.trim() || '';
         task.repoName = node.repoName?.trim() || '';
         task.definitionId = node.definitionId?.trim() || '';
+        task.buildMode = node.buildMode === 'LATEST' ? 'LATEST' : 'NEW';
         break;
       case 'DeploymentTask':
         task.buildTaskId = node.buildTaskId?.trim() || '';

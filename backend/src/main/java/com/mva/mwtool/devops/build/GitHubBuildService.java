@@ -6,7 +6,9 @@ import com.mva.mwtool.dto.BuildDto;
 import com.mva.mwtool.dto.DevOpsCredentials;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -75,6 +77,26 @@ public class GitHubBuildService implements BuildService {
         dto.setSourceBranch(branch);
         dto.setDefinitionId(definitionId);
         return dto;
+    }
+
+    @Override
+    public BuildDto getLatestSuccessfulBuild(String branch, String repoId, String definitionId) {
+        String url = UriComponentsBuilder
+                .fromHttpUrl(String.format("%s/repos/%s/%s/actions/workflows/%s/runs", BASE_URL, organization, repoId, definitionId))
+                .queryParam("branch", branch)
+                .queryParam("status", "success")
+                .queryParam("per_page", 1)
+                .encode()
+                .toUriString();
+
+        HttpEntity<Void> entity = new HttpEntity<>(GitHubAuthService.createHeaders(pat));
+        ResponseEntity<JsonNode> response = restTemplate.exchange(URI.create(url), HttpMethod.GET, entity, JsonNode.class);
+
+        JsonNode body = response.getBody();
+        if (body != null && body.has("workflow_runs") && body.get("workflow_runs").size() > 0) {
+            return mapToBuildDto(body.get("workflow_runs").get(0));
+        }
+        return null;
     }
 
     @Override

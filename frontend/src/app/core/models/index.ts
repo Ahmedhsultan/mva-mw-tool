@@ -105,6 +105,8 @@ export type GitAction = 'PUSH_FILE' | 'CREATE_BRANCH';
 
 export type PipelineTaskType = 'BuildTask' | 'DeploymentTask' | 'ApprovalTask' | 'GitTask' | 'PrTask';
 
+export type BuildMode = 'NEW' | 'LATEST';
+
 export type PipelineTaskStatus =
   | 'PENDING'
   | 'RUNNING'
@@ -147,6 +149,7 @@ export interface PipelineTaskNode {
   branch?: string;
   repoName?: string;
   definitionId?: string;
+  buildMode?: BuildMode;
   buildTaskId?: string;
   environment?: string;
   description?: string;

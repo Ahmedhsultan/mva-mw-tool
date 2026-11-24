@@ -12,5 +12,8 @@ public interface BuildService {
 
     BuildDto createBuild(String branch, String repoId, String definitionId);
 
+    /** Returns the most recent successfully completed build for the branch and definition, or null if none. */
+    BuildDto getLatestSuccessfulBuild(String branch, String repoId, String definitionId);
+
     void cancelBuild(String buildId);
 }
